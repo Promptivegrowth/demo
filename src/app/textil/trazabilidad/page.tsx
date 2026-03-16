@@ -8,6 +8,7 @@ import {
     ShieldCheck, Truck, ShoppingBag, Info
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const TIMELINE_DATA = [
     {
@@ -84,7 +85,13 @@ export default function TrazabilidadLotes() {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <button className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-brand-purple text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                        <button
+                            onClick={() => {
+                                if (!searchTerm) return toast.info("Ingresa un ID de lote para rastrear")
+                                toast.success(`Rastreando lote ${searchTerm.toUpperCase()}...`)
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-brand-purple text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                        >
                             Buscar
                         </button>
                     </div>

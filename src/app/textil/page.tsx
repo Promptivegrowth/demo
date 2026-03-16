@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 const kpis = [
     { label: 'Órdenes Activas', value: '24', change: '+3 vs semana anterior', icon: Factory, color: 'text-brand-purple' },
@@ -91,13 +92,13 @@ const modules = [
 ]
 
 const processFlow = [
-    { label: 'Pedido CRM', status: 'completed', icon: ShoppingBag },
-    { label: 'Orden Prod.', status: 'completed', icon: Factory },
-    { label: 'Materiales', status: 'active', icon: Layers },
-    { label: 'Programación', status: 'pending', icon: CalendarDays },
-    { label: 'Producción', status: 'pending', icon: Shirt },
-    { label: 'QC', status: 'pending', icon: ClipboardCheck },
-    { label: 'Facturación', status: 'pending', icon: DollarSign },
+    { label: 'Pedido CRM', status: 'completed', icon: ShoppingBag, time: 'Lunes 08:00 AM' },
+    { label: 'Orden Prod.', status: 'completed', icon: Factory, time: 'Lunes 10:30 AM' },
+    { label: 'Materiales', status: 'completed', icon: Layers, time: 'Martes 09:15 AM' },
+    { label: 'Programación', status: 'active', icon: CalendarDays, time: 'En Proceso' },
+    { label: 'Producción', status: 'pending', icon: Shirt, time: 'Esperando' },
+    { label: 'QC', status: 'pending', icon: ClipboardCheck, time: 'Pendiente' },
+    { label: 'Facturación', status: 'pending', icon: DollarSign, time: 'Pendiente' },
 ]
 
 export default function TextilHub() {
@@ -220,24 +221,40 @@ export default function TextilHub() {
                 </div>
                 <div className="flex items-center justify-between px-4 overflow-x-auto gap-8 no-scrollbar pb-2">
                     {processFlow.map((step, i) => (
-                        <div key={step.label} className="flex items-center gap-8 group">
-                            <div className="flex flex-col items-center gap-3 min-w-[100px]">
-                                <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 ${step.status === 'completed' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' :
-                                    step.status === 'active' ? 'bg-brand-purple text-white shadow-[0_0_15px_rgba(124,58,237,0.3)]' :
-                                        'bg-muted text-muted-foreground/40 border border-border/60'
-                                    }`}>
-                                    <step.icon className="h-5 w-5" />
+                        <div key={step.label} className="flex items-center gap-8 group flex-shrink-0">
+                            <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                className="flex flex-col items-center gap-3 min-w-[100px] cursor-help relative"
+                            >
+                                <div className={cn("h-14 w-14 rounded-full flex items-center justify-center transition-all duration-500 border-2",
+                                    step.status === 'completed' ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]' :
+                                        step.status === 'active' ? 'bg-brand-purple border-brand-purple text-white shadow-[0_0_25px_rgba(124,58,237,0.4)] animate-pulse' :
+                                            'bg-muted text-muted-foreground/40 border-border/60'
+                                )}>
+                                    <step.icon className="h-6 w-6" />
                                 </div>
-                                <span className={`text-[10px] font-black uppercase tracking-tighter text-center whitespace-nowrap ${step.status === 'pending' ? 'text-muted-foreground/40' : 'text-foreground'
-                                    }`}>
-                                    {step.label}
-                                </span>
-                            </div>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className={cn("text-[10px] font-black uppercase tracking-tighter text-center whitespace-nowrap",
+                                        step.status === 'pending' ? 'text-muted-foreground/40' : 'text-foreground'
+                                    )}>
+                                        {step.label}
+                                    </span>
+                                    {step.status !== 'pending' && (
+                                        <span className="text-[8px] font-bold text-muted-foreground/60 uppercase">{step.time}</span>
+                                    )}
+                                </div>
+
+                                {/* Hover Tooltip Simulation */}
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[9px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none uppercase tracking-widest backdrop-blur-md">
+                                    {step.status === 'completed' ? 'Paso Validado' : step.status === 'active' ? 'Ejecutando...' : 'En Cola'}
+                                </div>
+                            </motion.div>
                             {i < processFlow.length - 1 && (
-                                <div className={`flex items-center gap-1 ${step.status === 'completed' ? 'text-emerald-500/30' : 'text-border'}`}>
-                                    <div className={`w-12 h-[2px] rounded-full ${step.status === 'completed' ? 'bg-emerald-500/50' : 'bg-border/50'
-                                        }`} />
-                                    <ArrowRight className="h-3 w-3" />
+                                <div className={cn("flex items-center gap-1", step.status === 'completed' ? 'text-emerald-500/30' : 'text-border')}>
+                                    <div className={cn("w-12 h-[2px] rounded-full transition-colors duration-1000",
+                                        step.status === 'completed' ? 'bg-emerald-500/50' : 'bg-border/50'
+                                    )} />
+                                    <ArrowRight className="h-4 w-4" />
                                 </div>
                             )}
                         </div>

@@ -8,9 +8,21 @@ import {
     Share2, Download, CheckCircle2, MoreVertical,
     Clock, Filter, ChevronRight, Info, Layers, Settings
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-const FICHAS_DATA = [
+interface Ficha {
+    id: string
+    name: string
+    season: string
+    type: string
+    status: string
+    image: string
+    gender?: string
+    collection?: string
+}
+
+const INITIAL_FICHAS: Ficha[] = [
     { id: 'FT-2026-P01', name: 'Polo Pima Jersey', season: 'Invierno 2026', type: 'Casual', status: 'En Producción', image: '/textil/tech_pack.png' },
     { id: 'FT-2026-H02', name: 'Hoodie Oversized', season: 'Invierno 2026', type: 'Sport', status: 'Aprobada', image: '/textil/tech_pack.png' },
     { id: 'FT-2026-P03', name: 'Pantalón Dril', season: 'Primavera 2026', type: 'Formal', status: 'Borrador', image: '/textil/tech_pack.png' },
@@ -20,70 +32,153 @@ const FICHAS_DATA = [
 ]
 
 export default function FichaTecnica() {
+    const [fichas, setFichas] = useState<Ficha[]>(INITIAL_FICHAS)
     const [searchTerm, setSearchTerm] = useState('')
+    const [filterSeason, setFilterSeason] = useState('Todas')
+    const [filterType, setFilterType] = useState('Todas')
     const [selectedFicha, setSelectedFicha] = useState<any>(null)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [newFicha, setNewFicha] = useState<Partial<Ficha>>({
+        name: '',
+        type: 'Casual',
+        season: 'Invierno 2026',
+        status: 'Borrador'
+    })
+
+    const filteredFichas = fichas.filter(f => {
+        const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase()) || f.id.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesSeason = filterSeason === 'Todas' || f.season === filterSeason
+        const matchesType = filterType === 'Todas' || f.type === filterType
+        return matchesSearch && matchesSeason && matchesType
+    })
+
+    const handleCreateFicha = () => {
+        if (!newFicha.name) return toast.error('El nombre es obligatorio')
+
+        const id = `FT-2026-${Math.random().toString(36).substr(2, 3).toUpperCase()}`
+        const newItem: Ficha = {
+            ...newFicha as Ficha,
+            id,
+            image: '/textil/tech_pack.png',
+        }
+
+        setFichas([newItem, ...fichas])
+        setIsDrawerOpen(false)
+        setNewFicha({ name: '', type: 'Casual', season: 'Invierno 2026', status: 'Borrador' })
+        toast.success(`Ficha ${id} creada exitosamente`)
+    }
+
+    const [isExporting, setIsExporting] = useState(false)
+
+    const handleExport = () => {
+        setIsExporting(true)
+        const promise = new Promise(res => setTimeout(res, 2000))
+        toast.promise(promise, {
+            loading: 'Generando PDF técnico - Tech Pack...',
+            success: () => {
+                setIsExporting(false)
+                return 'Tech Pack exportado correctamente (PDF)'
+            },
+            error: 'Error al exportar Tech Pack'
+        })
+    }
 
     return (
         <div className="space-y-6">
             {/* Header / Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por código o nombre..."
-                        className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-card/50 p-4 rounded-3xl border border-border/50">
+                <div className="flex flex-col md:flex-row gap-4 flex-1">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por código o nombre..."
+                            className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex gap-2">
+                        <select
+                            value={filterSeason}
+                            onChange={(e) => setFilterSeason(e.target.value)}
+                            className="text-xs font-bold py-2 px-4 bg-card border border-border rounded-xl outline-none focus:ring-2 focus:ring-brand-purple/20"
+                        >
+                            <option>Todas las Temporadas</option>
+                            <option>Invierno 2026</option>
+                            <option>Primavera 2026</option>
+                        </select>
+                        <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className="text-xs font-bold py-2 px-4 bg-card border border-border rounded-xl outline-none focus:ring-2 focus:ring-brand-purple/20"
+                        >
+                            <option>Todas las Categorías</option>
+                            <option>Casual</option>
+                            <option>Sport</option>
+                            <option>Formal</option>
+                        </select>
+                    </div>
                 </div>
-                <button className="flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-purple text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-purple/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+
+                <button
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-purple text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-purple/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
                     <Plus className="h-4 w-4" />
                     Nueva Ficha Técnica
                 </button>
             </div>
 
             {/* Grid of Tech Packs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {FICHAS_DATA.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()) || f.id.includes(searchTerm)).map((ficha, i) => (
-                    <motion.div
-                        key={ficha.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        onClick={() => setSelectedFicha(ficha)}
-                        className="group bg-card rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-xl hover:border-brand-purple/30 transition-all cursor-pointer flex flex-col"
-                    >
-                        <div className="h-40 bg-muted/30 relative flex items-center justify-center overflow-hidden border-b border-border">
-                            <div className="absolute top-3 left-3 flex gap-2 z-10">
-                                <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm backdrop-blur-md",
-                                    ficha.status === 'En Producción' ? 'bg-emerald-500/80 text-white border-emerald-400' :
-                                        ficha.status === 'Aprobada' ? 'bg-brand-purple/80 text-white border-brand-purple/40' :
-                                            'bg-white/80 text-slate-500 border-slate-200'
-                                )}>
-                                    {ficha.status}
-                                </span>
+            {filteredFichas.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredFichas.map((ficha, i) => (
+                        <motion.div
+                            key={ficha.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            onClick={() => setSelectedFicha(ficha)}
+                            className="group bg-card rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-xl hover:border-brand-purple/30 transition-all cursor-pointer flex flex-col"
+                        >
+                            <div className="h-40 bg-muted/30 relative flex items-center justify-center overflow-hidden border-b border-border">
+                                <div className="absolute top-3 left-3 flex gap-2 z-10">
+                                    <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm backdrop-blur-md",
+                                        ficha.status === 'En Producción' ? 'bg-emerald-500/80 text-white border-emerald-400' :
+                                            ficha.status === 'Aprobada' ? 'bg-brand-purple/80 text-white border-brand-purple/40' :
+                                                'bg-white/80 text-slate-500 border-slate-200'
+                                    )}>
+                                        {ficha.status}
+                                    </span>
+                                </div>
+                                <img
+                                    src={ficha.image}
+                                    alt={ficha.name}
+                                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                />
                             </div>
-                            <img
-                                src={ficha.image}
-                                alt={ficha.name}
-                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            />
-                        </div>
-                        <div className="p-4 flex-1 flex flex-col gap-1">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black text-brand-purple uppercase tracking-tight">{ficha.id}</span>
-                                <MoreVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="p-4 flex-1 flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black text-brand-purple uppercase tracking-tight">{ficha.id}</span>
+                                    <MoreVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <h3 className="font-bold text-sm text-foreground mb-1">{ficha.name}</h3>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                                    <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {ficha.type}</span>
+                                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {ficha.season}</span>
+                                </div>
                             </div>
-                            <h3 className="font-bold text-sm text-foreground mb-1">{ficha.name}</h3>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
-                                <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {ficha.type}</span>
-                                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {ficha.season}</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center py-20 bg-card/30 rounded-3xl border border-dashed border-border">
+                    <Search className="h-12 w-12 text-muted-foreground/20 mb-4" />
+                    <p className="text-muted-foreground font-bold">No se encontraron fichas técnicas con estos filtros</p>
+                </div>
+            )}
 
             {/* Modal Detail */}
             <AnimatePresence>
@@ -120,7 +215,7 @@ export default function FichaTecnica() {
                                     <button className="p-2.5 rounded-xl border border-border hover:bg-muted text-muted-foreground transition-all">
                                         <Share2 className="h-5 w-5" />
                                     </button>
-                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-brand-purple text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-purple/20 hover:scale-[1.02] transition-all">
+                                    <button onClick={handleExport} className="flex items-center gap-2 px-5 py-2.5 bg-brand-purple text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-purple/20 hover:scale-[1.02] transition-all">
                                         <Download className="h-4 w-4" />
                                         Exportar PDF
                                     </button>
@@ -268,6 +363,104 @@ export default function FichaTecnica() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* New Tech Pack Drawer */}
+            <AnimatePresence>
+                {isDrawerOpen && (
+                    <div className="fixed inset-0 z-[110] flex justify-end">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsDrawerOpen(false)}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="relative w-full max-w-lg bg-card border-l border-border h-full shadow-2xl p-8 flex flex-col"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h2 className="text-xl font-black uppercase tracking-tighter">Nueva Ficha Técnica</h2>
+                                    <p className="text-xs text-muted-foreground font-bold">Registro de nuevo Tech Pack</p>
+                                </div>
+                                <button onClick={() => setIsDrawerOpen(false)} className="p-2 hover:bg-muted rounded-xl">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6 flex-1 overflow-y-auto pr-2 no-scrollbar">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">Nombre del Producto</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-brand-purple/20 outline-none font-bold"
+                                        placeholder="Ej. Polo Box Pima"
+                                        value={newFicha.name}
+                                        onChange={(e) => setNewFicha({ ...newFicha, name: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">Temporada</label>
+                                        <select
+                                            className="w-full p-3 bg-muted/30 border border-border rounded-xl font-bold"
+                                            value={newFicha.season}
+                                            onChange={(e) => setNewFicha({ ...newFicha, season: e.target.value })}
+                                        >
+                                            <option>Invierno 2026</option>
+                                            <option>Primavera 2026</option>
+                                            <option>Verano 2026</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">Categoría</label>
+                                        <select
+                                            className="w-full p-3 bg-muted/30 border border-border rounded-xl font-bold"
+                                            value={newFicha.type}
+                                            onChange={(e) => setNewFicha({ ...newFicha, type: e.target.value })}
+                                        >
+                                            <option>Casual</option>
+                                            <option>Sport</option>
+                                            <option>Formal</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-brand-purple/5 rounded-2xl border border-brand-purple/10">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <Settings className="h-4 w-4 text-brand-purple" />
+                                        <span className="text-[10px] font-black uppercase text-brand-purple">Información Adicional</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                                        Al crear la ficha, se generará una tabla de medidas estándar que podrás editar posteriormente.
+                                        La imagen se asignará automáticamente del catálogo base.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-border mt-auto flex gap-3">
+                                <button
+                                    onClick={() => setIsDrawerOpen(false)}
+                                    className="flex-1 py-3 border border-border rounded-xl text-xs font-black uppercase tracking-widest hover:bg-muted transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleCreateFicha}
+                                    className="flex-2 px-8 py-3 bg-brand-purple text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-brand-purple/20 hover:scale-[1.02] transition-all"
+                                >
+                                    Guardar Ficha
+                                </button>
                             </div>
                         </motion.div>
                     </div>

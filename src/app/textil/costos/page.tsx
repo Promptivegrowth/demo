@@ -8,6 +8,7 @@ import {
     ChevronDown, ChevronUp, MoreHorizontal, Search, CheckCircle2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const COST_SUMMARY = [
     { label: 'Costo Total Mes', value: 'S/ 142,500', target: 'S/ 150,000', status: 'within' },
@@ -61,6 +62,19 @@ const COSTS_DATA = [
 export default function CostosProduccion() {
     const [searchTerm, setSearchTerm] = useState('')
     const [expandedOT, setExpandedOT] = useState<string | null>(null)
+    const [isRecalculating, setIsRecalculating] = useState(false)
+
+    const handleRecalculate = () => {
+        setIsRecalculating(true)
+        toast.promise(new Promise(res => setTimeout(res, 1500)), {
+            loading: 'Recalculando márgenes y variaciones...',
+            success: () => {
+                setIsRecalculating(false)
+                return 'Análisis actualizado con datos de facturación real.'
+            },
+            error: 'Error al sincronizar datos'
+        })
+    }
 
     return (
         <div className="space-y-8 pb-10">
@@ -96,15 +110,24 @@ export default function CostosProduccion() {
                         <PieChart className="h-4 w-4 text-brand-purple" />
                         Análisis de Costos por Orden
                     </h2>
-                    <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                            type="text"
-                            placeholder="Filtrar por OT..."
-                            className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-brand-purple/20 transition-all"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <button
+                            onClick={handleRecalculate}
+                            disabled={isRecalculating}
+                            className="flex items-center gap-2 px-4 py-2 bg-muted/50 border border-border rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-muted transition-all active:scale-95 disabled:opacity-50"
+                        >
+                            <TrendingUp className="h-4 w-4 text-brand-purple" /> Recalcular
+                        </button>
+                        <div className="relative flex-1 md:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <input
+                                type="text"
+                                placeholder="Filtrar por OT..."
+                                className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-brand-purple/20 transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
 
