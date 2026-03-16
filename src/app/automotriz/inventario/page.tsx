@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Package, Search, Scan, Filter,
@@ -32,8 +32,16 @@ export default function InventarioAutomotriz() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isImporting, setIsImporting] = useState(false)
     const [importProgress, setImportProgress] = useState(0)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handleImport = () => {
+    const handleImportClick = () => {
+        fileInputRef.current?.click()
+    }
+
+    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
         setIsImporting(true)
         setImportProgress(0)
         let progress = 0
@@ -44,21 +52,32 @@ export default function InventarioAutomotriz() {
                 clearInterval(interval)
                 setTimeout(() => {
                     setIsImporting(false)
-                    toast.success('150 productos importados desde Excel exitosamente')
+                    toast.success(`Archivo "${file.name}" importado exitosamente`)
+                    // Reset input
+                    if (fileInputRef.current) fileInputRef.current.value = ''
                 }, 500)
             }
         }, 300)
     }
 
     const handleExport = (type: string) => {
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 1500)),
-            {
-                loading: `Generando archivo ${type}...`,
-                success: `Inventario exportado a ${type} correctamente`,
-                error: 'Error al exportar',
-            }
-        )
+        if (type === 'Excel' || type === 'CSV') {
+            const headers = ['Nombre', 'Codigo', 'Ubicacion', 'Categoria', 'Stock', 'Precio Venta', 'Costo']
+            const rows = products.map(p => [
+                p.name, p.code, p.location, p.category, p.stock, p.salePrice, p.costPrice
+            ])
+            const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.setAttribute("href", url)
+            link.setAttribute("download", `inventario_sanchez_${new Date().toISOString().split('T')[0]}.csv`)
+            link.style.visibility = 'hidden'
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            toast.success('Inventario exportado a CSV correctamente')
+        }
     }
 
     const filteredProducts = products.filter(p =>
@@ -90,15 +109,22 @@ export default function InventarioAutomotriz() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".csv,.xlsx,.xls"
+                        onChange={onFileChange}
+                    />
                     <button
-                        onClick={handleImport}
+                        onClick={handleImportClick}
                         className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-xs font-bold hover:bg-muted/50 transition-all active:scale-95"
                     >
                         <Upload className="h-4 w-4 text-muted-foreground" />
                         Importar
                     </button>
                     <button
-                        onClick={() => handleExport('Excel')}
+                        onClick={() => handleExport('CSV')}
                         className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-xs font-bold hover:bg-muted/50 transition-all active:scale-95"
                     >
                         <Download className="h-4 w-4 text-muted-foreground" />

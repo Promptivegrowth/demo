@@ -14,6 +14,14 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 
 // --- MOCK DATA ---
+const PRODUCTS = [
+    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', price: 45.0, stock: 24, category: 'Lubricantes' },
+    { id: 2, name: 'Pastilla de Freno Trasera Honda CB190', code: '7891234560002', price: 65.0, stock: 12, category: 'Frenos' },
+    { id: 3, name: 'Filtro de Aire Universal K&N', code: '7891234560003', price: 120.0, stock: 4, category: 'Filtros' },
+    { id: 4, name: 'Kit de Cadena 428 x 120 eslabones', code: '7891234560004', price: 85.0, stock: 18, category: 'Cadenas' },
+    { id: 5, name: 'Llanta Pirelli MT 60 90/90-21', code: '7891234560005', price: 380.0, stock: 9, category: 'Llantas' },
+]
+
 const QUOTES = [
     {
         id: 'COT-0952',
@@ -50,6 +58,20 @@ const QUOTES = [
 export default function CotizacionesAutomotriz() {
     const [activeFilter, setActiveFilter] = useState('Todas')
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [selectedItems, setSelectedItems] = useState<any[]>([])
+    const [showProductPicker, setShowProductPicker] = useState(false)
+    const [searchProduct, setSearchProduct] = useState('')
+
+    const total = selectedItems.reduce((acc, item) => acc + (item.price * item.quantity), 0)
+
+    const addItem = (p: any) => {
+        const existing = selectedItems.find(i => i.id === p.id)
+        if (existing) {
+            setSelectedItems(selectedItems.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i))
+        } else {
+            setSelectedItems([...selectedItems, { ...p, quantity: 1 }])
+        }
+    }
 
     return (
         <div className="space-y-8 pb-10">
@@ -266,10 +288,61 @@ export default function CotizacionesAutomotriz() {
                                 </div>
                                 <div className="col-span-2 space-y-4">
                                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Productos a Cotizar</label>
-                                    <div className="p-4 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-[#3841F2] hover:text-[#3841F2] cursor-pointer transition-all group">
-                                        <Plus className="h-8 w-8 group-hover:rotate-90 transition-transform" />
-                                        <span className="text-xs font-black uppercase">Agregar Item del Inventario</span>
+
+                                    <div className="space-y-3">
+                                        {selectedItems.map(item => (
+                                            <div key={item.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 italic">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge className="bg-[#3841F2] text-white font-black">{item.quantity}x</Badge>
+                                                    <span className="text-xs font-black uppercase text-slate-700">{item.name}</span>
+                                                </div>
+                                                <span className="text-sm font-black text-slate-900 border-b-2 border-slate-200">S/ {(item.price * item.quantity).toFixed(2)}</span>
+                                            </div>
+                                        ))}
+
+                                        {showProductPicker ? (
+                                            <div className="p-6 bg-slate-100 rounded-3xl space-y-4 border border-[#3841F2]/20">
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Buscar producto..."
+                                                        value={searchProduct}
+                                                        onChange={(e) => setSearchProduct(e.target.value)}
+                                                        className="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-[#3841F2]"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
+                                                    {PRODUCTS.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase())).map(p => (
+                                                        <button
+                                                            key={p.id}
+                                                            onClick={() => { addItem(p); setShowProductPicker(false); setSearchProduct(''); }}
+                                                            className="flex justify-between items-center p-3 bg-white rounded-xl hover:border-[#3841F2] border border-transparent transition-all text-left"
+                                                        >
+                                                            <span className="text-[10px] font-black uppercase text-slate-600 italic">{p.name}</span>
+                                                            <span className="text-xs font-black text-[#3841F2]">S/ {p.price.toFixed(2)}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <button onClick={() => setShowProductPicker(false)} className="w-full py-2 text-[10px] font-black uppercase text-slate-400">Cancelar</button>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={() => setShowProductPicker(true)}
+                                                className="p-4 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-[#3841F2] hover:text-[#3841F2] cursor-pointer transition-all group"
+                                            >
+                                                <Plus className="h-8 w-8 group-hover:rotate-90 transition-transform" />
+                                                <span className="text-xs font-black uppercase">Agregar Item del Inventario</span>
+                                            </div>
+                                        )}
                                     </div>
+
+                                    {selectedItems.length > 0 && (
+                                        <div className="pt-4 flex justify-between items-end border-t border-slate-100">
+                                            <p className="text-[10px] font-black uppercase text-slate-400">Total Presupuestado</p>
+                                            <p className="text-2xl font-black italic text-[#3841F2]">S/ {total.toFixed(2)}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

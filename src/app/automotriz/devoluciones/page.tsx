@@ -43,7 +43,14 @@ export default function DevolucionesAutomotriz() {
                         <History className="h-4 w-4" />
                         Historial Completo
                     </button>
-                    <button className="px-6 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest italic">
+                    <button
+                        onClick={() => {
+                            setStep(1);
+                            setSearchQuery('');
+                            toast.info('Iniciando nuevo proceso de devolución');
+                        }}
+                        className="px-6 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest italic"
+                    >
                         Nueva Devolución
                     </button>
                 </div>
@@ -109,7 +116,17 @@ export default function DevolucionesAutomotriz() {
                                             <p className="text-[10px] font-black text-muted-foreground uppercase opacity-50">Total Original</p>
                                             <p className="text-lg font-black italic text-[#020659]">S/ 580.00</p>
                                         </div>
-                                        <button className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-[#3841F2] transition-all">
+                                        <button
+                                            onClick={() => {
+                                                toast.success('Venta Identificada. Procesando Nota de Crédito...', { duration: 2000 });
+                                                setTimeout(() => {
+                                                    toast.success('Nota de Crédito Generada Exitosamente');
+                                                    setStep(1);
+                                                    setSearchQuery('');
+                                                }, 2500);
+                                            }}
+                                            className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-[#3841F2] transition-all"
+                                        >
                                             <ArrowRight className="h-5 w-5" />
                                         </button>
                                     </div>

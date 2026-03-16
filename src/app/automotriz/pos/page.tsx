@@ -54,6 +54,9 @@ export default function POSPage() {
     const [isCajaOpen, setIsCajaOpen] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [currentTime, setCurrentTime] = useState(new Date())
+    const [suspendedTickets, setSuspendedTickets] = useState<any[]>([])
+    const [showSuspended, setShowSuspended] = useState(false)
+    const [isProcessingCredit, setIsProcessingCredit] = useState(false)
     const searchInputRef = useRef<HTMLInputElement>(null)
 
     // --- EFFECTS ---
@@ -133,6 +136,21 @@ export default function POSPage() {
     }
 
     const finalizeSale = () => {
+        if (paymentMethod === 'credit') {
+            setIsProcessingCredit(true)
+            setTimeout(() => {
+                setIsProcessingCredit(false)
+                toast.success('Crédito Aprobado y Venta Finalizada', {
+                    description: `Línea de crédito utilizada: S/ ${total.toFixed(2)}`
+                })
+                setTicket([])
+                setCashReceived('')
+                setClient(null)
+                setShowConfirm(false)
+            }, 2000)
+            return
+        }
+
         toast.success(`Venta procesada con éxito: Ticket #TK-${Math.floor(Math.random() * 100000)}`, {
             description: `Se han impreso los comprobantes (${ticketType}).`
         })
@@ -141,6 +159,28 @@ export default function POSPage() {
         setClient(null)
         setShowConfirm(false)
         if (searchInputRef.current) searchInputRef.current.focus()
+    }
+
+    const handleSuspend = () => {
+        if (ticket.length === 0) return
+        const newSuspended = {
+            id: Date.now(),
+            ticket,
+            total,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            client: client?.name || 'Cliente Genérico'
+        }
+        setSuspendedTickets([newSuspended, ...suspendedTickets])
+        setTicket([])
+        setClient(null)
+        toast.info('Venta suspendida correctamente')
+    }
+
+    const restoreTicket = (susp: any) => {
+        setTicket(susp.ticket)
+        setSuspendedTickets(suspendedTickets.filter(t => t.id !== susp.id))
+        setShowSuspended(false)
+        toast.success('Venta recuperada')
     }
 
     return (
@@ -254,11 +294,7 @@ export default function POSPage() {
                         },
                         { label: 'Mis Ventas Hoy', icon: History, color: 'text-blue-500 bg-blue-50', onClick: () => toast('Resumen del día: S/ 4,250.00 generado') },
                         {
-                            label: 'Suspender Venta', icon: PauseCircle, color: 'text-amber-500 bg-amber-50', onClick: () => {
-                                if (ticket.length === 0) return
-                                toast('Venta suspendida. Se guardó en memoria local.')
-                                setTicket([])
-                            }
+                            label: 'Suspender Venta', icon: PauseCircle, color: 'text-amber-500 bg-amber-50', onClick: handleSuspend
                         }
                     ].map((btn) => (
                         <button key={btn.label} onClick={btn.onClick} className="w-full p-4 flex items-center gap-4 hover:bg-slate-50 rounded-2xl transition-all group text-left">
@@ -269,6 +305,19 @@ export default function POSPage() {
                         </button>
                     ))}
                 </div>
+
+                {suspendedTickets.length > 0 && (
+                    <button
+                        onClick={() => setShowSuspended(true)}
+                        className="w-full mt-2 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between group hover:bg-amber-500/20 transition-all"
+                    >
+                        <div className="flex items-center gap-3">
+                            <History className="h-4 w-4 text-amber-600" />
+                            <span className="text-xs font-black text-amber-700 uppercase tracking-tight">Ventas en Pausa</span>
+                        </div>
+                        <Badge className="bg-amber-600 text-white border-none">{suspendedTickets.length}</Badge>
+                    </button>
+                )}
 
                 <div className="bg-slate-100 rounded-2xl p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">

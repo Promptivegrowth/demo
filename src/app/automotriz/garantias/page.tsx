@@ -91,7 +91,16 @@ export default function GarantiasAutomotriz() {
                             Reclamos y Tickets
                         </button>
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest italic">
+                    <button
+                        onClick={() => {
+                            toast.info('Validando serie con base de datos del fabricante...', { duration: 2000 });
+                            setTimeout(() => {
+                                toast.success('Certificado de Garantía encontrado y validado');
+                                setActiveView('lista');
+                            }, 2500);
+                        }}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest italic"
+                    >
                         <Plus className="h-4 w-4" /> Validar Nueva
                     </button>
                 </div>
