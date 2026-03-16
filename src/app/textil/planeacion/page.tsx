@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -107,7 +109,7 @@ export default function PlaneacionPlanta() {
 
                     <div className="rounded-2xl overflow-hidden border border-border h-40 relative group">
                         <img
-                            src="/textil/production_line.png"
+                            src="/textil_production_line_1773683235005.png"
                             alt="Production Line"
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
