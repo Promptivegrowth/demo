@@ -49,8 +49,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         const checkSession = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+                if (sessionError) throw sessionError
                 if (!mounted) return
+
                 if (session?.user) {
                     const profile = await loadProfile(session.user.id, session.user.email, session.user.user_metadata)
                     if (mounted) {
@@ -63,24 +66,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             } catch (err) {
                 console.error('Session check error:', err)
                 if (mounted) setUser(null)
+            } finally {
+                if (mounted) setReady(true)
             }
-            if (mounted) setReady(true)
         }
 
-        // Add a safety timeout — never stay loading more than 5 seconds
+        // Add a safety timeout — never stay loading more than 6 seconds
         const timeout = setTimeout(() => {
             if (mounted && !ready) {
-                console.warn('Auth timeout — forcing ready')
+                console.warn('Auth timeout — forcing ready to prevent infinite loader')
                 setReady(true)
-                setUser(null)
+                // If we hit timeout, we might be offline or service is slow
             }
-        }, 5000)
+        }, 6000)
 
         checkSession()
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!mounted) return
-            if (event === 'SIGNED_IN' && session?.user) {
+
+            console.log(`Auth event: ${event}`)
+
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
                 const profile = await loadProfile(session.user.id, session.user.email, session.user.user_metadata)
                 if (profile && mounted) setUser(profile)
             } else if (event === 'SIGNED_OUT') {
@@ -94,7 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             clearTimeout(timeout)
             subscription.unsubscribe()
         }
-    }, [setUser, loadProfile, router, ready])
+    }, [setUser, loadProfile, router])
 
     // Redirect to login when not authenticated
     useEffect(() => {
