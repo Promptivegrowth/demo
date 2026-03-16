@@ -8,7 +8,7 @@ export default function AutomotrizLayout({ children }: { children: React.ReactNo
         <div className="space-y-6 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="bg-[#020659] p-2 rounded-xl">
+                    <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100">
                         <Image
                             src="/sanchez/logo.png"
                             alt="Group Sanchez"
