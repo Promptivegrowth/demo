@@ -9,8 +9,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     LayoutDashboard, Users, Package, DollarSign, ClipboardList, UserCog,
     MapPin, BarChart3, Settings, ChevronLeft, ChevronRight, FileText,
-    CalendarDays, ScrollText, Shield, X, Menu
+    CalendarDays, ScrollText, Shield, X, Menu, Shirt, Factory,
+    DraftingCompass, ClipboardCheck, BarChartHorizontal, Layers, Activity, Home
 } from 'lucide-react'
+
+const textilNavItems = [
+    { label: 'Hub Textil', icon: Home, href: '/textil', operativeAccess: true },
+    { label: 'Órdenes de Producción', icon: Factory, href: '/textil/ordenes', operativeAccess: true },
+    { label: 'Ficha Técnica', icon: DraftingCompass, href: '/textil/fichas', operativeAccess: true },
+    { label: 'Planeación de Planta', icon: CalendarDays, href: '/textil/planeacion', operativeAccess: true },
+    { label: 'Control de Calidad', icon: ClipboardCheck, href: '/textil/calidad', operativeAccess: true },
+    { label: 'Costos de Producción', icon: DollarSign, href: '/textil/costos', operativeAccess: true },
+    { label: 'Trazabilidad de Lotes', icon: Layers, href: '/textil/trazabilidad', operativeAccess: true },
+    { label: 'Analítica Textil', icon: BarChartHorizontal, href: '/textil/analitica', operativeAccess: true },
+]
 
 const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/', operativeAccess: true },
@@ -75,6 +87,52 @@ export function Sidebar() {
                                         <motion.div
                                             layoutId="sidebar-active"
                                             className="absolute inset-0 -m-1 rounded-lg bg-brand-purple/10"
+                                            transition={{ type: 'spring', duration: 0.4 }}
+                                        />
+                                    )}
+                                    <item.icon className="h-[18px] w-[18px] relative z-10" />
+                                </div>
+                                {(!sidebarCollapsed || mobileSidebarOpen) && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="truncate"
+                                    >
+                                        {item.label}
+                                    </motion.span>
+                                )}
+                            </div>
+                        </Link>
+                    )
+                })}
+
+                {/* Sector Textil Divider & Header */}
+                <div className="pt-4 pb-2 px-4 flex items-center gap-2">
+                    <div className="h-px flex-1 bg-border/60" />
+                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sector Textil</span>
+                    )}
+                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-black border border-amber-200">DEMO</span>
+                    )}
+                    <div className="h-px flex-1 bg-border/60" />
+                </div>
+
+                {/* Textil Navigation */}
+                {textilNavItems.map((item) => {
+                    const active = pathname === item.href || (item.href !== '/textil' && pathname.startsWith(item.href))
+                    return (
+                        <Link key={item.href} href={item.href} onClick={() => setMobileSidebarOpen(false)}>
+                            <div className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${active
+                                ? 'bg-amber-500/10 text-amber-600'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                }`}>
+                                <div className={`relative flex items-center justify-center shrink-0 ${active ? 'text-amber-600' : 'text-muted-foreground group-hover:text-foreground'
+                                    }`}>
+                                    {active && (
+                                        <motion.div
+                                            layoutId="sidebar-textil-active"
+                                            className="absolute inset-0 -m-1 rounded-lg bg-amber-500/10"
                                             transition={{ type: 'spring', duration: 0.4 }}
                                         />
                                     )}
