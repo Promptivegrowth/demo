@@ -7,7 +7,8 @@ import {
     CreditCard, Wallet, QrCode, Banknote,
     UserPlus, Printer, CheckCircle2, AlertCircle,
     Power, RotateCcw, History, PauseCircle,
-    Wifi, RefreshCw, X, ChevronRight, Info
+    Wifi, RefreshCw, X, ChevronRight, Info,
+    Barcode, Check
 } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
@@ -33,6 +34,12 @@ const PRODUCTS = [
     { id: 15, name: 'Cable de Acelerador Universal', code: '7891234560015', price: 25.0, stock: 15, category: 'Accesorios', image: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb6?w=400&q=80' }
 ]
 
+const INITIAL_TICKET = [
+    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', price: 45.0, stock: 24, category: 'Lubricantes', image: 'https://images.unsplash.com/photo-1635843104285-df360706248b?w=400&q=80', quantity: 2 },
+    { id: 6, name: 'Bujía NGK CR7HSA', code: '7891234560006', price: 12.5, stock: 45, category: 'Eléctrico', image: 'https://images.unsplash.com/photo-1635773100239-d37fcc97669d?w=400&q=80', quantity: 1 },
+    { id: 9, name: 'Guantes de Moto Talla M', code: '7891234560009', price: 89.9, stock: 14, category: 'Accesorios', image: 'https://images.unsplash.com/photo-1621644783311-6be4847e114d?w=400&q=80', quantity: 1 }
+]
+
 const METHODS = [
     { id: 'cash', label: 'Efectivo', icon: Banknote },
     { id: 'card', label: 'Tarjeta', icon: CreditCard },
@@ -43,20 +50,23 @@ const METHODS = [
 
 export default function POSPage() {
     // --- STATE ---
-    const [ticket, setTicket] = useState<any[]>([])
+    const [ticket, setTicket] = useState<any[]>(INITIAL_TICKET)
     const [searchQuery, setSearchQuery] = useState('')
     const [searchResults, setSearchResults] = useState<any[]>([])
     const [paymentMethod, setPaymentMethod] = useState('cash')
     const [cashReceived, setCashReceived] = useState('')
     const [ticketType, setTicketType] = useState('Boleta')
     const [client, setClient] = useState<any>(null)
-    const [showConfirm, setShowConfirm] = useState(false)
+    const [showSuccessModal, setShowSuccessModal] = useState(false)
     const [isCajaOpen, setIsCajaOpen] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [currentTime, setCurrentTime] = useState(new Date())
     const [suspendedTickets, setSuspendedTickets] = useState<any[]>([])
     const [showSuspended, setShowSuspended] = useState(false)
     const [isProcessingCredit, setIsProcessingCredit] = useState(false)
+    const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'success'>('idle')
+    const [successChecks, setSuccessChecks] = useState<number>(0)
+    const [lastSaleTotal, setLastSaleTotal] = useState(0)
     const searchInputRef = useRef<HTMLInputElement>(null)
 
     // --- EFFECTS ---
@@ -132,7 +142,8 @@ export default function POSPage() {
             toast.error('El ticket está vacío')
             return
         }
-        setShowConfirm(true)
+        setLastSaleTotal(total)
+        finalizeSale()
     }
 
     const finalizeSale = () => {
@@ -140,25 +151,35 @@ export default function POSPage() {
             setIsProcessingCredit(true)
             setTimeout(() => {
                 setIsProcessingCredit(false)
-                toast.success('Crédito Aprobado y Venta Finalizada', {
-                    description: `Línea de crédito utilizada: S/ ${total.toFixed(2)}`
-                })
-                setTicket([])
-                setCashReceived('')
-                setClient(null)
-                setShowConfirm(false)
+                handleSuccessFlow()
+                setShowSuccessModal(false)
             }, 2000)
             return
         }
 
-        toast.success(`Venta procesada con éxito: Ticket #TK-${Math.floor(Math.random() * 100000)}`, {
-            description: `Se han impreso los comprobantes (${ticketType}).`
-        })
-        setTicket([])
-        setCashReceived('')
-        setClient(null)
-        setShowConfirm(false)
-        if (searchInputRef.current) searchInputRef.current.focus()
+        handleSuccessFlow()
+        setShowSuccessModal(false)
+    }
+
+    const handleSuccessFlow = () => {
+        setCheckoutStatus('success')
+        setSuccessChecks(0)
+
+        const sequence = [
+            () => setSuccessChecks(1),
+            () => setSuccessChecks(2),
+            () => setSuccessChecks(3),
+            () => {
+                setCheckoutStatus('idle')
+                setShowSuccessModal(true)
+                setTicket([])
+                setCashReceived('')
+                setClient(null)
+                if (searchInputRef.current) searchInputRef.current.focus()
+            }
+        ]
+
+        sequence.forEach((fn, i) => setTimeout(fn, (i + 1) * 800))
     }
 
     const handleSuspend = () => {
@@ -184,57 +205,102 @@ export default function POSPage() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-140px)] gap-4 overflow-hidden -m-6 p-6 bg-[#f0ede8]">
+        <div className="flex h-[calc(100vh-140px)] gap-4 overflow-hidden -m-6 p-6 bg-[#f0ede8] relative">
+            {/* --- SUCCESS BANNER --- */}
             <AnimatePresence>
-                {showConfirm && (
+                {checkoutStatus === 'success' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -100 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -100 }}
+                        className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] w-full max-w-2xl px-4"
+                    >
+                        <div className="bg-emerald-600 text-white p-6 rounded-[2rem] shadow-2xl border border-emerald-400/30 flex items-center justify-center gap-8 backdrop-blur-md bg-emerald-600/90">
+                            {[
+                                { id: 1, text: 'Venta Registrada' },
+                                { id: 2, text: 'Stock Actualizado' },
+                                { id: 3, text: 'Comprobante Listo' }
+                            ].map((check) => (
+                                <div key={check.id} className={cn(
+                                    "flex items-center gap-3 transition-all duration-500",
+                                    successChecks >= check.id ? "opacity-100 scale-100" : "opacity-30 scale-90 translate-y-2"
+                                )}>
+                                    <div className={cn(
+                                        "h-6 w-6 rounded-full flex items-center justify-center border-2",
+                                        successChecks >= check.id ? "bg-white border-white text-emerald-600" : "border-white/50"
+                                    )}>
+                                        {successChecks >= check.id && <Check className="h-4 w-4" />}
+                                    </div>
+                                    <span className="text-xs font-black uppercase tracking-widest italic">{check.text}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {showSuccessModal && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                        className="fixed inset-0 z-[100] bg-[#020659]/80 backdrop-blur-md flex items-center justify-center p-4"
                     >
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            initial={{ scale: 0.9, opacity: 0, y: 30 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6"
+                            exit={{ scale: 0.9, opacity: 0, y: 30 }}
+                            className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl space-y-8 border border-white/20 relative overflow-hidden"
                         >
-                            <div className="text-center space-y-2">
-                                <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <CheckCircle2 className="h-10 w-10" />
-                                </div>
-                                <h2 className="text-2xl font-black text-slate-900">Confirmar Venta</h2>
-                                <p className="text-muted-foreground font-medium">Revisa los detalles antes de imprimir el comprobante.</p>
-                            </div>
+                            <div className="absolute top-0 left-0 right-0 h-2 bg-emerald-500" />
 
-                            <div className="bg-slate-50 rounded-2xl p-6 space-y-4 border border-slate-200">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground font-bold uppercase">Productos</span>
-                                    <span className="font-black">{ticket.length} ítems</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground font-bold uppercase">Comprobante</span>
-                                    <span className="font-black">{ticketType}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-4">
-                                    <span className="text-slate-900 font-bold uppercase text-lg">Total</span>
-                                    <span className="font-black text-2xl text-[#3841F2]">S/ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => setShowConfirm(false)}
-                                    className="flex-1 py-4 px-6 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+                            <div className="text-center space-y-4">
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1, rotate: 360 }}
+                                    transition={{ type: "spring", damping: 10, stiffness: 100 }}
+                                    className="h-24 w-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2"
                                 >
-                                    Cancelar
-                                </button>
+                                    <CheckCircle2 className="h-14 w-14" />
+                                </motion.div>
+                                <h2 className="text-3xl font-black text-slate-900 italic tracking-tighter">¡Venta Exitosa!</h2>
+                                <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Resumen de la Operación</p>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-3xl p-8 space-y-4 border border-slate-100 shadow-inner">
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-400 font-black uppercase tracking-widest">Total Cobrado</span>
+                                    <span className="font-black text-2xl text-[#3841F2] italic">S/ {lastSaleTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs pt-4 border-t border-slate-200">
+                                    <span className="text-slate-400 font-black uppercase tracking-widest">Método</span>
+                                    <span className="font-black uppercase tracking-widest text-slate-700">{paymentMethod === 'cash' ? 'Efectivo' : paymentMethod.toUpperCase()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-400 font-black uppercase tracking-widest">Atendido por</span>
+                                    <span className="font-black uppercase tracking-widest text-slate-700">Luigi Bravo</span>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
                                 <button
-                                    onClick={finalizeSale}
-                                    className="flex-2 flex-[2] py-4 px-6 bg-[#3841F2] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-[#3841F2]/20"
+                                    onClick={() => {
+                                        toast.success('Imprimiendo comprobante...')
+                                    }}
+                                    className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 hover:bg-slate-800 transition-all border-b-4 border-slate-950"
                                 >
                                     <Printer className="h-4 w-4" />
-                                    Confirmar e Imprimir
+                                    Imprimir Comprobante
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowSuccessModal(false)
+                                        setLastSaleTotal(0)
+                                    }}
+                                    className="w-full py-5 bg-[#3841F2] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 hover:bg-blue-600 transition-all border-b-4 border-blue-800"
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                    Nueva Venta
                                 </button>
                             </div>
                         </motion.div>
@@ -280,30 +346,33 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                <div className="flex-1 bg-white rounded-3xl p-2 border border-border shadow-sm flex flex-col gap-1">
-                    {[
-                        {
-                            label: 'Cierre de Turno', icon: RotateCcw, color: 'text-red-500 bg-red-50', onClick: () => {
-                                if (ticket.length > 0) {
-                                    toast.error('Debes finalizar la venta actual antes de cerrar caja')
-                                    return
-                                }
-                                setIsCajaOpen(false)
-                                toast.info('Caja cerrada con éxito')
-                            }
-                        },
-                        { label: 'Mis Ventas Hoy', icon: History, color: 'text-blue-500 bg-blue-50', onClick: () => toast('Resumen del día: S/ 4,250.00 generado') },
-                        {
-                            label: 'Suspender Venta', icon: PauseCircle, color: 'text-amber-500 bg-amber-50', onClick: handleSuspend
-                        }
-                    ].map((btn) => (
-                        <button key={btn.label} onClick={btn.onClick} className="w-full p-4 flex items-center gap-4 hover:bg-slate-50 rounded-2xl transition-all group text-left">
-                            <div className={cn("p-2.5 rounded-xl transition-transform group-hover:scale-110", btn.color)}>
-                                <btn.icon className="h-4 w-4" />
-                            </div>
-                            <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{btn.label}</span>
-                        </button>
-                    ))}
+                <div className="flex-1 bg-white rounded-3xl p-3 border border-border shadow-sm flex flex-col gap-2">
+                    <div className="p-4 bg-[#020873] text-white rounded-2xl border border-white/5 shadow-inner">
+                        <p className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-1">Mis ventas hoy</p>
+                        <p className="text-xl font-black italic text-emerald-400">S/ 1,240.00</p>
+                    </div>
+
+                    <div className="p-4 bg-[#020873] text-white rounded-2xl border border-white/5 shadow-inner">
+                        <p className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-1">Cierre de turno</p>
+                        <p className="text-sm font-black italic text-slate-300">8 transacciones</p>
+                    </div>
+
+                    <button
+                        onClick={handleSuspend}
+                        className="w-full p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-3 group hover:bg-amber-100 transition-all font-black uppercase text-[10px] text-amber-700 tracking-widest"
+                    >
+                        <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                            <PauseCircle className="h-4 w-4" />
+                        </div>
+                        Suspender Venta
+                    </button>
+
+                    <button className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3 group opacity-50 cursor-not-allowed">
+                        <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center">
+                            <RotateCcw className="h-4 w-4 text-slate-400" />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cerrar Caja</span>
+                    </button>
                 </div>
 
                 {suspendedTickets.length > 0 && (
@@ -359,17 +428,23 @@ export default function POSPage() {
                     {/* Escáner de Código de Barras (El más prominente) */}
                     <div className="p-6 border-b border-slate-100 bg-white relative z-50">
                         <div className="relative group">
-                            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none z-10">
                                 <Scan className="h-6 w-6 text-[#3841F2]" />
                             </div>
-                            <input
-                                ref={searchInputRef}
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Escanea o busca por código, nombre o referencia..."
-                                className="w-full h-16 pl-16 pr-6 bg-slate-50 border-2 border-slate-100 rounded-3xl text-lg font-bold placeholder:text-slate-400 focus:outline-none focus:border-[#3841F2] focus:bg-white transition-all shadow-sm group-hover:shadow-md"
-                            />
+                            <motion.div
+                                animate={{ boxShadow: ["0 0 0 2px rgba(56,65,242,0)", "0 0 0 4px rgba(56,65,242,0.1)", "0 0 0 2px rgba(56,65,242,0)"] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="rounded-3xl"
+                            >
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Escanea o busca por código, nombre o referencia..."
+                                    className="w-full h-16 pl-16 pr-6 bg-slate-50 border-2 border-slate-100 rounded-3xl text-lg font-bold placeholder:text-slate-400 focus:outline-none focus:border-[#3841F2] focus:bg-white transition-all shadow-sm group-hover:shadow-md outline-none"
+                                />
+                            </motion.div>
                             {searchQuery && (
                                 <button
                                     onClick={() => setSearchQuery('')}
@@ -427,10 +502,20 @@ export default function POSPage() {
                     {/* Tabla de Productos */}
                     <div className="flex-1 overflow-y-auto min-h-0 bg-white">
                         {ticket.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center p-10 opacity-40">
-                                <Scan className="h-24 w-24 text-slate-200 mb-6 animate-pulse" />
-                                <h3 className="text-xl font-bold text-slate-400">Escanea un producto para comenzar</h3>
-                                <p className="text-slate-400 font-medium">Group Sanchez — Sistema de Punto de Venta Premium</p>
+                            <div className="h-full flex flex-col items-center justify-center p-10">
+                                <motion.div
+                                    animate={{
+                                        scale: [1, 1.05, 1],
+                                        opacity: [0.3, 0.6, 0.3],
+                                        filter: ["drop-shadow(0 0 0px rgba(56,65,242,0))", "drop-shadow(0 0 20px rgba(56,65,242,0.4))", "drop-shadow(0 0 0px rgba(56,65,242,0))"]
+                                    }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="mb-8 p-10 bg-slate-50 rounded-full border-2 border-dashed border-slate-200"
+                                >
+                                    <Barcode className="h-24 w-24 text-[#3841F2]" />
+                                </motion.div>
+                                <h3 className="text-2xl font-black text-slate-900 italic uppercase tracking-tighter">Listo para escanear</h3>
+                                <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-2">Group Sanchez — Sistema de Punto de Venta Premium</p>
                             </div>
                         ) : (
                             <table className="w-full text-left">
@@ -535,18 +620,35 @@ export default function POSPage() {
                             <div className="md:col-span-2 text-right bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between shadow-inner">
                                 <div className="text-left">
                                     <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Total a Pagar</span>
-                                    <p className="text-4xl font-black text-[#3841F2] drop-shadow-[0_0_15px_rgba(56,65,242,0.3)] italic">S/ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                    {ticket.length === 0 ? (
+                                        <p className="text-4xl font-black text-slate-500 italic">—</p>
+                                    ) : (
+                                        <motion.p
+                                            key={total}
+                                            initial={{ scale: 0.9, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            className="text-4xl font-black text-white drop-shadow-[0_0_15px_rgba(56,65,242,0.6)] italic bg-[#3841F2] px-4 py-1 rounded-xl"
+                                        >
+                                            S/ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </motion.p>
+                                    )}
                                 </div>
                                 <div className="flex flex-col gap-1 items-end">
                                     <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-bold text-slate-400 uppercase">Vuelto:</span>
                                         <span className={cn(
-                                            "font-black italic text-lg",
+                                            "font-black italic text-lg transition-colors",
                                             change >= 0 ? "text-emerald-400" : "text-red-400"
                                         )}>S/ {Math.max(0, change).toFixed(2)}</span>
                                     </div>
                                     {change < 0 && (
-                                        <span className="text-[10px] font-bold text-red-300 bg-red-500/20 px-2 rounded">Faltante: S/ {Math.abs(change).toFixed(2)}</span>
+                                        <motion.span
+                                            initial={{ x: 10, opacity: 0 }}
+                                            animate={{ x: 0, opacity: 1 }}
+                                            className="text-[10px] font-bold text-red-100 bg-red-500/40 px-3 py-1 rounded-full border border-red-500/20"
+                                        >
+                                            Faltante: S/ {Math.abs(change).toFixed(2)}
+                                        </motion.span>
                                     )}
                                 </div>
                             </div>
@@ -654,13 +756,20 @@ export default function POSPage() {
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 pt-2">
                                         {[10, 20, 50, 100, 200].map((val) => (
-                                            <button
+                                            <motion.button
                                                 key={val}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
                                                 onClick={() => setCashReceived(val.toString())}
-                                                className="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-xs font-black hover:bg-[#3841F2] transition-colors"
+                                                className={cn(
+                                                    "py-3 px-3 border rounded-xl text-xs font-black transition-all",
+                                                    cashReceived === val.toString()
+                                                        ? "bg-[#3841F2] border-[#3841F2] text-white shadow-lg"
+                                                        : "bg-white/5 border-white/10 hover:bg-white/10"
+                                                )}
                                             >
                                                 S/ {val}
-                                            </button>
+                                            </motion.button>
                                         ))}
                                     </div>
                                 </motion.div>
@@ -673,14 +782,14 @@ export default function POSPage() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-3xl border border-white/10 gap-4"
                                 >
-                                    <div className="h-32 w-32 bg-white p-2 rounded-2xl relative">
-                                        <div className="absolute inset-0 bg-slate-100 flex items-center justify-center m-2 rounded-xl">
-                                            <QrCode className="h-20 w-20 text-slate-800" />
+                                    <div className="h-40 w-40 bg-white p-4 rounded-3xl relative shadow-xl overflow-hidden group">
+                                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center m-2 rounded-2xl border-2 border-dashed border-slate-200">
+                                            <QrCode className="h-24 w-24 text-slate-800 group-hover:scale-110 transition-transform duration-500" />
                                         </div>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-xs font-black uppercase tracking-widest text-[#3841F2]">Esperando Confirmación</p>
-                                        <p className="text-[10px] font-bold text-blue-200">Monto: S/ {total.toFixed(2)}</p>
+                                        <p className="text-sm font-black uppercase tracking-widest text-[#3841F2] animate-pulse">Escanear para Pagar</p>
+                                        <p className="text-xl font-black text-white italic mt-1">S/ {total.toFixed(2)}</p>
                                     </div>
                                 </motion.div>
                             )}
@@ -693,10 +802,19 @@ export default function POSPage() {
                                     className="p-6 bg-[#3841F2]/10 rounded-3xl border border-[#3841F2]/20 flex flex-col items-center gap-4 text-center mt-4"
                                 >
                                     <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                        <Info className="h-6 w-6 text-blue-400" />
+                                        <CreditCard className="h-6 w-6 text-blue-400" />
                                     </div>
-                                    <p className="text-[10px] font-black uppercase text-blue-200 leading-relaxed italic">
-                                        Por favor, procese la tarjeta en el terminal inalámbrico e ingrese el número de operación al finalizar.
+                                    <div className="w-full space-y-2">
+                                        <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Últimos 4 dígitos</label>
+                                        <input
+                                            type="text"
+                                            placeholder="0000"
+                                            maxLength={4}
+                                            className="w-full h-12 bg-white/10 border border-white/10 rounded-xl text-center text-xl font-black tracking-[0.5em] focus:outline-none focus:border-[#3841F2]"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] font-black uppercase text-blue-200 leading-relaxed italic opacity-60">
+                                        Procese en terminal inalámbrico
                                     </p>
                                 </motion.div>
                             )}
@@ -704,17 +822,21 @@ export default function POSPage() {
                     </div>
 
                     <button
-                        disabled={ticket.length === 0 || (paymentMethod === 'cash' && change < 0)}
+                        disabled={ticket.length === 0 || (paymentMethod === 'cash' && (!cashReceived || change < 0))}
                         onClick={handleCheckout}
                         className={cn(
-                            "w-full py-5 rounded-3xl flex items-center justify-center gap-3 font-black uppercase tracking-widest transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed",
-                            ticket.length > 0 && !(paymentMethod === 'cash' && change < 0)
-                                ? "bg-[#3841F2] hover:bg-blue-600 hover:scale-[1.02] active:scale-[0.98] shadow-[#3841F2]/30 text-white"
+                            "w-full h-20 rounded-3xl flex items-center justify-center gap-4 font-black uppercase tracking-[0.2em] transition-all shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed text-sm group overflow-hidden relative",
+                            ticket.length > 0 && !(paymentMethod === 'cash' && (!cashReceived || change < 0))
+                                ? "bg-[#3841F2] hover:bg-blue-600 hover:scale-[1.02] active:scale-[0.98] shadow-[#3841F2]/50 text-white"
                                 : "bg-white/10 text-white/40 border border-white/5"
                         )}
                     >
-                        <span>COBRAR S/ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        <ChevronRight className="h-5 w-5" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                        <span className="relative z-10 flex flex-col items-center">
+                            <span className="text-[10px] opacity-70">Finalizar Venta</span>
+                            <span>COBRAR S/ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </span>
+                        <ChevronRight className="h-6 w-6 relative z-10 group-hover:translate-x-2 transition-transform" />
                     </button>
                 </div>
             </div>
@@ -815,6 +937,12 @@ export default function POSPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <style jsx global>{`
+                @keyframes shimmer {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+            `}</style>
         </div>
     )
 }
