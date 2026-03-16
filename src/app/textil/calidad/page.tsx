@@ -181,20 +181,33 @@ export default function ControlCalidad() {
                     </div>
                     <button className="text-[10px] font-black text-brand-purple uppercase hover:underline">Ver Manual de Calidad</button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[
-                        { title: 'Simetría & Medidas', desc: 'Verificar tolerancia de +/- 1cm en puntos críticos según Tech Pack.' },
-                        { title: 'Tensión de Puntada', desc: 'Asegurar que no haya saltos de ramillete ni hilos sueltos en costuras internas.' },
-                        { title: 'Acabado & Limpieza', desc: 'Cero manchas de aceite y remoción total de hilos excedentes.' },
-                    ].map((step, i) => (
-                        <div key={i} className="p-4 rounded-xl border border-border bg-muted/20 space-y-2 group hover:border-brand-purple/30 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="h-5 w-5 rounded-full bg-brand-purple text-[10px] font-black text-white flex items-center justify-center">{i + 1}</span>
-                                <h4 className="text-[11px] font-black uppercase tracking-tight text-foreground">{step.title}</h4>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">{step.desc}</p>
+
+                <div className="flex flex-col lg:flex-row gap-8">
+                    <div className="w-full lg:w-1/3 h-48 rounded-2xl overflow-hidden border border-border/50 relative group">
+                        <img
+                            src="/textil/quality_control.png"
+                            alt="Quality Control"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Estación de Inspección L-04</span>
                         </div>
-                    ))}
+                    </div>
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                            { title: 'Simetría & Medidas', desc: 'Verificar tolerancia de +/- 1cm en puntos críticos según Tech Pack.' },
+                            { title: 'Tensión de Puntada', desc: 'Asegurar que no haya saltos de ramillete ni hilos sueltos en costuras internas.' },
+                            { title: 'Acabado & Limpieza', desc: 'Cero manchas de aceite y remoción total de hilos excedentes.' },
+                        ].map((step, i) => (
+                            <div key={i} className="p-4 rounded-xl border border-border bg-muted/20 space-y-2 group hover:border-brand-purple/30 transition-all flex flex-col justify-center">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="h-5 w-5 rounded-full bg-brand-purple text-[10px] font-black text-white flex items-center justify-center shrink-0">{i + 1}</span>
+                                    <h4 className="text-[11px] font-black uppercase tracking-tight text-foreground">{step.title}</h4>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">{step.desc}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

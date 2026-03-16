@@ -101,6 +101,18 @@ export default function PlaneacionPlanta() {
                             La **Línea C** está operando al límite. Considerar reasignar 2 operarios de la **Línea B** para equilibrar la carga de acabados y evitar cuellos de botella.
                         </p>
                     </div>
+
+                    <div className="rounded-2xl overflow-hidden border border-border h-40 relative group">
+                        <img
+                            src="/textil/production_line.png"
+                            alt="Production Line"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                        <div className="absolute bottom-3 left-4">
+                            <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] drop-shadow-md">Vista de Planta Sector A</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Right: Calendario de Carga */}

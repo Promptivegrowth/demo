@@ -6,6 +6,7 @@ import {
     DollarSign, Layers, BarChartHorizontal, ArrowRight,
     TrendingUp, Shirt, ShoppingBag, Clock
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 
 const kpis = [
@@ -102,6 +103,42 @@ const processFlow = [
 export default function TextilHub() {
     return (
         <div className="space-y-8 pb-10">
+            {/* Hero Section */}
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative h-64 rounded-3xl overflow-hidden border border-border/50 group"
+            >
+                <img
+                    src="/textil/factory_hub.png"
+                    alt="Textile Factory"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+                <div className="absolute inset-0 p-8 flex flex-col justify-center max-w-xl">
+                    <Badge className="w-fit mb-4 bg-brand-purple/20 text-brand-purple border-brand-purple/30 backdrop-blur-md">
+                        Módulo Vertical
+                    </Badge>
+                    <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">
+                        Hub de Operaciones <span className="promptive-gradient-text">Textiles</span>
+                    </h1>
+                    <p className="text-white/70 text-sm leading-relaxed mb-6 font-medium">
+                        Control 360° de tu cadena de manufactura. Desde la ficha técnica hasta el despacho final,
+                        con inteligencia de datos y trazabilidad en tiempo real.
+                    </p>
+                </div>
+                <div className="absolute bottom-4 right-8 flex items-center gap-2">
+                    <div className="flex -space-x-2">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="h-8 w-8 rounded-full border-2 border-background bg-muted overflow-hidden">
+                                <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" />
+                            </div>
+                        ))}
+                    </div>
+                    <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">12 operarios activos</span>
+                </div>
+            </motion.div>
+
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {kpis.map((kpi, i) => (
@@ -117,10 +154,10 @@ export default function TextilHub() {
                                 <kpi.icon className="h-5 w-5" />
                             </div>
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${kpi.change.includes('+') || kpi.change.includes('↑')
-                                    ? 'bg-emerald-50 text-emerald-600'
-                                    : kpi.change.includes('↓')
-                                        ? 'bg-amber-50 text-amber-600'
-                                        : 'bg-muted text-muted-foreground'
+                                ? 'bg-emerald-50 text-emerald-600'
+                                : kpi.change.includes('↓')
+                                    ? 'bg-amber-50 text-amber-600'
+                                    : 'bg-muted text-muted-foreground'
                                 }`}>
                                 {kpi.change}
                             </span>
@@ -186,8 +223,8 @@ export default function TextilHub() {
                         <div key={step.label} className="flex items-center gap-8 group">
                             <div className="flex flex-col items-center gap-3 min-w-[100px]">
                                 <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 ${step.status === 'completed' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' :
-                                        step.status === 'active' ? 'bg-brand-purple text-white shadow-[0_0_15px_rgba(124,58,237,0.3)]' :
-                                            'bg-muted text-muted-foreground/40 border border-border/60'
+                                    step.status === 'active' ? 'bg-brand-purple text-white shadow-[0_0_15px_rgba(124,58,237,0.3)]' :
+                                        'bg-muted text-muted-foreground/40 border border-border/60'
                                     }`}>
                                     <step.icon className="h-5 w-5" />
                                 </div>

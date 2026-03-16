@@ -11,12 +11,12 @@ import {
 import { cn } from '@/lib/utils'
 
 const FICHAS_DATA = [
-    { id: 'FT-2026-P01', name: 'Polo Pima Jersey', season: 'Invierno 2026', type: 'Casual', status: 'En Producción', image: '/placeholder-polo.png' },
-    { id: 'FT-2026-H02', name: 'Hoodie Oversized', season: 'Invierno 2026', type: 'Sport', status: 'Aprobada', image: '/placeholder-hoodie.png' },
-    { id: 'FT-2026-P03', name: 'Pantalón Dril', season: 'Primavera 2026', type: 'Formal', status: 'Borrador', image: '/placeholder-pants.png' },
-    { id: 'FT-2026-V04', name: 'Vestido Verano', season: 'Primavera 2026', type: 'Casual', status: 'Borrador', image: '/placeholder-dress.png' },
-    { id: 'FT-2026-J05', name: 'Jogger Fleece', season: 'Invierno 2026', type: 'Sport', status: 'Aprobada', image: '/placeholder-jogger.png' },
-    { id: 'FT-2026-C06', name: 'Chaqueta Ejecutiva', season: 'Invierno 2026', type: 'Formal', status: 'Aprobada', image: '/placeholder-jacket.png' },
+    { id: 'FT-2026-P01', name: 'Polo Pima Jersey', season: 'Invierno 2026', type: 'Casual', status: 'En Producción', image: '/textil/tech_pack.png' },
+    { id: 'FT-2026-H02', name: 'Hoodie Oversized', season: 'Invierno 2026', type: 'Sport', status: 'Aprobada', image: '/textil/tech_pack.png' },
+    { id: 'FT-2026-P03', name: 'Pantalón Dril', season: 'Primavera 2026', type: 'Formal', status: 'Borrador', image: '/textil/tech_pack.png' },
+    { id: 'FT-2026-V04', name: 'Vestido Verano', season: 'Primavera 2026', type: 'Casual', status: 'Borrador', image: '/textil/tech_pack.png' },
+    { id: 'FT-2026-J05', name: 'Jogger Fleece', season: 'Invierno 2026', type: 'Sport', status: 'Aprobada', image: '/textil/tech_pack.png' },
+    { id: 'FT-2026-C06', name: 'Chaqueta Ejecutiva', season: 'Invierno 2026', type: 'Formal', status: 'Aprobada', image: '/textil/tech_pack.png' },
 ]
 
 export default function FichaTecnica() {
@@ -55,18 +55,20 @@ export default function FichaTecnica() {
                         className="group bg-card rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-xl hover:border-brand-purple/30 transition-all cursor-pointer flex flex-col"
                     >
                         <div className="h-40 bg-muted/30 relative flex items-center justify-center overflow-hidden border-b border-border">
-                            <div className="absolute top-3 left-3 flex gap-2">
-                                <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border",
-                                    ficha.status === 'En Producción' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                        ficha.status === 'Aprobada' ? 'bg-brand-purple/10 text-brand-purple border-brand-purple/20' :
-                                            'bg-slate-100 text-slate-500 border-slate-200'
+                            <div className="absolute top-3 left-3 flex gap-2 z-10">
+                                <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm backdrop-blur-md",
+                                    ficha.status === 'En Producción' ? 'bg-emerald-500/80 text-white border-emerald-400' :
+                                        ficha.status === 'Aprobada' ? 'bg-brand-purple/80 text-white border-brand-purple/40' :
+                                            'bg-white/80 text-slate-500 border-slate-200'
                                 )}>
                                     {ficha.status}
                                 </span>
                             </div>
-                            <div className="p-8 group-hover:scale-110 transition-transform duration-500">
-                                <DraftingCompass className="h-16 w-16 text-muted-foreground/20" />
-                            </div>
+                            <img
+                                src={ficha.image}
+                                alt={ficha.name}
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            />
                         </div>
                         <div className="p-4 flex-1 flex flex-col gap-1">
                             <div className="flex items-center justify-between">
