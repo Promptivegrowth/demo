@@ -8,7 +8,7 @@ import {
     UserPlus, Printer, CheckCircle2, AlertCircle,
     Power, RotateCcw, History, PauseCircle,
     Wifi, RefreshCw, X, ChevronRight, Info,
-    Barcode, Check
+    Barcode, Check, Landmark, Copy, CheckCircle
 } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
@@ -67,6 +67,27 @@ export default function POSPage() {
     const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'success'>('idle')
     const [successChecks, setSuccessChecks] = useState<number>(0)
     const [lastSaleTotal, setLastSaleTotal] = useState(0)
+
+    // --- PAYMENT METHOD STATES ---
+    const [cardType, setCardType] = useState<'debito' | 'credito'>('debito')
+    const [cardInstallments, setCardInstallments] = useState(1)
+    const [operationNumber, setOperationNumber] = useState('')
+    const [walletProvider, setWalletProvider] = useState<'yape' | 'plin'>('yape')
+    const [isWalletConfirmed, setIsWalletConfirmed] = useState(false)
+    const [isTransferVerified, setIsTransferVerified] = useState(false)
+    const [copyFeedback, setCopyFeedback] = useState(false)
+    const [creditInstallments, setCreditInstallments] = useState(1)
+    const [firstPaymentDate, setFirstPaymentDate] = useState('2024-10-16')
+
+    const availableCredit = client?.creditLine ? client.creditLine - client.usedLine : 0
+    const creditProgressBar = client?.creditLine ? (client.usedLine / client.creditLine) * 100 : 0
+
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text)
+        setCopyFeedback(true)
+        setTimeout(() => setCopyFeedback(false), 2000)
+    }
+
     const searchInputRef = useRef<HTMLInputElement>(null)
 
     // --- EFFECTS ---
@@ -175,6 +196,11 @@ export default function POSPage() {
                 setTicket([])
                 setCashReceived('')
                 setClient(null)
+                setOperationNumber('')
+                setIsWalletConfirmed(false)
+                setIsTransferVerified(false)
+                setCardInstallments(1)
+                setCreditInstallments(1)
                 if (searchInputRef.current) searchInputRef.current.focus()
             }
         ]
@@ -413,10 +439,18 @@ export default function POSPage() {
                             {['Contado', 'Crédito'].map((type) => (
                                 <button
                                     key={type}
-                                    onClick={() => setTicketType(type)}
+                                    onClick={() => {
+                                        setTicketType(type)
+                                        if (type === 'Crédito') {
+                                            setPaymentMethod('credit')
+                                            toast.info('Ventas a crédito requieren cliente vinculado', { icon: <Info className="text-amber-500" /> })
+                                        } else {
+                                            setPaymentMethod('cash')
+                                        }
+                                    }}
                                     className={cn(
                                         "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                                        type === 'Contado' ? "bg-[#3841F2] text-white shadow-lg shadow-[#3841F2]/20 scale-105" : "text-muted-foreground hover:bg-slate-100"
+                                        ticketType === type ? "bg-[#3841F2] text-white shadow-lg shadow-[#3841F2]/20 scale-105" : "text-muted-foreground hover:bg-slate-100"
                                     )}
                                 >
                                     {type}
@@ -674,9 +708,12 @@ export default function POSPage() {
                             <input
                                 type="text"
                                 placeholder="DNI, RUC o Nombre..."
-                                className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#3841F2]"
+                                className={cn(
+                                    "w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#3841F2] transition-all",
+                                    paymentMethod === 'credit' && !client && "border-amber-500 ring-2 ring-amber-500/20 animate-pulse"
+                                )}
                                 onChange={(e) => {
-                                    if (e.target.value === '20608542') setClient({ name: 'Corporación MotoExpress SAC', type: 'EMPRESA', ruc: '20608542301' })
+                                    if (e.target.value === '20608542') setClient({ name: 'Corporación MotoExpress SAC', type: 'EMPRESA', ruc: '20608542301', creditLine: 5000, usedLine: 1200 })
                                 }}
                             />
                         </div>
@@ -719,7 +756,11 @@ export default function POSPage() {
                         {METHODS.map((method) => (
                             <button
                                 key={method.id}
-                                onClick={() => setPaymentMethod(method.id)}
+                                onClick={() => {
+                                    setPaymentMethod(method.id)
+                                    if (method.id === 'credit') setTicketType('Crédito')
+                                    else setTicketType('Contado')
+                                }}
                                 className={cn(
                                     "p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-[#3841F2]/50",
                                     paymentMethod === method.id
@@ -755,22 +796,44 @@ export default function POSPage() {
                                         />
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 pt-2">
-                                        {[10, 20, 50, 100, 200].map((val) => (
+                                        {[10, 20, 50].map((val) => (
+                                            <motion.button
+                                                key={val}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => setCashReceived((parseFloat(cashReceived || '0') + val).toString())}
+                                                className="py-3 px-3 bg-white/5 border border-white/10 rounded-xl text-xs font-black hover:bg-[#3841F2] transition-colors"
+                                            >
+                                                +S/ {val}
+                                            </motion.button>
+                                        ))}
+                                        {[100, 200].map((val) => (
                                             <motion.button
                                                 key={val}
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 onClick={() => setCashReceived(val.toString())}
-                                                className={cn(
-                                                    "py-3 px-3 border rounded-xl text-xs font-black transition-all",
-                                                    cashReceived === val.toString()
-                                                        ? "bg-[#3841F2] border-[#3841F2] text-white shadow-lg"
-                                                        : "bg-white/5 border-white/10 hover:bg-white/10"
-                                                )}
+                                                className="py-3 px-3 bg-white/5 border border-white/10 rounded-xl text-xs font-black hover:bg-[#3841F2] transition-colors first:col-start-1"
                                             >
                                                 S/ {val}
                                             </motion.button>
                                         ))}
+                                        <button
+                                            onClick={() => setCashReceived('')}
+                                            className="py-3 px-3 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] font-black text-red-300 uppercase"
+                                        >
+                                            Limpiar
+                                        </button>
+                                    </div>
+                                    <div className="pt-2">
+                                        {cashReceived && (
+                                            <p className={cn(
+                                                "text-[10px] font-black uppercase text-center py-1 rounded-lg",
+                                                change >= 0 ? "text-emerald-400 bg-emerald-400/10" : "text-red-400 bg-red-400/10"
+                                            )}>
+                                                {change < 0 ? "Monto insuficiente" : change === 0 ? "Pago exacto ✓" : `Vuelto: S/ ${change.toFixed(2)}`}
+                                            </p>
+                                        )}
                                     </div>
                                 </motion.div>
                             )}
@@ -782,15 +845,56 @@ export default function POSPage() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-3xl border border-white/10 gap-4"
                                 >
+                                    <div className="flex gap-2 w-full mb-2">
+                                        {['yape', 'plin'].map((p) => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setWalletProvider(p as any)}
+                                                className={cn(
+                                                    "flex-1 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border",
+                                                    walletProvider === p ? "bg-[#3841F2] border-[#3841F2] text-white" : "text-blue-300 border-white/10"
+                                                )}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                    </div>
                                     <div className="h-40 w-40 bg-white p-4 rounded-3xl relative shadow-xl overflow-hidden group">
                                         <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center m-2 rounded-2xl border-2 border-dashed border-slate-200">
                                             <QrCode className="h-24 w-24 text-slate-800 group-hover:scale-110 transition-transform duration-500" />
                                         </div>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-sm font-black uppercase tracking-widest text-[#3841F2] animate-pulse">Escanear para Pagar</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-300">Escanea con tu app</p>
                                         <p className="text-xl font-black text-white italic mt-1">S/ {total.toFixed(2)}</p>
+                                        <p className="text-[9px] font-bold text-slate-400 mt-1 tracking-tighter">+51 999 999 999</p>
                                     </div>
+
+                                    <button
+                                        onClick={() => {
+                                            setIsWalletConfirmed(true)
+                                            toast.success('Pago confirmado via API')
+                                        }}
+                                        className={cn(
+                                            "w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                                            isWalletConfirmed ? "bg-emerald-500 text-white" : "bg-white/10 text-blue-300 hover:bg-white/20 border border-white/5"
+                                        )}
+                                    >
+                                        {isWalletConfirmed ? (
+                                            <> <CheckCircle2 className="h-4 w-4" /> PAGO CONFIRMADO </>
+                                        ) : (
+                                            "Confirmar pago recibido"
+                                        )}
+                                    </button>
+
+                                    {!isWalletConfirmed && (
+                                        <div className="flex items-center gap-2">
+                                            <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} className="h-1 w-1 bg-blue-400 rounded-full" />
+                                            <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="h-1 w-1 bg-blue-400 rounded-full" />
+                                            <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="h-1 w-1 bg-blue-400 rounded-full" />
+                                            <span className="text-[9px] font-bold text-blue-300/60 uppercase">Esperando confirmación...</span>
+                                        </div>
+                                    )}
                                 </motion.div>
                             )}
 
@@ -801,39 +905,232 @@ export default function POSPage() {
                                     animate={{ opacity: 1, x: 0 }}
                                     className="p-6 bg-[#3841F2]/10 rounded-3xl border border-[#3841F2]/20 flex flex-col items-center gap-4 text-center mt-4"
                                 >
-                                    <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                        <CreditCard className="h-6 w-6 text-blue-400" />
+                                    <div className="flex gap-2 w-full">
+                                        {['debito', 'credito'].map((t) => (
+                                            <button
+                                                key={t}
+                                                onClick={() => setCardType(t as any)}
+                                                className={cn(
+                                                    "flex-1 p-3 rounded-xl border flex flex-col items-center gap-1 transition-all",
+                                                    cardType === t ? "bg-white text-[#3841F2] border-white shadow-lg" : "bg-white/10 text-white border-white/10"
+                                                )}
+                                            >
+                                                <CreditCard className="h-4 w-4" />
+                                                <span className="text-[9px] font-black uppercase">{t}</span>
+                                            </button>
+                                        ))}
                                     </div>
-                                    <div className="w-full space-y-2">
+
+                                    <div className="w-full space-y-2 mt-4">
                                         <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Últimos 4 dígitos</label>
                                         <input
                                             type="text"
-                                            placeholder="0000"
+                                            placeholder="•••• 0000"
                                             maxLength={4}
+                                            value={operationNumber}
+                                            onChange={(e) => setOperationNumber(e.target.value)}
                                             className="w-full h-12 bg-white/10 border border-white/10 rounded-xl text-center text-xl font-black tracking-[0.5em] focus:outline-none focus:border-[#3841F2]"
                                         />
                                     </div>
-                                    <p className="text-[10px] font-black uppercase text-blue-200 leading-relaxed italic opacity-60">
-                                        Procese en terminal inalámbrico
+
+                                    {cardType === 'credito' && (
+                                        <div className="w-full space-y-2">
+                                            <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Plan de Cuotas</label>
+                                            <select
+                                                value={cardInstallments}
+                                                onChange={(e) => setCardInstallments(parseInt(e.target.value))}
+                                                className="w-full h-10 bg-white/10 border border-white/10 rounded-xl px-4 text-xs font-bold focus:outline-none focus:bg-[#020659]"
+                                            >
+                                                {[1, 2, 3, 6, 12].map(n => (
+                                                    <option key={n} value={n}>{n} {n === 1 ? 'Cuota' : 'Cuotas'}</option>
+                                                ))}
+                                            </select>
+                                            {cardInstallments > 1 && (
+                                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-tighter italic">
+                                                    Monto por cuota: S/ {(total / cardInstallments).toFixed(2)}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="w-full space-y-2">
+                                        <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest">N° de Operación</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Código de aprobación"
+                                            value={operationNumber}
+                                            onChange={(e) => setOperationNumber(e.target.value)}
+                                            className="w-full h-10 bg-white/10 border border-white/10 rounded-xl px-4 text-xs font-bold text-center"
+                                        />
+                                    </div>
+
+                                    <p className="text-[9px] font-black uppercase text-blue-200 leading-relaxed italic opacity-60">
+                                        Cobro en terminal físico. Ingresa el código para continuar.
                                     </p>
+                                </motion.div>
+                            )}
+
+                            {paymentMethod === 'transfer' && (
+                                <motion.div
+                                    key="transfer-info"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="space-y-4 mt-4 p-6 bg-white/5 rounded-3xl border border-white/10"
+                                >
+                                    <h4 className="text-sm font-black text-blue-200 uppercase tracking-widest">Datos de Transferencia</h4>
+                                    <div className="bg-white/10 p-4 rounded-xl space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-blue-300 uppercase">Banco:</span>
+                                            <span className="text-xs font-black">BCP</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-blue-300 uppercase">Cuenta:</span>
+                                            <span className="text-xs font-black">191-12345678-0-98</span>
+                                            <button onClick={() => handleCopy('19112345678098')} className="text-blue-300 hover:text-white transition-colors relative">
+                                                {copyFeedback ? <CheckCircle className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-blue-300 uppercase">CCI:</span>
+                                            <span className="text-xs font-black">00219100123456789012</span>
+                                            <button onClick={() => handleCopy('00219100123456789012')} className="text-blue-300 hover:text-white transition-colors relative">
+                                                {copyFeedback ? <CheckCircle className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="w-full space-y-2">
+                                        <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest">N° de Operación</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Código de la transferencia"
+                                            value={operationNumber}
+                                            onChange={(e) => setOperationNumber(e.target.value)}
+                                            className="w-full h-10 bg-white/10 border border-white/10 rounded-xl px-4 text-xs font-bold text-center focus:outline-none focus:border-[#3841F2]"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setIsTransferVerified(!isTransferVerified)}
+                                        className={cn(
+                                            "w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                                            isTransferVerified ? "bg-emerald-500 text-white" : "bg-white/10 text-blue-300 hover:bg-white/20 border border-white/5"
+                                        )}
+                                    >
+                                        {isTransferVerified ? (
+                                            <> <CheckCircle2 className="h-4 w-4" /> TRANSFERENCIA VERIFICADA </>
+                                        ) : (
+                                            "Marcar como verificada"
+                                        )}
+                                    </button>
+                                </motion.div>
+                            )}
+
+                            {paymentMethod === 'credit' && (
+                                <motion.div
+                                    key="credit-info"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="space-y-4 mt-4 p-6 bg-white/5 rounded-3xl border border-white/10"
+                                >
+                                    <h4 className="text-sm font-black text-blue-200 uppercase tracking-widest">Línea de Crédito</h4>
+                                    {!client ? (
+                                        <div className="text-center py-4 text-slate-400 text-xs font-bold">
+                                            Vincule un cliente para usar crédito.
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="bg-white/10 p-4 rounded-xl space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-blue-300 uppercase">Cliente:</span>
+                                                    <span className="text-xs font-black truncate max-w-[150px]">{client.name}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-blue-300 uppercase">Línea Total:</span>
+                                                    <span className="text-xs font-black">S/ {client.creditLine?.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-blue-300 uppercase">Usado:</span>
+                                                    <span className="text-xs font-black">S/ {client.usedLine?.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-blue-300 uppercase">Disponible:</span>
+                                                    <span className={cn("text-xs font-black", availableCredit < total ? "text-red-400" : "text-emerald-400")}>
+                                                        S/ {availableCredit.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="w-full space-y-2">
+                                                <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Cuotas</label>
+                                                <select
+                                                    value={cardInstallments}
+                                                    onChange={(e) => setCardInstallments(parseInt(e.target.value))}
+                                                    className="w-full h-10 bg-white/10 border border-white/10 rounded-xl px-4 text-xs font-bold focus:outline-none focus:bg-[#020659]"
+                                                >
+                                                    {[1, 2, 3, 6, 12].map(n => (
+                                                        <option key={n} value={n}>{n} {n === 1 ? 'Cuota' : 'Cuotas'}</option>
+                                                    ))}
+                                                </select>
+                                                {cardInstallments > 1 && (
+                                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-tighter italic">
+                                                        Monto por cuota: S/ {(total / cardInstallments).toFixed(2)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="w-full space-y-1">
+                                                <div className="flex justify-between text-[10px] font-bold text-blue-300 uppercase">
+                                                    <span>Uso de Línea</span>
+                                                    <span>{creditProgressBar.toFixed(1)}%</span>
+                                                </div>
+                                                <div className="w-full bg-white/10 rounded-full h-2">
+                                                    <div
+                                                        className={cn("h-full rounded-full transition-all duration-500",
+                                                            creditProgressBar > 90 ? "bg-red-500" : creditProgressBar > 70 ? "bg-amber-500" : "bg-emerald-500"
+                                                        )}
+                                                        style={{ width: `${Math.min(100, creditProgressBar)}%` }}
+                                                    ></div>
+                                                </div>
+                                                {availableCredit < total && (
+                                                    <p className="text-[10px] font-bold text-red-400 uppercase text-center mt-2">
+                                                        Línea de crédito insuficiente para esta compra.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
 
                     <button
-                        disabled={ticket.length === 0 || (paymentMethod === 'cash' && (!cashReceived || change < 0))}
+                        disabled={
+                            ticket.length === 0 ||
+                            (paymentMethod === 'cash' && (!cashReceived || change < 0)) ||
+                            (paymentMethod === 'card' && operationNumber.length < 4) ||
+                            (paymentMethod === 'yape' && !isWalletConfirmed) ||
+                            (paymentMethod === 'transfer' && (!operationNumber || !isTransferVerified)) ||
+                            (paymentMethod === 'credit' && !client)
+                        }
                         onClick={handleCheckout}
                         className={cn(
                             "w-full h-20 rounded-3xl flex items-center justify-center gap-4 font-black uppercase tracking-[0.2em] transition-all shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed text-sm group overflow-hidden relative",
-                            ticket.length > 0 && !(paymentMethod === 'cash' && (!cashReceived || change < 0))
+                            (ticket.length > 0 && !(
+                                (paymentMethod === 'cash' && (!cashReceived || change < 0)) ||
+                                (paymentMethod === 'card' && operationNumber.length < 4) ||
+                                (paymentMethod === 'yape' && !isWalletConfirmed) ||
+                                (paymentMethod === 'transfer' && (!operationNumber || !isTransferVerified)) ||
+                                (paymentMethod === 'credit' && !client)
+                            ))
                                 ? "bg-[#3841F2] hover:bg-blue-600 hover:scale-[1.02] active:scale-[0.98] shadow-[#3841F2]/50 text-white"
                                 : "bg-white/10 text-white/40 border border-white/5"
                         )}
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                         <span className="relative z-10 flex flex-col items-center">
-                            <span className="text-[10px] opacity-70">Finalizar Venta</span>
+                            <span className="text-[10px] opacity-70">
+                                {paymentMethod === 'cash' && change < 0 ? 'Monto insuficiente' : 'Finalizar Venta'}
+                            </span>
                             <span>COBRAR S/ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </span>
                         <ChevronRight className="h-6 w-6 relative z-10 group-hover:translate-x-2 transition-transform" />
