@@ -51,6 +51,8 @@ export default function POSPage() {
     const [ticketType, setTicketType] = useState('Boleta')
     const [client, setClient] = useState<any>(null)
     const [showConfirm, setShowConfirm] = useState(false)
+    const [isCajaOpen, setIsCajaOpen] = useState(false)
+    const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [currentTime, setCurrentTime] = useState(new Date())
     const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -203,8 +205,8 @@ export default function POSPage() {
             {/* --- COLUMNA IZQUIERDA: Sesión (260px) --- */}
             <div className="w-[260px] flex flex-col gap-4">
                 <div className="bg-[#020659] rounded-3xl p-6 flex flex-col items-center text-white border border-white/10 shadow-lg">
-                    <div className="mb-6 h-12 w-auto flex items-center justify-center">
-                        <Image src="/sanchez/logo.png" alt="Group Sanchez" width={120} height={40} className="h-full w-auto object-contain brightness-0 invert" />
+                    <div className="bg-white p-3 rounded-2xl mb-6 w-full flex items-center justify-center shadow-inner">
+                        <Image src="/sanchez/logo.png" alt="Group Sanchez" width={140} height={50} className="h-full w-auto object-contain" />
                     </div>
 
                     <div className="w-full space-y-6 pt-4 border-t border-white/10">
@@ -240,12 +242,26 @@ export default function POSPage() {
 
                 <div className="flex-1 bg-white rounded-3xl p-2 border border-border shadow-sm flex flex-col gap-1">
                     {[
-                        { label: 'Abrir Caja', icon: Power, color: 'text-emerald-500 bg-emerald-50' },
-                        { label: 'Cierre de Turno', icon: RotateCcw, color: 'text-red-500 bg-red-50' },
-                        { label: 'Mis Ventas Hoy', icon: History, color: 'text-blue-500 bg-blue-50' },
-                        { label: 'Suspender Venta', icon: PauseCircle, color: 'text-amber-500 bg-amber-50' }
+                        {
+                            label: 'Cierre de Turno', icon: RotateCcw, color: 'text-red-500 bg-red-50', onClick: () => {
+                                if (ticket.length > 0) {
+                                    toast.error('Debes finalizar la venta actual antes de cerrar caja')
+                                    return
+                                }
+                                setIsCajaOpen(false)
+                                toast.info('Caja cerrada con éxito')
+                            }
+                        },
+                        { label: 'Mis Ventas Hoy', icon: History, color: 'text-blue-500 bg-blue-50', onClick: () => toast('Resumen del día: S/ 4,250.00 generado') },
+                        {
+                            label: 'Suspender Venta', icon: PauseCircle, color: 'text-amber-500 bg-amber-50', onClick: () => {
+                                if (ticket.length === 0) return
+                                toast('Venta suspendida. Se guardó en memoria local.')
+                                setTicket([])
+                            }
+                        }
                     ].map((btn) => (
-                        <button key={btn.label} className="w-full p-4 flex items-center gap-4 hover:bg-slate-50 rounded-2xl transition-all group text-left">
+                        <button key={btn.label} onClick={btn.onClick} className="w-full p-4 flex items-center gap-4 hover:bg-slate-50 rounded-2xl transition-all group text-left">
                             <div className={cn("p-2.5 rounded-xl transition-transform group-hover:scale-110", btn.color)}>
                                 <btn.icon className="h-4 w-4" />
                             </div>
@@ -400,7 +416,15 @@ export default function POSPage() {
                                                                     <div className="h-1.5 w-1.5 rounded-full bg-amber-500" title="Bajo Stock" />
                                                                 )}
                                                             </div>
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter italic">ID: {item.code}</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter italic">ID: {item.code}</p>
+                                                                <button
+                                                                    onClick={() => setSelectedProduct(item)}
+                                                                    className="text-blue-500 hover:text-blue-700 text-[9px] font-bold uppercase underline"
+                                                                >
+                                                                    Ver Detalle
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                         {/* Almacén Toltip on group hover */}
                                                         <div className="absolute left-0 -top-2 px-2 py-0.5 bg-slate-800 text-white text-[9px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-30 shadow-lg">
@@ -644,6 +668,103 @@ export default function POSPage() {
                     </button>
                 </div>
             </div>
+
+            {/* --- MODAL: DETALLES DE PRODUCTO --- */}
+            <AnimatePresence>
+                {selectedProduct && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-3xl overflow-hidden max-w-2xl w-full shadow-2xl flex flex-col md:flex-row"
+                        >
+                            <div className="w-full md:w-1/2 h-64 md:h-auto relative bg-slate-100">
+                                <Image src={selectedProduct.image} alt={selectedProduct.name} fill className="object-cover" />
+                                <button
+                                    onClick={() => setSelectedProduct(null)}
+                                    className="absolute top-4 left-4 h-10 w-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/40 transition-colors"
+                                >
+                                    <X className="h-5 w-5 text-white" />
+                                </button>
+                            </div>
+                            <div className="flex-1 p-8 space-y-6">
+                                <div>
+                                    <Badge className="bg-[#3841F2] mb-2">{selectedProduct.category}</Badge>
+                                    <h2 className="text-2xl font-black text-slate-900 leading-tight">{selectedProduct.name}</h2>
+                                    <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">CÓDIGO: {selectedProduct.code}</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Precio Unitario</span>
+                                        <span className="text-xl font-black text-slate-900">S/ {selectedProduct.price.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Stock Disponible</span>
+                                        <span className={cn("text-lg font-black", selectedProduct.stock < 5 ? "text-red-500" : "text-emerald-500")}>
+                                            {selectedProduct.stock} unidades
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Ubicación</span>
+                                        <span className="text-sm font-black text-slate-700">Pasillo B — Estantería 4</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        addProductToTicket(selectedProduct)
+                                        setSelectedProduct(null)
+                                    }}
+                                    className="w-full py-4 bg-[#3841F2] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                    Añadir al Carrito
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* --- OVERLAY: CAJA CERRADA --- */}
+            <AnimatePresence>
+                {!isCajaOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[120] bg-[#020659]/90 backdrop-blur-md flex items-center justify-center p-6"
+                    >
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className="bg-white rounded-[40px] p-12 max-w-md w-full text-center shadow-2xl border border-white/20"
+                        >
+                            <div className="h-24 w-24 bg-blue-50 text-[#3841F2] rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+                                <Power className="h-12 w-12" />
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 mb-4 italic">Cerrado</h2>
+                            <p className="text-slate-500 font-medium mb-10 leading-relaxed">
+                                Para comenzar a vender, primero debes abrir el turno de caja.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setIsCajaOpen(true)
+                                    toast.success('Turno de caja abierto correctamente', { position: 'top-center' })
+                                }}
+                                className="w-full py-6 bg-[#3841F2] text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-sm shadow-2xl hover:bg-blue-600 transition-all flex items-center justify-center gap-4"
+                            >
+                                <Power className="h-5 w-5" />
+                                Abrir Turno de Caja
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

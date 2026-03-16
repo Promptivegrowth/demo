@@ -8,7 +8,7 @@ import {
     AlertCircle, TrendingUp, TrendingDown,
     Download, Upload, Barcode, Warehouse,
     ChevronDown, ChevronUp, ArrowRight,
-    Tag, Info, Plus
+    Tag, Info, Plus, X
 } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
@@ -25,13 +25,21 @@ const PRODUCTS = [
 ]
 
 export default function InventarioAutomotriz() {
+    const [products, setProducts] = useState(PRODUCTS)
     const [searchQuery, setSearchQuery] = useState('')
     const [filterCategory, setFilterCategory] = useState('Todas')
+    const [selectedProduct, setSelectedProduct] = useState<any>(null)
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
-    const filteredProducts = PRODUCTS.filter(p =>
+    const filteredProducts = products.filter(p =>
         (p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.includes(searchQuery)) &&
         (filterCategory === 'Todas' || p.category === filterCategory)
     )
+
+    const handleUpdateStock = (id: number, newStock: number) => {
+        setProducts(products.map(p => p.id === id ? { ...p, stock: newStock } : p))
+        toast.success('Stock actualizado correctamente')
+    }
 
     return (
         <div className="space-y-8 pb-10">
@@ -60,7 +68,10 @@ export default function InventarioAutomotriz() {
                         <Download className="h-4 w-4 text-muted-foreground" />
                         Exportar
                     </button>
-                    <button className="flex items-center gap-2 px-5 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
                         <Plus className="h-4 w-4" />
                         NUEVO PRODUCTO
                     </button>
@@ -219,14 +230,20 @@ export default function InventarioAutomotriz() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button className="p-2 hover:bg-[#3841F2]/10 hover:text-[#3841F2] rounded-lg transition-colors" title="Editar">
+                                                    <button
+                                                        onClick={() => setSelectedProduct(p)}
+                                                        className="p-2 hover:bg-[#3841F2]/10 hover:text-[#3841F2] rounded-lg transition-colors" title="Editar"
+                                                    >
                                                         <Edit3 className="h-4 w-4" />
                                                     </button>
-                                                    <button className="p-2 hover:bg-slate-200 rounded-lg transition-colors" title="Historial">
+                                                    <button onClick={() => toast.info('Historial detallado para ' + p.code)} className="p-2 hover:bg-slate-200 rounded-lg transition-colors" title="Historial">
                                                         <History className="h-4 w-4 text-slate-500" />
                                                     </button>
-                                                    <button className="p-2 hover:bg-slate-200 rounded-lg transition-colors" title="Ajuste Stock">
-                                                        <TrendingDown className="h-4 w-4 text-slate-500" />
+                                                    <button
+                                                        onClick={() => handleUpdateStock(p.id, p.stock + 1)}
+                                                        className="p-2 hover:bg-slate-200 rounded-lg transition-colors" title="Ajuste Stock"
+                                                    >
+                                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -268,6 +285,84 @@ export default function InventarioAutomotriz() {
                     <TrendingUp className="h-20 w-20 text-[#3841F2] relative z-10 drop-shadow-[0_0_15px_rgba(56,65,242,0.5)]" />
                 </div>
             </div>
+
+            {/* --- MODALES --- */}
+            <AnimatePresence>
+                {(selectedProduct || isAddModalOpen) && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl space-y-6"
+                        >
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-2xl font-black text-slate-900 italic">
+                                    {isAddModalOpen ? 'Nuevo Producto' : 'Editar Producto'}
+                                </h2>
+                                <button onClick={() => { setSelectedProduct(null); setIsAddModalOpen(false); }} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2 space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre del Producto</label>
+                                    <input type="text" className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold" defaultValue={selectedProduct?.name || ''} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Código</label>
+                                    <input type="text" className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold" defaultValue={selectedProduct?.code || 'PR-0000'} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</label>
+                                    <select className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                                        <option>Lubricantes</option>
+                                        <option>Frenos</option>
+                                        <option>Accesorios</option>
+                                        <option>Llantas</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1 text-center">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock Actual</label>
+                                    <div className="flex items-center justify-center gap-4 h-12 bg-blue-50 rounded-xl border border-blue-100">
+                                        <button className="h-8 w-8 bg-white rounded-lg shadow-sm font-black">-</button>
+                                        <span className="font-black text-lg">{selectedProduct?.stock || 0}</span>
+                                        <button className="h-8 w-8 bg-white rounded-lg shadow-sm font-black">+</button>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio Venta</label>
+                                    <input type="text" className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-black text-[#3841F2]" defaultValue={selectedProduct ? `S/ ${selectedProduct.salePrice.toFixed(2)}` : 'S/ 0.00'} />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    onClick={() => { setSelectedProduct(null); setIsAddModalOpen(false); }}
+                                    className="flex-1 py-4 px-6 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        toast.success(isAddModalOpen ? 'Producto creado' : 'Cambios guardados');
+                                        setSelectedProduct(null);
+                                        setIsAddModalOpen(false);
+                                    }}
+                                    className="flex-[2] py-4 px-6 bg-[#3841F2] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                    Confirmar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

@@ -71,7 +71,9 @@ export function Sidebar() {
         <>
             {/* Logo */}
             <div className="flex items-center gap-3 px-4 h-16 border-b border-border shrink-0">
-                <Image src="/logo.png" alt="PROMPTIVE" width={32} height={32} className="shrink-0 rounded-lg" />
+                <div className="bg-white p-1 rounded-lg shrink-0 flex items-center justify-center">
+                    <Image src="/logo.png" alt="PROMPTIVE" width={28} height={28} />
+                </div>
                 {(!sidebarCollapsed || mobileSidebarOpen) && (
                     <motion.span
                         initial={{ opacity: 0, x: -10 }}
@@ -174,7 +176,7 @@ export function Sidebar() {
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sector Automotriz</span>
                     )}
                     {(!sidebarCollapsed || mobileSidebarOpen) && (
-                        <span className="text-[10px] bg-blue-100 text-[#3841F2] px-1.5 py-0.5 rounded font-black border border-blue-200">DEMO</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sector Automotriz</span>
                     )}
                     <div className="h-px flex-1 bg-border/60" />
                 </div>

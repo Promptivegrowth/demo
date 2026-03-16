@@ -8,7 +8,7 @@ import {
     ArrowUpRight, ArrowDownRight, MoreHorizontal,
     FileText, CheckCircle2, AlertCircle,
     TrendingUp, BarChart3, Filter, Plus,
-    Edit3, Undo2, LogOut, Clock, ShieldCheck
+    Edit3, Undo2, LogOut, Clock, ShieldCheck, X
 } from 'lucide-react'
 import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
@@ -71,8 +71,15 @@ const CLIENTS = [
 ]
 
 export default function ClientesAutomotriz() {
+    const [clients, setClients] = useState(CLIENTS)
     const [selectedClient, setSelectedClient] = useState<any>(CLIENTS[0])
     const [searchQuery, setSearchQuery] = useState('')
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+
+    const filteredClients = clients.filter(c =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.document.includes(searchQuery)
+    )
 
     return (
         <div className="space-y-8 pb-10">
@@ -88,7 +95,10 @@ export default function ClientesAutomotriz() {
                         className="w-full h-12 pl-12 pr-6 bg-card border border-border rounded-2xl text-sm font-medium focus:outline-none focus:border-[#3841F2] shadow-sm transition-all"
                     />
                 </div>
-                <button className="flex items-center gap-2 px-6 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
                     <UserPlus className="h-4 w-4" />
                     NUEVO CLIENTE
                 </button>
@@ -100,10 +110,10 @@ export default function ClientesAutomotriz() {
                     <div className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden flex flex-col h-full max-h-[700px]">
                         <div className="p-5 border-b border-border bg-slate-50/50 flex items-center justify-between">
                             <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Base de Clientes</h3>
-                            <Badge className="bg-blue-100 text-[#3841F2] border-none font-black text-[10px]">{CLIENTS.length}</Badge>
+                            <Badge className="bg-blue-100 text-[#3841F2] border-none font-black text-[10px]">{filteredClients.length}</Badge>
                         </div>
                         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-                            {CLIENTS.map((client) => (
+                            {filteredClients.map((client) => (
                                 <button
                                     key={client.id}
                                     onClick={() => setSelectedClient(client)}
@@ -331,6 +341,77 @@ export default function ClientesAutomotriz() {
                     <span className="text-[10px] font-black text-[#3841F2] uppercase tracking-widest">Integración CRM PROMPTIVE ✓</span>
                 </div>
             </div>
+
+            {/* --- MODALES --- */}
+            <AnimatePresence>
+                {isAddModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl space-y-6"
+                        >
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-2xl font-black text-slate-900 italic">Nuevo Cliente</h2>
+                                <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Razón Social / Nombre</label>
+                                    <input type="text" className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="Nombre completo..." />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo Doc.</label>
+                                        <select className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                                            <option>DNI</option>
+                                            <option>RUC</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">N° Documento</label>
+                                        <input type="text" className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="00000000" />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</label>
+                                    <input type="email" className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="correo@ejemplo.com" />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Línea de Crédito Inicial (S/)</label>
+                                    <input type="number" className="w-full h-12 px-4 bg-blue-50 border border-blue-100 rounded-xl font-black text-[#3841F2]" defaultValue="1000" />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="flex-1 py-4 px-6 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        toast.success('Cliente registrado correctamente');
+                                        setIsAddModalOpen(false);
+                                    }}
+                                    className="flex-[2] py-4 px-6 bg-[#3841F2] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                    Guardar Cliente
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
