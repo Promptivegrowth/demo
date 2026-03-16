@@ -19,27 +19,50 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const [ready, setReady] = useState(false)
 
     const loadProfile = useCallback(async (userId: string, userEmail?: string, userMeta?: Record<string, unknown>) => {
+        console.log('[PROMPTIVE] Loading profile for:', userEmail || userId)
+
+        // Fast path for demo users to prevent DB hangs
+        if (userEmail?.endsWith('@promptive.pe')) {
+            console.log('[PROMPTIVE] Auto-resolving demo profile')
+            return {
+                id: userId,
+                full_name: userEmail.includes('admin') ? 'Administrador PROMPTIVE' : 'Operativo PROMPTIVE',
+                email: userEmail,
+                role: (userEmail.includes('admin') ? 'admin' : 'operativo') as 'admin' | 'operativo',
+                avatar_url: null,
+                is_active: true,
+            }
+        }
+
         try {
-            const { data: profile } = await supabase
+            const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .maybeSingle()
-            if (profile) return profile
 
-            const orgResult = await supabase.from('organizations').select('id').limit(1).single()
-            const newProfile = {
+            if (error) console.error('[PROMPTIVE] Profile fetch error:', error)
+
+            if (profile) {
+                console.log('[PROMPTIVE] Profile loaded from DB')
+                return {
+                    ...profile,
+                    role: profile.role || 'operativo',
+                    is_active: profile.is_active ?? true
+                }
+            }
+
+            console.log('[PROMPTIVE] No profile found, using metadata')
+            return {
                 id: userId,
                 full_name: (userMeta?.full_name as string) || userEmail?.split('@')[0] || 'Usuario',
                 email: userEmail || '',
-                role: (userMeta?.role as string) || 'operativo',
-                org_id: orgResult.data?.id,
+                role: (userMeta?.role as string) || 'operativo' as any,
+                avatar_url: null,
                 is_active: true,
             }
-            await supabase.from('profiles').upsert(newProfile)
-            return newProfile
         } catch (err) {
-            console.error('Error loading profile:', err)
+            console.error('[PROMPTIVE] Critical error in loadProfile:', err)
             return null
         }
     }, [])
