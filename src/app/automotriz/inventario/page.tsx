@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Package, Search, Scan, Filter,
-    MoreHorizontal, Edit3, History,
+    MoreHorizontal, Edit3, History, Clock, RefreshCw,
     AlertCircle, TrendingUp, TrendingDown,
     Download, Upload, Barcode, Warehouse,
     ChevronDown, ChevronUp, ArrowRight,

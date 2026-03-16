@@ -7,7 +7,7 @@ import {
     ArrowUpRight, ArrowDownRight, Printer,
     Clock, Lock, Unlock, AlertCircle,
     RotateCcw, DollarSign, FileText, CheckCircle2,
-    TrendingUp, Plus, Minus, Search
+    TrendingUp, Plus, Minus, Search, History
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -195,7 +195,7 @@ export default function CajaAutomotriz() {
                                         <div className="h-8 w-12 bg-white/10 rounded flex items-center justify-center text-[10px] font-black border border-white/10">S/ {row.bill}</div>
                                         <span className="text-[10px] font-bold text-blue-300">x {row.qty}</span>
                                     </div>
-                                    <span className="text-xs font-black italic">S/ {(parseInt(row.bill) || 1) * row.qty}.00</span>
+                                    <span className="text-xs font-black italic">S/ {Number(row.bill) * row.qty}.00</span>
                                 </div>
                             ))}
                         </div>

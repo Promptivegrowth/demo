@@ -7,7 +7,8 @@ import {
     History, Phone, Mail, MapPin,
     ArrowUpRight, ArrowDownRight, MoreHorizontal,
     FileText, CheckCircle2, AlertCircle,
-    TrendingUp, BarChart3, Filter, Plus
+    TrendingUp, BarChart3, Filter, Plus,
+    Edit3, Undo2, LogOut, Clock, ShieldCheck
 } from 'lucide-react'
 import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
