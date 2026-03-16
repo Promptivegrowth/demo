@@ -175,6 +175,9 @@ export function Sidebar() {
                     {(!sidebarCollapsed || mobileSidebarOpen) && (
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sector Automotriz</span>
                     )}
+                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                        <span className="text-[10px] bg-blue-100 text-[#3841F2] px-1.5 py-0.5 rounded font-black border border-blue-200">DEMO</span>
+                    )}
                     <div className="h-px flex-1 bg-border/60" />
                 </div>
 

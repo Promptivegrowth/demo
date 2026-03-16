@@ -295,6 +295,7 @@ export default function POSPage() {
                             {['Contado', 'Crédito'].map((type) => (
                                 <button
                                     key={type}
+                                    onClick={() => setTicketType(type)}
                                     className={cn(
                                         "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
                                         type === 'Contado' ? "bg-[#3841F2] text-white shadow-lg shadow-[#3841F2]/20 scale-105" : "text-muted-foreground hover:bg-slate-100"
@@ -411,7 +412,7 @@ export default function POSPage() {
                                                         </div>
                                                         <div className="overflow-hidden">
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-xs font-black text-slate-800 truncate">{item.name}</p>
+                                                                <p className="text-sm font-black text-slate-800 truncate">{item.name}</p>
                                                                 {item.stock < 10 && (
                                                                     <div className="h-1.5 w-1.5 rounded-full bg-amber-500" title="Bajo Stock" />
                                                                 )}
@@ -450,10 +451,10 @@ export default function POSPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <p className="text-xs font-bold text-slate-500">S/ {item.price.toFixed(2)}</p>
+                                                    <p className="text-sm font-bold text-slate-500">S/ {item.price.toFixed(2)}</p>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <p className="text-sm font-black text-slate-900">S/ {(item.price * item.quantity).toFixed(2)}</p>
+                                                    <p className="text-base font-black text-slate-900">S/ {(item.price * item.quantity).toFixed(2)}</p>
                                                 </td>
                                                 <td className="px-6 py-4 text-right w-12 text-slate-300">
                                                     <button
@@ -560,7 +561,7 @@ export default function POSPage() {
                 </div>
 
                 {/* Métodos de Pago */}
-                <div className="flex-1 bg-[#020659] rounded-3xl p-6 text-white border border-white/10 shadow-lg flex flex-col gap-6">
+                <div className="flex-1 bg-[#020659] rounded-3xl p-6 text-white border border-white/10 shadow-lg flex flex-col gap-6 overflow-y-auto overflow-x-hidden min-h-0 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                     <h3 className="text-xs font-black text-blue-200 uppercase tracking-widest">Método de pago</h3>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -569,14 +570,14 @@ export default function POSPage() {
                                 key={method.id}
                                 onClick={() => setPaymentMethod(method.id)}
                                 className={cn(
-                                    "p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.97]",
+                                    "p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all hover:scale-[1.03] active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-[#3841F2]/50",
                                     paymentMethod === method.id
                                         ? 'bg-[#3841F2] border-[#3841F2] shadow-[0_0_20px_rgba(56,65,242,0.4)]'
                                         : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                                 )}
                             >
                                 <method.icon className={cn("h-6 w-6", paymentMethod === method.id ? 'text-white' : 'text-blue-300')} />
-                                <span className="text-[10px] font-black uppercase tracking-tight">{method.label}</span>
+                                <span className="text-xs font-black uppercase tracking-tight">{method.label}</span>
                             </button>
                         ))}
                     </div>

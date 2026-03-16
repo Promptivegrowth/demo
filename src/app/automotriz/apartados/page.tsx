@@ -7,7 +7,7 @@ import {
     DollarSign, CreditCard, Clock,
     AlertCircle, CheckCircle2, History,
     User, Package, ChevronRight, Share2,
-    TrendingDown, ArrowRight, Wallet
+    TrendingDown, ArrowRight, Wallet, X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -64,6 +64,7 @@ const APARTADOS = [
 
 export default function ApartadosAutomotriz() {
     const [selectedApartado, setSelectedApartado] = useState<any>(APARTADOS[0])
+    const [isNewReservationModalOpen, setIsNewReservationModalOpen] = useState(false)
 
     return (
         <div className="space-y-8 pb-10">
@@ -89,7 +90,10 @@ export default function ApartadosAutomotriz() {
                             className="h-11 pl-10 pr-4 bg-white border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-[#3841F2] shadow-sm w-full"
                         />
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all italic">
+                    <button
+                        onClick={() => setIsNewReservationModalOpen(true)}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all italic"
+                    >
                         <Plus className="h-4 w-4" />
                         NUEVA RESERVA
                     </button>
@@ -111,11 +115,11 @@ export default function ApartadosAutomotriz() {
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 border-b border-border">
                                 <tr>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Reserva / Fecha</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Cliente / Item</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Progreso</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Estado</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-right">Pendiente</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase">Reserva / Fecha</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase">Cliente / Item</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase text-center">Progreso</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase text-center">Estado</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase text-right">Pendiente</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -129,12 +133,12 @@ export default function ApartadosAutomotriz() {
                                         )}
                                     >
                                         <td className="px-8 py-5">
-                                            <p className="text-[11px] font-black text-slate-900 uppercase italic tracking-tighter">{a.id}</p>
-                                            <p className="text-[9px] font-bold text-muted-foreground">{a.date}</p>
+                                            <p className="text-xs font-black text-slate-900 uppercase italic tracking-tighter">{a.id}</p>
+                                            <p className="text-xs font-bold text-muted-foreground">{a.date}</p>
                                         </td>
                                         <td className="px-8 py-5">
-                                            <p className="text-[12px] font-black text-slate-800 leading-tight italic truncate max-w-[180px]">{a.client}</p>
-                                            <p className="text-[10px] font-bold text-[#3841F2] uppercase tracking-tighter truncate max-w-[180px]">{a.product}</p>
+                                            <p className="text-sm font-black text-slate-800 leading-tight italic truncate max-w-[180px]">{a.client}</p>
+                                            <p className="text-xs font-bold text-[#3841F2] uppercase tracking-tighter truncate max-w-[180px]">{a.product}</p>
                                         </td>
                                         <td className="px-8 py-5">
                                             <div className="flex flex-col items-center gap-1.5">
@@ -203,13 +207,13 @@ export default function ApartadosAutomotriz() {
                                             </div>
                                             <div className="flex-1 flex items-center justify-between border-b border-white/5 pb-2">
                                                 <div>
-                                                    <p className="text-[10px] font-black uppercase italic tracking-tighter">Cuota {inst.id}</p>
-                                                    <p className="text-[9px] font-bold text-blue-300/60 uppercase">{inst.date}</p>
+                                                    <p className="text-sm font-black uppercase italic tracking-tighter">Cuota {inst.id}</p>
+                                                    <p className="text-xs font-bold text-blue-300/60 uppercase">{inst.date}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-xs font-black italic">S/ {inst.amount.toFixed(2)}</p>
+                                                    <p className="text-sm font-black italic">S/ {inst.amount.toFixed(2)}</p>
                                                     <p className={cn(
-                                                        "text-[8px] font-black uppercase",
+                                                        "text-[9px] font-black uppercase",
                                                         inst.status === 'Pendiente' ? 'text-blue-300' : inst.status === 'Vencido' ? 'text-red-400' : 'text-emerald-400'
                                                     )}>{inst.status}</p>
                                                 </div>
@@ -249,21 +253,93 @@ export default function ApartadosAutomotriz() {
                 </div>
             </div>
 
-            {/* Bottom Integration Labels */}
-            <div className="p-4 bg-slate-100 border border-slate-200 rounded-3xl flex flex-wrap items-center justify-center gap-6 italic opacity-70">
-                <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-[#3841F2]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Reserva de Stock Real-Time ✓</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-[#3841F2]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Contabilización Financiera POS ✓</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-[#3841F2]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Alertas Automatizadas SMS/WA ✓</span>
-                </div>
-            </div>
+            {/* Modal: Nueva Reserva */}
+            <AnimatePresence>
+                {isNewReservationModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-[#020659]/80 backdrop-blur-md flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="bg-white rounded-[40px] p-10 max-w-2xl w-full shadow-2xl space-y-8"
+                        >
+                            <div className="flex justify-between items-center">
+                                <div className="space-y-1">
+                                    <h2 className="text-3xl font-black text-slate-900 italic">Nueva Reserva (Apartado)</h2>
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Sánchez Financial Services</p>
+                                </div>
+                                <button onClick={() => setIsNewReservationModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-full transition-colors">
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Cliente</label>
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input type="text" placeholder="DNI o Nombre" className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:border-[#3841F2] transition-all" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Producto</label>
+                                    <div className="relative">
+                                        <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input type="text" placeholder="Seleccionar item" className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:border-[#3841F2] transition-all" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Monto Total</label>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input type="number" placeholder="0.00" className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Adelanto Mínimo (20%)</label>
+                                    <div className="relative">
+                                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input type="number" placeholder="0.00" className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none text-[#3841F2]" />
+                                    </div>
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Plan de Cuotas</label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {['Una Cuota', 'Quincenal', 'Mensual'].map(plan => (
+                                            <button key={plan} className="py-4 border border-slate-200 rounded-2xl text-[10px] font-black uppercase hover:border-[#3841F2] hover:text-[#3841F2] transition-all">
+                                                {plan}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-6">
+                                <button
+                                    onClick={() => setIsNewReservationModalOpen(false)}
+                                    className="flex-1 py-5 px-8 border border-slate-200 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        toast.success('Reserva SEP-216 creada con bloqueo de stock activo');
+                                        setIsNewReservationModalOpen(false);
+                                    }}
+                                    className="flex-[2] py-5 px-8 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <CheckCircle2 className="h-5 w-5" />
+                                    CONFIRMAR RESERVA
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

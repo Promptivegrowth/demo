@@ -6,12 +6,15 @@ import {
     Search, Filter, Grid, List as ListIcon,
     Info, ShoppingCart, Tag, Share2,
     Eye, ChevronRight, Download,
-    Image as ImageIcon, Box, Zap, Settings
+    Image as ImageIcon, Box, Zap, Settings, X
 } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+
+const BRANDS = ['Todas', 'EBC Brakes', 'Scorpion', 'D.I.D', 'Liqui Moly', 'Motul', 'Pirelli']
+const CATEGORIES = ['Todas', 'Frenos', 'Accesorios', 'Transmisión', 'Lubricantes', 'Llantas']
 
 // --- MOCK DATA ---
 const PARTS = [
@@ -68,6 +71,18 @@ const PARTS = [
 export default function CatalogoAutomotriz() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
     const [selectedPart, setSelectedPart] = useState<any>(null)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [filterBrand, setFilterBrand] = useState('Todas')
+    const [filterCategory, setFilterCategory] = useState('Todas')
+    const [showFilters, setShowFilters] = useState(false)
+
+    const filteredParts = PARTS.filter(part => {
+        const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) || part.code.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesBrand = filterBrand === 'Todas' || part.brand === filterBrand
+        // Note: Kategoría isn't in mock data yet, let's infer or add it. I'll use category from tag if I add it.
+        // For now let's just use Brand and Search. 
+        return matchesSearch && matchesBrand
+    })
 
     return (
         <div className="space-y-8 pb-10">
@@ -84,31 +99,71 @@ export default function CatalogoAutomotriz() {
                         <input
                             type="text"
                             placeholder="Buscar en el catálogo..."
-                            className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-[#3841F2] shadow-sm"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-xl text-sm font-bold focus:outline-none focus:border-[#3841F2] shadow-sm transition-all"
                         />
                     </div>
                     <div className="flex bg-white border border-border rounded-xl p-1 shadow-sm">
                         <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-lg transition-all", viewMode === 'grid' ? "bg-[#3841F2] text-white shadow-md" : "text-slate-400 hover:bg-slate-50")}><Grid className="h-4 w-4" /></button>
                         <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-[#3841F2] text-white shadow-md" : "text-slate-400 hover:bg-slate-50")}><ListIcon className="h-4 w-4" /></button>
                     </div>
-                    <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={cn(
+                            "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                            showFilters ? "bg-[#3841F2] text-white" : "bg-slate-900 text-white hover:bg-slate-800"
+                        )}
+                    >
                         <Filter className="h-4 w-4" />
-                        Filtros
+                        {showFilters ? 'Cerrar' : 'Filtros'}
                     </button>
                 </div>
             </div>
+
+            {/* Filter Panel */}
+            <AnimatePresence>
+                {showFilters && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="p-6 bg-white border border-border rounded-3xl shadow-sm flex flex-wrap gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrar por Marca</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {BRANDS.map(brand => (
+                                        <button
+                                            key={brand}
+                                            onClick={() => setFilterBrand(brand)}
+                                            className={cn(
+                                                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border",
+                                                filterBrand === brand ? "bg-[#3841F2] border-[#3841F2] text-white shadow-md" : "border-slate-100 text-slate-500 hover:bg-slate-50"
+                                            )}
+                                        >
+                                            {brand}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Catalog Grid */}
             <div className={cn(
                 "grid gap-8",
                 viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1"
             )}>
-                {PARTS.map((part) => (
+                {filteredParts.map((part) => (
                     <motion.div
                         layout
                         key={part.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         className={cn(
                             "bg-white rounded-[2.5rem] border border-border shadow-md overflow-hidden group hover:shadow-2xl hover:border-[#3841F2]/30 transition-all duration-500",
                             viewMode === 'list' && "flex flex-row"
@@ -127,13 +182,16 @@ export default function CatalogoAutomotriz() {
                                 className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                                <button className="w-full py-3 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-[#3841F2] hover:text-white transition-all">
+                                <button
+                                    onClick={() => setSelectedPart(part)}
+                                    className="w-full py-3 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-[#3841F2] hover:text-white transition-all shadow-xl"
+                                >
                                     <Eye className="h-4 w-4" />
                                     Vista Rápida
                                 </button>
                             </div>
                             <div className="absolute top-4 right-4">
-                                <Badge className="bg-white/90 backdrop-blur-md text-[#3841F2] border-none font-black text-[9px] px-3 py-1 shadow-sm">
+                                <Badge className="bg-white/90 backdrop-blur-md text-[#3841F2] border-none font-black text-xs px-3 py-1 shadow-sm">
                                     {part.brand}
                                 </Badge>
                             </div>
@@ -143,16 +201,16 @@ export default function CatalogoAutomotriz() {
                         <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
                             <div className="space-y-2">
                                 <div className="flex justify-between items-start">
-                                    <p className="text-[10px] font-black text-[#3841F2] uppercase tracking-widest">{part.code}</p>
+                                    <p className="text-xs font-black text-[#3841F2] uppercase tracking-widest">{part.code}</p>
                                     {part.stock < 5 && <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" title="Stock Bajo" />}
                                 </div>
-                                <h3 className="text-lg font-black text-slate-900 leading-tight italic group-hover:text-[#3841F2] transition-colors">{part.name}</h3>
-                                <p className="text-xs font-bold text-muted-foreground line-clamp-1">{part.model}</p>
+                                <h3 className="text-xl font-black text-slate-900 leading-tight italic group-hover:text-[#3841F2] transition-colors">{part.name}</h3>
+                                <p className="text-sm font-bold text-muted-foreground line-clamp-1">{part.model}</p>
                             </div>
 
                             <div className="flex flex-wrap gap-2 pt-2">
                                 {part.compatibility.map((c) => (
-                                    <Badge key={c} variant="secondary" className="bg-slate-50 text-[9px] font-bold text-slate-500 border-none px-2">
+                                    <Badge key={c} variant="secondary" className="bg-slate-50 text-[10px] font-bold text-slate-500 border-none px-2 py-1">
                                         {c}
                                     </Badge>
                                 ))}
@@ -161,11 +219,11 @@ export default function CatalogoAutomotriz() {
                             <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
                                 <div>
                                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest truncate">Precio Sanchez</p>
-                                    <p className="text-2xl font-black italic text-[#3841F2]">S/ {part.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                    <p className="text-3xl font-black italic text-[#3841F2]">S/ {part.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => toast.success('Añadido al carrito')} className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-[#3841F2] transition-all shadow-lg shadow-slate-200">
-                                        <ShoppingCart className="h-5 w-5" />
+                                    <button onClick={() => toast.success('Añadido al carrito')} className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-[#3841F2] transition-all shadow-lg shadow-slate-200 active:scale-95">
+                                        <ShoppingCart className="h-6 w-6" />
                                     </button>
                                 </div>
                             </div>
@@ -201,27 +259,86 @@ export default function CatalogoAutomotriz() {
                 </div>
             </div>
 
-            {/* Integration Banner */}
-            <div className="p-6 bg-slate-50 border border-border rounded-[2.5rem] flex flex-wrap items-center justify-center gap-8">
-                <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-[#3841F2]/10 flex items-center justify-center">
-                        <Box className="h-4 w-4 text-[#3841F2]" />
-                    </div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest italic">Sincronizado con Almacén Central</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-[#3841F2]/10 flex items-center justify-center">
-                        <Settings className="h-4 w-4 text-[#3841F2]" />
-                    </div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest italic">Fichas Técnicas Actualizadas</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-[#3841F2]/10 flex items-center justify-center">
-                        <ImageIcon className="h-4 w-4 text-[#3841F2]" />
-                    </div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest italic">Fotografías de Alta Resolución</span>
-                </div>
-            </div>
+            {/* Quick View Modal */}
+            <AnimatePresence>
+                {selectedPart && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            className="bg-white rounded-[40px] max-w-4xl w-full overflow-hidden shadow-2xl flex flex-col md:flex-row relative"
+                        >
+                            <button
+                                onClick={() => setSelectedPart(null)}
+                                className="absolute top-6 right-6 z-10 p-2 bg-black/10 hover:bg-black/20 rounded-full transition-colors"
+                            >
+                                <X className="h-6 w-6 text-slate-800" />
+                            </button>
+
+                            <div className="md:w-1/2 bg-slate-100 h-64 md:h-auto relative">
+                                <Image src={selectedPart.image} alt={selectedPart.name} fill className="object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                            </div>
+
+                            <div className="md:w-1/2 p-10 space-y-6 overflow-y-auto max-h-[80vh]">
+                                <Badge className="bg-[#3841F2] text-white font-black text-xs px-4 py-1.5 uppercase tracking-widest mb-2">
+                                    {selectedPart.brand}
+                                </Badge>
+
+                                <div className="space-y-2">
+                                    <h2 className="text-3xl font-black italic text-slate-900 leading-tight">{selectedPart.name}</h2>
+                                    <p className="text-sm font-bold text-muted-foreground uppercase">{selectedPart.model} — {selectedPart.code}</p>
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Especificaciones Técnicas</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {Object.entries(selectedPart.specs).map(([key, value]) => (
+                                            <div key={key} className="p-3 bg-slate-50 rounded-2xl">
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 mb-1 pb-1">{key}</p>
+                                                <p className="text-xs font-bold text-slate-800 uppercase">{String(value)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Compatibilidad Verificada</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedPart.compatibility.map((c: string) => (
+                                            <span key={c} className="px-3 py-1 bg-blue-50 text-[#3841F2] rounded-lg text-xs font-bold border border-blue-100 italic">
+                                                {c}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Precio Unitario</p>
+                                        <p className="text-4xl font-black italic text-[#3841F2] tracking-tighter">S/ {selectedPart.price.toLocaleString()}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            toast.success('Producto añadido al carrito móvil')
+                                            setSelectedPart(null)
+                                        }}
+                                        className="h-16 px-8 bg-slate-900 text-white rounded-[20px] font-black uppercase text-xs hover:bg-[#3841F2] transition-all flex items-center gap-3 shadow-xl shadow-slate-200"
+                                    >
+                                        <ShoppingCart className="h-5 w-5" />
+                                        Añadir al Carrito
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

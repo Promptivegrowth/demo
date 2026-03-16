@@ -30,6 +30,36 @@ export default function InventarioAutomotriz() {
     const [filterCategory, setFilterCategory] = useState('Todas')
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isImporting, setIsImporting] = useState(false)
+    const [importProgress, setImportProgress] = useState(0)
+
+    const handleImport = () => {
+        setIsImporting(true)
+        setImportProgress(0)
+        let progress = 0
+        const interval = setInterval(() => {
+            progress += 10
+            setImportProgress(progress)
+            if (progress >= 100) {
+                clearInterval(interval)
+                setTimeout(() => {
+                    setIsImporting(false)
+                    toast.success('150 productos importados desde Excel exitosamente')
+                }, 500)
+            }
+        }, 300)
+    }
+
+    const handleExport = (type: string) => {
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+            {
+                loading: `Generando archivo ${type}...`,
+                success: `Inventario exportado a ${type} correctamente`,
+                error: 'Error al exportar',
+            }
+        )
+    }
 
     const filteredProducts = products.filter(p =>
         (p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.includes(searchQuery)) &&
@@ -60,11 +90,17 @@ export default function InventarioAutomotriz() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-xs font-bold hover:bg-muted/50 transition-all">
+                    <button
+                        onClick={handleImport}
+                        className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-xs font-bold hover:bg-muted/50 transition-all active:scale-95"
+                    >
                         <Upload className="h-4 w-4 text-muted-foreground" />
                         Importar
                     </button>
-                    <button onClick={() => toast.success('Inventario exportado a Excel')} className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-xs font-bold hover:bg-muted/50 transition-all">
+                    <button
+                        onClick={() => handleExport('Excel')}
+                        className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-xs font-bold hover:bg-muted/50 transition-all active:scale-95"
+                    >
                         <Download className="h-4 w-4 text-muted-foreground" />
                         Exportar
                     </button>
@@ -169,11 +205,11 @@ export default function InventarioAutomotriz() {
                         <table className="w-full text-left">
                             <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10 border-b border-border">
                                 <tr>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Código & Producto</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ubicación</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Stock</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Precios</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Código & Producto</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Ubicación</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Categoría</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Stock</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Precios</th>
                                     <th className="px-6 py-4"></th>
                                 </tr>
                             </thead>
@@ -192,15 +228,15 @@ export default function InventarioAutomotriz() {
                                                         <Barcode className="h-5 w-5" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-[13px] font-black text-slate-800 leading-tight italic">{p.name}</p>
-                                                        <p className="text-[10px] font-black text-[#3841F2] tracking-tighter uppercase">{p.code}</p>
+                                                        <p className="text-base font-black text-slate-800 leading-tight italic">{p.name}</p>
+                                                        <p className="text-xs font-black text-[#3841F2] tracking-tighter uppercase">{p.code}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <Tag className="h-3 w-3 text-muted-foreground" />
-                                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-tighter">{p.location}</span>
+                                                    <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">{p.location}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -225,8 +261,8 @@ export default function InventarioAutomotriz() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <p className="text-sm font-black text-slate-900">S/ {p.salePrice.toFixed(2)}</p>
-                                                <p className="text-[10px] font-bold text-muted-foreground italic">Costo: S/ {p.costPrice.toFixed(2)}</p>
+                                                <p className="text-base font-black text-slate-900">S/ {p.salePrice.toFixed(2)}</p>
+                                                <p className="text-xs font-bold text-muted-foreground italic">Costo: S/ {p.costPrice.toFixed(2)}</p>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -359,6 +395,40 @@ export default function InventarioAutomotriz() {
                                     Confirmar
                                 </button>
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal de Importación */}
+            <AnimatePresence>
+                {isImporting && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="bg-white rounded-[32px] p-10 max-w-md w-full shadow-2xl text-center space-y-6"
+                        >
+                            <div className="h-20 w-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+                                <Upload className="h-10 w-10 text-[#3841F2] animate-bounce" />
+                            </div>
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-black italic text-slate-900">Importando Inventario</h2>
+                                <p className="text-sm font-medium text-slate-500">Procesando archivo Excel y validando SKUs...</p>
+                            </div>
+                            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full bg-[#3841F2]"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${importProgress}%` }}
+                                />
+                            </div>
+                            <p className="text-xs font-black text-[#3841F2] uppercase tracking-[0.3em]">{importProgress}% COMPLETADO</p>
                         </motion.div>
                     </motion.div>
                 )}

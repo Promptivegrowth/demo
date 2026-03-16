@@ -49,6 +49,7 @@ const QUOTES = [
 
 export default function CotizacionesAutomotriz() {
     const [activeFilter, setActiveFilter] = useState('Todas')
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
     return (
         <div className="space-y-8 pb-10">
@@ -68,7 +69,10 @@ export default function CotizacionesAutomotriz() {
                             className="h-11 pl-10 pr-4 bg-white border border-border rounded-xl text-xs font-bold focus:outline-none focus:border-[#3841F2] shadow-sm w-full"
                         />
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all italic">
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-[#3841F2] text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all italic"
+                    >
                         <Plus className="h-4 w-4" />
                         CREAR COTIZACIÓN
                     </button>
@@ -83,9 +87,9 @@ export default function CotizacionesAutomotriz() {
                     { label: 'Ticket Promedio', val: 'S/ 658', sub: 'Preventa', color: 'text-slate-900' },
                 ].map((card, i) => (
                     <div key={i} className="bg-card p-6 rounded-3xl border border-border shadow-sm group hover:border-[#3841F2] transition-colors">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{card.label}</p>
-                        <p className={cn("text-2xl font-black italic", card.color)}>{card.val}</p>
-                        <p className="text-[10px] font-bold text-slate-400 mt-2">{card.sub}</p>
+                        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">{card.label}</p>
+                        <p className={cn("text-3xl font-black italic", card.color)}>{card.val}</p>
+                        <p className="text-xs font-bold text-slate-400 mt-2">{card.sub}</p>
                     </div>
                 ))}
             </div>
@@ -114,23 +118,23 @@ export default function CotizacionesAutomotriz() {
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 border-b border-border">
                                 <tr>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Cotización</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Cliente</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Estado</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Items</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-right">Monto</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase">Cotización</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase">Cliente</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase text-center">Estado</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase text-center">Items</th>
+                                    <th className="px-8 py-4 text-xs font-black text-slate-400 uppercase text-right">Monto</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {QUOTES.map((q) => (
                                     <tr key={q.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
                                         <td className="px-8 py-5">
-                                            <p className="text-[11px] font-black text-slate-900 uppercase italic tracking-tighter">{q.id}</p>
-                                            <p className="text-[10px] font-bold text-muted-foreground">{q.date}</p>
+                                            <p className="text-xs font-black text-slate-900 uppercase italic tracking-tighter">{q.id}</p>
+                                            <p className="text-xs font-bold text-muted-foreground">{q.date}</p>
                                         </td>
                                         <td className="px-8 py-5">
-                                            <p className="text-[12px] font-black text-slate-800 leading-tight italic truncate max-w-[200px]">{q.client}</p>
-                                            <p className="text-[9px] font-black text-[#3841F2] uppercase tracking-tighter">Probabilidad: {q.prob}</p>
+                                            <p className="text-sm font-black text-slate-800 leading-tight italic truncate max-w-[200px]">{q.client}</p>
+                                            <p className="text-xs font-black text-[#3841F2] uppercase tracking-tighter">Probabilidad: {q.prob}</p>
                                         </td>
                                         <td className="px-8 py-5 text-center">
                                             <Badge className={cn(
@@ -141,7 +145,7 @@ export default function CotizacionesAutomotriz() {
                                                 {q.status}
                                             </Badge>
                                         </td>
-                                        <td className="px-8 py-5 text-center font-black text-[11px] text-slate-500">{q.items} uds</td>
+                                        <td className="px-8 py-5 text-center font-black text-xs text-slate-500">{q.items} uds</td>
                                         <td className="px-8 py-5 text-right font-black text-sm text-[#020659] italic">
                                             S/ {q.total.toFixed(2)}
                                         </td>
@@ -173,8 +177,8 @@ export default function CotizacionesAutomotriz() {
                                     { name: 'Llantas Pirelli MT (x2)', price: 1690.0 },
                                 ].map((item, i) => (
                                     <div key={i} className="flex justify-between items-center bg-white/5 border border-white/5 p-3 rounded-2xl">
-                                        <span className="text-[10px] font-black uppercase text-blue-100 italic truncate max-w-[140px]">{item.name}</span>
-                                        <span className="text-[11px] font-black italic">S/ {item.price.toFixed(2)}</span>
+                                        <span className="text-xs font-black uppercase text-blue-100 italic truncate max-w-[140px]">{item.name}</span>
+                                        <span className="text-sm font-black italic">S/ {item.price.toFixed(2)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -213,21 +217,84 @@ export default function CotizacionesAutomotriz() {
                 </div>
             </div>
 
-            {/* Bottom Integration Labels */}
-            <div className="p-4 bg-slate-50 border border-border rounded-3xl flex flex-wrap items-center justify-center gap-6 italic opacity-70">
-                <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-[#3841F2]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Validez en Almacén ✓</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-[#3841F2]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Tracking de Seguimiento CRM ✓</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-[#3841F2]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Precios Sánchez Vigentes ✓</span>
-                </div>
-            </div>
+            {/* Modal: Crear Cotización */}
+            <AnimatePresence>
+                {isCreateModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-[#020659]/80 backdrop-blur-md flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="bg-white rounded-[40px] p-10 max-w-2xl w-full shadow-2xl space-y-8"
+                        >
+                            <div className="flex justify-between items-center">
+                                <div className="space-y-1">
+                                    <h2 className="text-3xl font-black text-slate-900 italic">Nueva Cotización</h2>
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Sánchez Business Intelligence</p>
+                                </div>
+                                <button onClick={() => setIsCreateModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-full transition-colors">
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="col-span-2 space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Cliente (DNI/RUC o Nombre)</label>
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input type="text" placeholder="Buscar cliente..." className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold focus:border-[#3841F2] outline-none transition-all" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Fecha Emisión</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input type="date" className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none" defaultValue={new Date().toISOString().split('T')[0]} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Validez (Días)</label>
+                                    <select className="w-full h-14 px-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none">
+                                        <option>7 Días</option>
+                                        <option>15 Días</option>
+                                        <option>30 Días</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-2 space-y-4">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Productos a Cotizar</label>
+                                    <div className="p-4 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-[#3841F2] hover:text-[#3841F2] cursor-pointer transition-all group">
+                                        <Plus className="h-8 w-8 group-hover:rotate-90 transition-transform" />
+                                        <span className="text-xs font-black uppercase">Agregar Item del Inventario</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-6">
+                                <button
+                                    onClick={() => setIsCreateModalOpen(false)}
+                                    className="flex-1 py-5 px-8 border border-slate-200 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+                                >
+                                    Descartar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        toast.success('Cotización COT-0953 generada correctamente');
+                                        setIsCreateModalOpen(false);
+                                    }}
+                                    className="flex-[2] py-5 px-8 bg-[#3841F2] text-white rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-[#3841F2]/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                                >
+                                    <Send className="h-5 w-5" />
+                                    GENERAR Y ENVIAR
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
