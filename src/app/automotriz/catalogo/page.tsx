@@ -27,7 +27,7 @@ const PARTS = [
         compatibility: ['Yamaha MT-07', 'MT-09', 'R6'],
         price: 245.0,
         stock: 15,
-        image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&q=80',
+        image: '/automotriz/productos/pastilla_freno.png',
         specs: { material: 'Sinterizado', position: 'Delantera', origin: 'UK' }
     },
     {
@@ -39,7 +39,7 @@ const PARTS = [
         compatibility: ['Universal / Racing'],
         price: 1850.0,
         stock: 4,
-        image: 'https://images.unsplash.com/photo-1599812189309-8d976a6a7c4a?w=800&q=80',
+        image: '/automotriz/productos/casco_arai.png',
         specs: { shell: 'Carbono', weight: '1350g', safety: 'ECE/DOT' }
     },
     {
@@ -51,7 +51,7 @@ const PARTS = [
         compatibility: ['Honda CB500X', 'Kawasaki Z650'],
         price: 580.0,
         stock: 8,
-        image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=800&q=80',
+        image: '/automotriz/productos/kit_cadena.png',
         specs: { chain: '525', links: '120', color: 'Gold' }
     },
     {
@@ -63,8 +63,56 @@ const PARTS = [
         compatibility: ['Motores 4T'],
         price: 55.0,
         stock: 45,
-        image: 'https://images.unsplash.com/photo-1635843104285-df360706248b?w=800&q=80',
+        image: '/automotriz/productos/aceite_motul.png',
         specs: { type: 'Sintético', volume: '1L', api: 'SN/JASO MA2' }
+    },
+    {
+        id: 5,
+        name: 'Llanta Pirelli MT 60 90/90-21',
+        code: '7891234560005',
+        brand: 'Pirelli',
+        model: 'MT 60',
+        compatibility: ['Varios'],
+        price: 380.0,
+        stock: 9,
+        image: '/automotriz/productos/llanta_pirelli.png',
+        specs: { material: 'Caucho', position: 'Delantera', origin: 'Italia' }
+    },
+    {
+        id: 6,
+        name: 'Bujía NGK CR7HSA',
+        code: '7891234560006',
+        brand: 'NGK',
+        model: 'Estándar',
+        compatibility: ['Varios'],
+        price: 15.0,
+        stock: 45,
+        image: '/automotriz/productos/bujia_ngk.png',
+        specs: { type: 'Cobre', origin: 'Japón' }
+    },
+    {
+        id: 7,
+        name: 'Faro LED Universal 40W',
+        code: '7891234560007',
+        brand: 'Generica',
+        model: 'Universal',
+        compatibility: ['Varios'],
+        price: 95.0,
+        stock: 7,
+        image: '/automotriz/productos/faro_led.png',
+        specs: { power: '40W', type: 'LED' }
+    },
+    {
+        id: 8,
+        name: 'Amortiguador Trasero YSS',
+        code: '7891234560008',
+        brand: 'YSS',
+        model: 'G-Sport',
+        compatibility: ['Yamaha NMAX'],
+        price: 450.0,
+        stock: 3,
+        image: '/automotriz/productos/amortiguador_yss.png',
+        specs: { type: 'Gas', origin: 'Tailandia' }
     }
 ]
 

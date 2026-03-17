@@ -17,27 +17,27 @@ import { Badge } from '@/components/ui/badge'
 
 // --- MOCK DATA ---
 const PRODUCTS = [
-    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', price: 45.0, stock: 24, category: 'Lubricantes', image: 'https://images.unsplash.com/photo-1635843104285-df360706248b?w=400&q=80' },
-    { id: 2, name: 'Pastilla de Freno Trasera Honda CB190', code: '7891234560002', price: 65.0, stock: 12, category: 'Frenos', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80' },
-    { id: 3, name: 'Filtro de Aire Universal K&N', code: '7891234560003', price: 120.0, stock: 4, category: 'Filtros', image: 'https://images.unsplash.com/photo-1619642751034-7c98e244d2d4?w=400&q=80' },
-    { id: 4, name: 'Kit de Cadena 428 x 120 eslabones', code: '7891234560004', price: 85.0, stock: 18, category: 'Cadenas', image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=400&q=80' },
-    { id: 5, name: 'Llanta Pirelli MT 60 90/90-21', code: '7891234560005', price: 380.0, stock: 9, category: 'Llantas', image: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&q=80' },
-    { id: 6, name: 'Bujía NGK CR7HSA', code: '7891234560006', price: 15.0, stock: 45, category: 'Eléctrico', image: 'https://images.unsplash.com/photo-1635773100239-d37fcc97669d?w=400&q=80' },
-    { id: 7, name: 'Faro LED Universal 40W', code: '7891234560007', price: 95.0, stock: 7, category: 'Eléctrico', image: 'https://images.unsplash.com/photo-1598558991696-11f3bf8f338d?w=400&q=80' },
-    { id: 8, name: 'Amortiguador Trasero YSS', code: '7891234560008', price: 450.0, stock: 3, category: 'Suspensión', image: 'https://images.unsplash.com/photo-1599812189309-8d976a6a7c4a?w=400&q=80' },
-    { id: 9, name: 'Guantes de Moto Talla M', code: '7891234560009', price: 75.0, stock: 14, category: 'Accesorios', image: 'https://images.unsplash.com/photo-1621644783311-6be4847e114d?w=400&q=80' },
-    { id: 10, name: 'Batería Yuasa 12N5-3B', code: '7891234560010', price: 140.0, stock: 11, category: 'Eléctrico', image: 'https://images.unsplash.com/photo-1621167973534-f81643c94295?w=400&q=80' },
-    { id: 11, name: 'Casco Arai RX-7V Negro M', code: '7891234560011', price: 2800.0, stock: 2, category: 'Accesorios', image: 'https://images.unsplash.com/photo-1591147596057-07449a557002?w=400&q=80' },
-    { id: 12, name: 'Manubrio Renthal 760mm', code: '7891234560012', price: 320.0, stock: 5, category: 'Repuestos', image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=400&q=80' },
-    { id: 13, name: 'Freno de Disco EBC FA181', code: '7891234560013', price: 210.0, stock: 8, category: 'Frenos', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80' },
-    { id: 14, name: 'Aceite de Transmisión 80W-90', code: '7891234560014', price: 35.0, stock: 32, category: 'Lubricantes', image: 'https://images.unsplash.com/photo-1635843104285-df360706248b?w=400&q=80' },
-    { id: 15, name: 'Cable de Acelerador Universal', code: '7891234560015', price: 25.0, stock: 15, category: 'Accesorios', image: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb6?w=400&q=80' }
+    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', price: 45.0, stock: 24, category: 'Lubricantes', image: '/automotriz/productos/aceite_motul.png' },
+    { id: 2, name: 'Pastilla de Freno Trasera Honda CB190', code: '7891234560002', price: 65.0, stock: 12, category: 'Frenos', image: '/automotriz/productos/pastilla_freno.png' },
+    { id: 3, name: 'Filtro de Aire Universal K&N', code: '7891234560003', price: 120.0, stock: 4, category: 'Filtros', image: '/automotriz/productos/filtro_aire.png' },
+    { id: 4, name: 'Kit de Cadena 428 x 120 eslabones', code: '7891234560004', price: 85.0, stock: 18, category: 'Cadenas', image: '/automotriz/productos/kit_cadena.png' },
+    { id: 5, name: 'Llanta Pirelli MT 60 90/90-21', code: '7891234560005', price: 380.0, stock: 9, category: 'Llantas', image: '/automotriz/productos/llanta_pirelli.png' },
+    { id: 6, name: 'Bujía NGK CR7HSA', code: '7891234560006', price: 15.0, stock: 45, category: 'Eléctrico', image: '/automotriz/productos/bujia_ngk.png' },
+    { id: 7, name: 'Faro LED Universal 40W', code: '7891234560007', price: 95.0, stock: 7, category: 'Eléctrico', image: '/automotriz/productos/faro_led.png' },
+    { id: 8, name: 'Amortiguador Trasero YSS', code: '7891234560008', price: 450.0, stock: 3, category: 'Suspensión', image: '/automotriz/productos/amortiguador_yss.png' },
+    { id: 9, name: 'Guantes de Moto Talla M', code: '7891234560009', price: 75.0, stock: 14, category: 'Accesorios', image: '/automotriz/productos/guantes_moto.png' },
+    { id: 10, name: 'Batería Yuasa 12N5-3B', code: '7891234560010', price: 140.0, stock: 11, category: 'Eléctrico', image: '/automotriz/productos/bateria_yuasa.png' },
+    { id: 11, name: 'Casco Arai RX-7V Negro M', code: '7891234560011', price: 2800.0, stock: 2, category: 'Accesorios', image: '/automotriz/productos/casco_arai.png' },
+    { id: 12, name: 'Manubrio Renthal 760mm', code: '7891234560012', price: 320.0, stock: 5, category: 'Repuestos', image: '/automotriz/productos/manubrio_renthal.png' },
+    { id: 13, name: 'Freno de Disco EBC FA181', code: '7891234560013', price: 210.0, stock: 8, category: 'Frenos', image: '/automotriz/productos/freno_disco.png' },
+    { id: 14, name: 'Aceite de Transmisión 80W-90', code: '7891234560014', price: 35.0, stock: 32, category: 'Lubricantes', image: '/automotriz/productos/aceite_transmision.png' },
+    { id: 15, name: 'Cable de Acelerador Universal', code: '7891234560015', price: 25.0, stock: 15, category: 'Accesorios', image: '/automotriz/productos/cable_acelerador.png' }
 ]
 
 const INITIAL_TICKET = [
-    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', price: 45.0, stock: 24, category: 'Lubricantes', image: 'https://images.unsplash.com/photo-1635843104285-df360706248b?w=400&q=80', quantity: 2 },
-    { id: 6, name: 'Bujía NGK CR7HSA', code: '7891234560006', price: 12.5, stock: 45, category: 'Eléctrico', image: 'https://images.unsplash.com/photo-1635773100239-d37fcc97669d?w=400&q=80', quantity: 1 },
-    { id: 9, name: 'Guantes de Moto Talla M', code: '7891234560009', price: 89.9, stock: 14, category: 'Accesorios', image: 'https://images.unsplash.com/photo-1621644783311-6be4847e114d?w=400&q=80', quantity: 1 }
+    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', price: 45.0, stock: 24, category: 'Lubricantes', image: '/automotriz/productos/aceite_motul.png', quantity: 2 },
+    { id: 6, name: 'Bujía NGK CR7HSA', code: '7891234560006', price: 12.5, stock: 45, category: 'Eléctrico', image: '/automotriz/productos/bujia_ngk.png', quantity: 1 },
+    { id: 9, name: 'Guantes de Moto Talla M', code: '7891234560009', price: 89.9, stock: 14, category: 'Accesorios', image: '/automotriz/productos/guantes_moto.png', quantity: 1 }
 ]
 
 const METHODS = [

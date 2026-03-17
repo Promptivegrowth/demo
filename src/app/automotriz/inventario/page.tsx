@@ -17,11 +17,11 @@ import { toast } from 'sonner'
 
 // --- MOCK DATA ---
 const PRODUCTS = [
-    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', category: 'Lubricantes', brand: 'Motul', model: 'Universal', stock: 24, minStock: 10, costPrice: 32.0, salePrice: 45.0, location: 'Estante A-3', provider: 'Motul Perú' },
-    { id: 3, name: 'Filtro de Aire Universal K&N', code: '7891234560003', category: 'Filtros', brand: 'K&N', model: 'Universal', stock: 4, minStock: 5, costPrice: 85.0, salePrice: 120.0, location: 'Estante B-1', provider: 'Repuestos SAC' },
-    { id: 5, name: 'Llanta Pirelli MT 60 90/90-21', code: '7891234560005', category: 'Llantas', brand: 'Pirelli', model: 'Varios', stock: 9, minStock: 2, costPrice: 280.0, salePrice: 380.0, location: 'Almacén Exterior', provider: 'Pirelli Import' },
-    { id: 8, name: 'Amortiguador Trasero YSS', code: '7891234560008', category: 'Suspensión', brand: 'YSS', model: 'NMAX / PCX', stock: 3, minStock: 2, costPrice: 340.0, salePrice: 450.0, location: 'Estante C-2', provider: 'Suspensión Global' },
-    { id: 11, name: 'Casco Arai RX-7V Negro M', code: '7891234560011', category: 'Accesorios', brand: 'Arai', model: 'Racing', stock: 2, minStock: 1, costPrice: 2100.0, salePrice: 2800.0, location: 'Vitrina 01', provider: 'Premium Helmets' },
+    { id: 1, name: 'Aceite Motul 10W-40 1L', code: '7891234560001', category: 'Lubricantes', brand: 'Motul', model: 'Universal', stock: 24, minStock: 10, costPrice: 32.0, salePrice: 45.0, location: 'Estante A-3', provider: 'Motul Perú', image: '/automotriz/productos/aceite_motul.png' },
+    { id: 3, name: 'Filtro de Aire Universal K&N', code: '7891234560003', category: 'Filtros', brand: 'K&N', model: 'Universal', stock: 4, minStock: 5, costPrice: 85.0, salePrice: 120.0, location: 'Estante B-1', provider: 'Repuestos SAC', image: '/automotriz/productos/filtro_aire.png' },
+    { id: 5, name: 'Llanta Pirelli MT 60 90/90-21', code: '7891234560005', category: 'Llantas', brand: 'Pirelli', model: 'Varios', stock: 9, minStock: 2, costPrice: 280.0, salePrice: 380.0, location: 'Almacén Exterior', provider: 'Pirelli Import', image: '/automotriz/productos/llanta_pirelli.png' },
+    { id: 8, name: 'Amortiguador Trasero YSS', code: '7891234560008', category: 'Suspensión', brand: 'YSS', model: 'G-Sport', stock: 3, minStock: 2, costPrice: 340.0, salePrice: 450.0, location: 'Estante C-2', provider: 'Suspensión Global', image: '/automotriz/productos/amortiguador_yss.png' },
+    { id: 11, name: 'Casco Arai RX-7V Negro M', code: '7891234560011', category: 'Accesorios', brand: 'Arai', model: 'Racing', stock: 2, minStock: 1, costPrice: 2100.0, salePrice: 2800.0, location: 'Vitrina 01', provider: 'Premium Helmets', image: '/automotriz/productos/casco_arai.png' },
 ]
 
 export default function InventarioAutomotriz() {
@@ -250,8 +250,17 @@ export default function InventarioAutomotriz() {
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-10 w-10 flex items-center justify-center bg-muted rounded-xl text-slate-400 group-hover:text-[#3841F2] transition-colors border border-border">
-                                                        <Barcode className="h-5 w-5" />
+                                                    <div className="h-12 w-12 flex-shrink-0 bg-muted rounded-xl overflow-hidden border border-border group-hover:border-[#3841F2]/30 transition-colors relative">
+                                                        {p.image ? (
+                                                            <Image
+                                                                src={p.image}
+                                                                alt={p.name}
+                                                                fill
+                                                                className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                                            />
+                                                        ) : (
+                                                            <Barcode className="h-5 w-5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-400 group-hover:text-[#3841F2]" />
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="text-base font-black text-slate-800 leading-tight italic">{p.name}</p>
