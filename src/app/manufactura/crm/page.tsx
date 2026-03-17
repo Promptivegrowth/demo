@@ -25,14 +25,18 @@ const SALES_REPS = [
 ]
 
 const CUSTOMERS_IN_ROUTE = [
-    { id: 'C-101', name: 'Bodega Don Pepe', address: 'Av. El Sol 123', status: 'Pendiente', debt: 'S/ 450.00', time: '10:30 AM' },
-    { id: 'C-102', name: 'Minimakt "La Estrella"', address: 'Jr. Luna Pizarro 456', status: 'Visitado', debt: 'S/ 0.00', time: '09:15 AM' },
-    { id: 'C-103', name: 'Restaurante El Sabor', address: 'Av. Larco 789', status: 'Pendiente', debt: 'S/ 1,200.00', time: '11:45 AM' },
+    { id: 'C-101', name: 'Bodega Don Pepe', address: 'Av. El Sol 123', status: 'Pendiente', debt: 'S/ 450.00', time: '10:30 AM', coords: { x: 45, y: 35 } },
+    { id: 'C-102', name: 'Minimakt "La Estrella"', address: 'Jr. Luna Pizarro 456', status: 'Visitado', debt: 'S/ 0.00', time: '09:15 AM', coords: { x: 65, y: 55 } },
+    { id: 'C-103', name: 'Restaurante El Sabor', address: 'Av. Larco 789', status: 'Pendiente', debt: 'S/ 1,200.00', time: '11:45 AM', coords: { x: 30, y: 75 } },
 ]
 
 export default function CRMDeCampo() {
     const [viewMode, setViewMode] = useState<'supervisor' | 'mobile'>('supervisor')
     const [currentTime, setCurrentTime] = useState(new Date())
+    const [activeVisit, setActiveVisit] = useState<any>(null)
+    const [visitStatus, setVisitStatus] = useState<'idle' | 'started' | 'checkout'>('idle')
+    const [reps, setReps] = useState(SALES_REPS)
+
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -85,69 +89,79 @@ export default function CRMDeCampo() {
                     >
                         {/* Map & Tracking Area */}
                         <div className="lg:col-span-8 space-y-6">
-                            <div className="relative aspect-video bg-slate-200 rounded-3xl overflow-hidden border border-border shadow-inner group">
-                                {/* Map Simulation Background */}
-                                <div className="absolute inset-0 bg-[#f8f9fa] flex items-center justify-center">
-                                    <div className="absolute inset-0 opacity-40 mix-blend-multiply flex flex-wrap gap-8 p-12 overflow-hidden pointer-events-none grayscale group-hover:grayscale-0 transition-all duration-1000">
-                                        {Array.from({ length: 12 }).map((_, i) => (
-                                            <div key={i} className="h-32 w-32 border border-slate-300 rounded-xl" />
-                                        ))}
-                                    </div>
-                                    <MapIcon className="h-24 w-24 text-slate-300" />
+                            <div className="relative aspect-video bg-slate-900 rounded-3xl overflow-hidden border border-border shadow-2xl group">
+                                {/* Map SVG Simulation */}
+                                <svg viewBox="0 0 800 450" className="absolute inset-0 w-full h-full opacity-30">
+                                    <path d="M100,50 Q150,20 200,50 T300,50 T400,80 T500,60 T600,100" fill="none" stroke="#e8820c" strokeWidth="1" strokeDasharray="5,5" />
+                                    <path d="M50,150 Q120,130 200,160 T350,140 T500,180 T700,150" fill="none" stroke="#0f4c81" strokeWidth="1" strokeDasharray="5,5" />
+                                    <circle cx="400" cy="225" r="300" fill="url(#grid)" />
+                                    <defs>
+                                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" opacity="0.1" />
+                                        </pattern>
+                                    </defs>
+                                </svg>
+
+                                {/* Static Landmarks */}
+                                <div className="absolute inset-0 pointer-events-none">
+                                    <div className="absolute top-[20%] left-[15%] h-2 w-2 bg-white/20 rounded-full" />
+                                    <div className="absolute top-[60%] left-[80%] h-2 w-2 bg-white/20 rounded-full" />
+                                    <div className="absolute top-[40%] left-[50%] h-3 w-3 bg-[#e8820c]/20 rounded-full animate-ping" />
                                 </div>
 
                                 {/* Tracking Pins */}
-                                <motion.div
-                                    animate={{
-                                        scale: [1, 1.1, 1],
-                                        opacity: [0.8, 1, 0.8]
-                                    }}
-                                    transition={{ duration: 3, repeat: Infinity }}
-                                    className="absolute top-1/3 left-1/2 p-1 bg-white rounded-full shadow-2xl border-2 border-emerald-500 z-10"
-                                >
-                                    <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                                        <Navigation className="h-4 w-4" />
-                                    </div>
-                                    <div className="absolute top-0 left-full ml-2 bg-white p-2 rounded-lg shadow-xl border border-border whitespace-nowrap">
-                                        <p className="text-[10px] font-black uppercase italic text-slate-800">Alvaro Mendoza</p>
-                                        <p className="text-[8px] font-bold text-emerald-500 uppercase">En Movimiento - 45 km/h</p>
-                                    </div>
-                                </motion.div>
-
-                                <div className="absolute top-1/2 left-1/4 p-1 bg-white rounded-full shadow-2xl border-2 border-[#e8820c] z-10">
-                                    <div className="h-8 w-8 rounded-full bg-[#e8820c] flex items-center justify-center text-white">
-                                        <MapPin className="h-4 w-4" />
-                                    </div>
-                                    <div className="absolute top-0 left-full ml-2 bg-white p-2 rounded-lg shadow-xl border border-border whitespace-nowrap">
-                                        <p className="text-[10px] font-black uppercase italic text-slate-800">Claudia Torres</p>
-                                        <p className="text-[8px] font-bold text-[#e8820c] uppercase">Visitando: Bodega Juanita</p>
-                                    </div>
-                                </div>
+                                {reps.filter(r => r.status === 'En Ruta').map((rep, idx) => (
+                                    <motion.div
+                                        key={rep.id}
+                                        initial={{ x: idx * 200 + 100, y: idx * 100 + 100 }}
+                                        animate={{
+                                            x: idx * 200 + 100 + (Math.random() * 20 - 10),
+                                            y: idx * 100 + 100 + (Math.random() * 20 - 10)
+                                        }}
+                                        transition={{ duration: 5, repeat: Infinity, repeatType: 'reverse' }}
+                                        className="absolute p-1 bg-white rounded-full shadow-2xl border-2 border-[#e8820c] z-10 cursor-pointer"
+                                    >
+                                        <div className={cn(
+                                            "h-8 w-8 rounded-full flex items-center justify-center text-white",
+                                            idx % 2 === 0 ? "bg-emerald-500" : "bg-[#e8820c]"
+                                        )}>
+                                            <Navigation className={cn("h-4 w-4", idx % 2 === 0 ? "rotate-45" : "-rotate-45")} />
+                                        </div>
+                                        <div className="absolute top-0 left-full ml-2 bg-white/90 backdrop-blur-md p-2 rounded-lg shadow-xl border border-white/20 whitespace-nowrap">
+                                            <p className="text-[10px] font-black uppercase italic text-slate-800">{rep.name}</p>
+                                            <p className="text-[8px] font-bold text-slate-500 uppercase">{rep.location}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
 
                                 {/* Map Controls */}
                                 <div className="absolute top-4 right-4 flex flex-col gap-2">
-                                    <Button size="icon" className="bg-white/90 backdrop-blur-md text-slate-600 border border-border shadow-lg">
+                                    <Button size="icon" className="bg-slate-800/80 backdrop-blur-md text-white border border-white/10 shadow-lg hover:bg-slate-700">
                                         <Layers className="h-4 w-4" />
                                     </Button>
-                                    <Button size="icon" className="bg-white/90 backdrop-blur-md text-slate-600 border border-border shadow-lg">
+                                    <Button size="icon" className="bg-[#e8820c] text-white border border-transparent shadow-lg hover:bg-[#ff9500]">
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </div>
 
                                 {/* Real-time Feed Overlay */}
-                                <div className="absolute bottom-4 left-4 right-4 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl flex items-center justify-between text-white">
+                                <div className="absolute bottom-4 left-4 right-4 bg-black/40 backdrop-blur-xl border border-white/10 p-4 rounded-2xl flex items-center justify-between text-white shadow-2xl">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest italic">Live Dashboard Supervisor</span>
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-xl font-black italic tracking-tighter">S/ 12,450</span>
-                                            <span className="text-[8px] font-bold uppercase text-white/60">Ventas Hoy</span>
+                                        <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,1)]" />
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic leading-none">Live Tracking PROMPTIVE</span>
+                                            <span className="text-[8px] font-bold text-white/50 uppercase mt-1">Sincronización GPS actida (Lima Metropolitan)</span>
                                         </div>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-xl font-black italic tracking-tighter">84%</span>
-                                            <span className="text-[8px] font-bold uppercase text-white/60">Cobertura Ruta</span>
+                                    </div>
+                                    <div className="flex items-center gap-8">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-xl font-black italic tracking-tighter text-emerald-400">S/ 12,450.80</span>
+                                            <span className="text-[8px] font-black uppercase text-white/40 tracking-wider">Ventas Acum. Día</span>
+                                        </div>
+                                        <div className="h-8 w-[1px] bg-white/10" />
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-xl font-black italic tracking-tighter text-[#e8820c]">28/45</span>
+                                            <span className="text-[8px] font-black uppercase text-white/40 tracking-wider">Visitas Ejecutadas</span>
                                         </div>
                                     </div>
                                 </div>
@@ -320,29 +334,67 @@ export default function CRMDeCampo() {
                                                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#e8820c]">Próxima Parada</h4>
                                                 <span className="text-[9px] font-black text-slate-400 italic">4 min • 1.2 km</span>
                                             </div>
-                                            <div className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col gap-4 relative overflow-hidden group active:scale-95 transition-transform cursor-pointer">
-                                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10">
-                                                    <Navigation className="h-16 w-16 text-[#e8820c]" />
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="h-12 w-12 bg-[#e8820c]/10 rounded-2xl flex items-center justify-center text-[#e8820c]">
-                                                        <MapPin className="h-6 w-6" />
+                                            {visitStatus === 'idle' ? (
+                                                <div className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col gap-4 relative overflow-hidden group active:scale-95 transition-transform cursor-pointer">
+                                                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10">
+                                                        <Navigation className="h-16 w-16 text-[#e8820c]" />
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <h5 className="text-sm font-black italic text-slate-800 uppercase leading-none mb-1">Bodega Don Pepe</h5>
-                                                        <p className="text-[10px] text-slate-400 font-medium">Av. El Sol 123, Surco</p>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-12 w-12 bg-[#e8820c]/10 rounded-2xl flex items-center justify-center text-[#e8820c]">
+                                                            <MapPin className="h-6 w-6" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h5 className="text-sm font-black italic text-slate-800 uppercase leading-none mb-1">Bodega Don Pepe</h5>
+                                                            <p className="text-[10px] text-slate-400 font-medium">Av. El Sol 123, Surco</p>
+                                                        </div>
+                                                        <ChevronRight className="h-5 w-5 text-slate-300" />
                                                     </div>
-                                                    <ChevronRight className="h-5 w-5 text-slate-300" />
+                                                    <div className="flex gap-2 pt-2">
+                                                        <Badge className="bg-red-50 text-red-500 border-none font-black text-[8px] uppercase tracking-tighter h-6 px-3">Deuda: S/ 450</Badge>
+                                                        <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[8px] uppercase tracking-tighter h-6 px-3">Cat: Gold</Badge>
+                                                    </div>
+                                                    <Button
+                                                        className="w-full bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black text-[10px] uppercase italic tracking-widest gap-2"
+                                                        onClick={() => setVisitStatus('started')}
+                                                    >
+                                                        Iniciar Visita
+                                                        <ArrowRight className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
-                                                <div className="flex gap-2 pt-2">
-                                                    <Badge className="bg-red-50 text-red-500 border-none font-black text-[8px] uppercase tracking-tighter h-6 px-3">Deuda: S/ 450</Badge>
-                                                    <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[8px] uppercase tracking-tighter h-6 px-3">Cat: Gold</Badge>
+                                            ) : visitStatus === 'started' ? (
+                                                <div className="bg-white p-6 rounded-[2.5rem] shadow-2xl border-2 border-emerald-500 flex flex-col gap-6 animate-in zoom-in-95 duration-300">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-10 w-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
+                                                                <Clock className="h-5 w-5 animate-spin-slow" />
+                                                            </div>
+                                                            <div>
+                                                                <h5 className="text-xs font-black uppercase italic text-slate-800">Visita en curso</h5>
+                                                                <p className="text-[10px] text-emerald-600 font-bold italic">Tiempo: 04:12</p>
+                                                            </div>
+                                                        </div>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-slate-100 text-red-500">
+                                                            <AlertTriangle className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <Button className="h-14 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[#0f4c81] rounded-2xl flex flex-col gap-1 shadow-sm">
+                                                            <ShoppingBag className="h-4 w-4" />
+                                                            <span className="text-[9px] font-black uppercase italic">Pedido</span>
+                                                        </Button>
+                                                        <Button className="h-14 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-emerald-600 rounded-2xl flex flex-col gap-1 shadow-sm">
+                                                            <DollarSign className="h-4 w-4" />
+                                                            <span className="text-[9px] font-black uppercase italic">Cobranza</span>
+                                                        </Button>
+                                                    </div>
+                                                    <Button
+                                                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl h-12 font-black text-[10px] uppercase italic tracking-widest"
+                                                        onClick={() => setVisitStatus('idle')}
+                                                    >
+                                                        Finalizar Parada
+                                                    </Button>
                                                 </div>
-                                                <Button className="w-full bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black text-[10px] uppercase italic tracking-widest gap-2">
-                                                    Iniciar Visita
-                                                    <ArrowRight className="h-4 w-4" />
-                                                </Button>
-                                            </div>
+                                            ) : null}
                                         </div>
 
                                         {/* Dashboard Stats (App style) */}

@@ -10,6 +10,36 @@ import {
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
+
+function Counter({ value, duration = 1.5 }: { value: string, duration?: number }) {
+    const numericValue = parseInt(value.replace(/,/g, ''))
+    const [count, setCount] = useState(0)
+
+    useEffect(() => {
+        let start = 0
+        const end = numericValue
+        if (start === end) return
+
+        let totalMilisecDur = duration * 1000
+        let incrementTime = (totalMilisecDur / end) > 10 ? (totalMilisecDur / end) : 10
+        let step = Math.ceil(end / (totalMilisecDur / incrementTime))
+
+        let timer = setInterval(() => {
+            start += step
+            if (start > end) {
+                setCount(end)
+                clearInterval(timer)
+            } else {
+                setCount(start)
+            }
+        }, incrementTime)
+
+        return () => clearInterval(timer)
+    }, [numericValue, duration])
+
+    return <span>{count.toLocaleString()}</span>
+}
 
 const kpis = [
     { label: 'Producción del Día', value: '48,200', unit: 'UDS', change: '+5% vs meta', icon: Factory, color: 'text-[#0f4c81]' },
@@ -117,7 +147,10 @@ export default function ManufacturaHub() {
                         SERVIDOR LOCAL ACTIVO
                     </Badge>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1.5 py-1 px-3">
-                        <Cloud className="h-3 w-3" />
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-[#e8820c] opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#e8820c]"></span>
+                        </span>
                         NUBE SINCRONIZADA
                     </Badge>
                 </div>
@@ -159,16 +192,43 @@ export default function ManufacturaHub() {
                     </div>
 
                     {/* Sync Column */}
-                    <div className="lg:col-span-3 flex flex-col items-center justify-center gap-4">
-                        <div className="flex flex-col items-center">
-                            <div className="h-1 w-1 relative">
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-[2px] bg-gradient-to-r from-transparent via-[#e8820c]/50 to-transparent rotate-90 lg:rotate-0" />
-                                <div className="relative bg-white/10 backdrop-blur-md p-4 rounded-full border border-white/20">
-                                    <RefreshCw className="h-8 w-8 text-[#e8820c] animate-spin-slow" />
-                                </div>
+                    <div className="lg:col-span-3 flex flex-col items-center justify-center gap-4 relative py-12 lg:py-0">
+                        {/* Bi-directional Sync Animation */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-full h-[2px] bg-white/5 relative overflow-hidden">
+                                {/* Forward points */}
+                                <motion.div
+                                    animate={{ x: ['-200%', '200%'] }}
+                                    transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+                                    className="absolute top-0 left-0 flex gap-20"
+                                >
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="h-1 w-1 bg-[#e8820c] rounded-full shadow-[0_0_8px_#e8820c]" />
+                                    ))}
+                                </motion.div>
+                                {/* Backward points */}
+                                <motion.div
+                                    animate={{ x: ['200%', '-200%'] }}
+                                    transition={{ repeat: Infinity, duration: 3.5, ease: 'linear' }}
+                                    className="absolute top-0 left-0 flex gap-24"
+                                >
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="h-1 w-1 bg-[#0f4c81] rounded-full shadow-[0_0_8px_#0f4c81] opacity-50" />
+                                    ))}
+                                </motion.div>
                             </div>
+                        </div>
+
+                        <div className="flex flex-col items-center relative z-10">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
+                                className="relative bg-white/10 backdrop-blur-md p-4 rounded-full border border-white/20"
+                            >
+                                <RefreshCw className="h-8 w-8 text-[#e8820c]" />
+                            </motion.div>
                             <p className="mt-8 text-white/50 text-[10px] font-black uppercase tracking-[0.3em] text-center">
-                                Sincronización en tiempo real
+                                Sincronización Bidireccional
                             </p>
                         </div>
                     </div>
@@ -218,7 +278,9 @@ export default function ManufacturaHub() {
                             </span>
                         </div>
                         <div className="flex items-baseline gap-2 mb-1">
-                            <h3 className="text-3xl font-black tracking-tight text-slate-800 italic">{kpi.value}</h3>
+                            <h3 className="text-3xl font-black tracking-tight text-slate-800 italic">
+                                <Counter value={kpi.value} />
+                            </h3>
                             <span className="text-xs font-bold text-muted-foreground uppercase">{kpi.unit}</span>
                         </div>
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">{kpi.label}</p>

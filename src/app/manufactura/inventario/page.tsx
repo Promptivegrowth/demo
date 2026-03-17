@@ -14,26 +14,35 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import {
+    Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription
+} from '@/components/ui/sheet'
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Droplet, Palette, Beaker, FileText, History as HistoryIcon, Info } from 'lucide-react'
 
 // --- MOCK DATA ---
-const RAW_MATERIALS = [
-    { id: 'MP-001', name: 'Resina Polypropylene (Virgen)', code: 'PP-V-01', category: 'Resinas', stock: 12500, unit: 'KG', minStock: 2000, supplier: 'Resinas del Perú', location: 'Siloe A-1' },
-    { id: 'MP-002', name: 'Masterbatch Blanco', code: 'MB-WH-02', category: 'Pigmentos', stock: 450, unit: 'KG', minStock: 100, supplier: 'Colores SAC', location: 'Estante Q-1' },
-];
+const KARDEX_MOVEMENTS = [
+    { date: '2024-03-15 08:30', type: 'Ingreso', qty: '+5,000', source: 'Producción E-01', user: 'Almacenero - R. Soto' },
+    { date: '2024-03-14 16:45', type: 'Salida', qty: '-1,200', source: 'Guía 001-4567', user: 'Logística - M. Jara' },
+    { date: '2024-03-14 10:20', type: 'Ajuste', qty: '-50', source: 'Muestra Calidad', user: 'Control - D. Vega' },
+    { date: '2024-03-13 14:00', type: 'Ingreso', qty: '+2,000', source: 'Producción T-04', user: 'Almacenero - R. Soto' },
+]
 
-const FINISHED_PRODUCTS = [
-    { id: 'PT-001', name: 'Vaso Transparente PP 12oz', code: 'V-12-PP', presentation: 'Caja x 1000', stockReal: 15000, stockReserved: 2000, location: 'Almacén A-1', minStock: 5000, rotation: 15 },
-    { id: 'PT-002', name: 'Plato PET 9"', code: 'P-09-PET', presentation: 'Caja x 500', stockReal: 8500, stockReserved: 1200, location: 'Almacén B-2', minStock: 3000, rotation: 12 },
-    { id: 'PT-003', name: 'Contenedor Vianda', code: 'C-V-HB', presentation: 'Paquete x 50', stockReal: 4200, stockReserved: 500, location: 'Almacén C-3', minStock: 2000, rotation: 8 },
-];
+const INITIAL_FINISHED_PRODUCTS = [
+    { id: 'FP-001', code: 'VP-12-TR', name: 'Vaso PP 12oz Transparente', category: 'Vasos', presentation: 'Caja x 12 Bultos', rotation: 85, stockReal: 15400, stockReserved: 2100, unit: 'Millar', location: 'Rack A-12', image: '/manufactura/vaso.png' },
+    { id: 'FP-002', code: 'PL-09-BL', name: 'Plato PET 9" Blanco', category: 'Platos', presentation: 'Caja x 500 Unid.', rotation: 72, stockReal: 8200, stockReserved: 500, unit: 'Caja', location: 'Rack B-04', image: '/manufactura/plato.png' },
+    { id: 'FP-003', code: 'CN-50-HV', name: 'Contenedor Vianda XL', category: 'Contenedores', presentation: 'Bulto x 100 Pack', rotation: 45, stockReal: 3100, stockReserved: 1200, unit: 'Bulto', location: 'Rack C-01', image: '/manufactura/contenedor.png' },
+]
 
-const PRODUCTS = [
-    { id: 'PROD-001', name: 'Vaso Transparente PP 12oz', category: 'Producto Terminado', stock: 15000, minStock: 5000, price: 'S/ 0.12', status: 'In Stock', image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/vaso_descartable_pp_1773781872568.png' },
-    { id: 'PROD-002', name: 'Plato PET 9"', category: 'Producto Terminado', stock: 8500, minStock: 3000, price: 'S/ 0.25', status: 'In Stock', image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/plato_descartable_pet_1773781887432.png' },
-    { id: 'PROD-003', name: 'Contenedor Vianda con Bisagra', category: 'Producto Terminado', stock: 4200, minStock: 2000, price: 'S/ 0.45', status: 'Low Stock', image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/contenedor_bisagra_portacomida_peru_1773781902193.png' },
-    { id: 'PROD-004', name: 'Pack Cubiertos Premium (3-en-1)', category: 'Producto Terminado', stock: 12000, minStock: 5000, price: 'S/ 0.35', status: 'In Stock', image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/cubiertos_descartables_premium_1773781915994.png' },
-    { id: 'RAW-001', name: 'Resina Polypropylene (Virgen)', category: 'Materia Prima', stock: 2500, minStock: 1000, price: 'S/ 5.80/kg', status: 'In Stock', image: null },
-];
+const INITIAL_RAW_MATERIALS = [
+    { id: 'MP-001', name: 'Resina Polypropylene (Virgen)', code: 'PP-V-01', category: 'Resinas', stock: 12500, unit: 'KG', minStock: 2000, supplier: 'Resinas del Perú', location: 'Siloe A-1', icon: Droplet },
+    { id: 'MP-002', name: 'Masterbatch Blanco', code: 'MB-WH-02', category: 'Pigmentos', stock: 450, unit: 'KG', minStock: 100, supplier: 'Colores SAC', location: 'Estante Q-1', icon: Palette },
+    { id: 'MP-003', name: 'Aditivo Biodegradable', code: 'AD-BIO-03', category: 'Aditivos', stock: 85, unit: 'KG', minStock: 50, supplier: 'Bio-Chem Ind.', location: 'Rack Especial', icon: Beaker },
+]
 
 const WAREHOUSES = [
     { id: 'WH-01', name: 'Almacén Principal', capacity: 85, color: 'bg-[#0f4c81]' },
@@ -42,13 +51,19 @@ const WAREHOUSES = [
 ]
 
 const LOTS = [
-    { id: 'L-7890', product: 'Vasos 7oz', date: '2026-10-15', daysLeft: 120, status: 'Vence Pronto' },
-    { id: 'L-7895', product: 'Platos #22', date: '2026-06-20', daysLeft: 15, status: 'Crítico' },
-    { id: 'L-7901', product: 'Bandejas N4', date: '2027-01-10', daysLeft: 300, status: 'Ok' },
+    { id: 'L-7890', product: 'Vasos 7oz', date: '2026-10-15', daysLeft: 120, status: 'Vence Pronto', qty: '50,000 Uds', image: '/manufactura/lote.png' },
+    { id: 'L-7895', product: 'Platos #22', date: '2026-06-20', daysLeft: 15, status: 'Crítico', qty: '24,000 Uds', image: '/manufactura/lote.png' },
+    { id: 'L-7901', product: 'Bandejas N4', date: '2027-01-10', daysLeft: 300, status: 'Ok', qty: '12,000 Uds', image: '/manufactura/lote.png' },
 ]
 
 export default function InventarioManufactura() {
     const [activeTab, setActiveTab] = useState('producto-terminado')
+    const [selectedProduct, setSelectedProduct] = useState<any>(null)
+    const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false)
+    const [isInventoryAuditOpen, setIsInventoryAuditOpen] = useState(false)
+    const [materiaPrima, setMateriaPrima] = useState(INITIAL_RAW_MATERIALS)
+    const [finishedProducts, setFinishedProducts] = useState(INITIAL_FINISHED_PRODUCTS)
+
 
     return (
         <div className="space-y-8 pb-10">
@@ -68,10 +83,77 @@ export default function InventarioManufactura() {
                         <Upload className="h-4 w-4 mr-2" />
                         Importar
                     </Button>
-                    <Button variant="outline" size="sm" className="bg-white border-slate-200 text-slate-600 font-black uppercase tracking-tighter text-[10px]">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Ajuste
-                    </Button>
+                    <Dialog open={isAdjustModalOpen} onOpenChange={setIsAdjustModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="bg-white border-slate-200 text-slate-600 font-black uppercase tracking-tighter text-[10px]">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Ajuste
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl border-none p-8">
+                            <DialogHeader>
+                                <DialogTitle className="text-xl font-black italic uppercase text-slate-800">Ajuste de Existencias (Manual)</DialogTitle>
+                            </DialogHeader>
+                            <div className="py-6 space-y-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-[#e8820c] italic">Tipo de Ajuste</Label>
+                                    <Select defaultValue="pos">
+                                        <SelectTrigger className="rounded-xl border-slate-100 h-10 font-bold italic">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pos">ENTRADA (Ajuste Positivo)</SelectItem>
+                                            <SelectItem value="neg">SALIDA (Ajuste Negativo)</SelectItem>
+                                            <SelectItem value="merm">MERMA INDUSTRIAL</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-[#e8820c] italic">Producto / Insumo</Label>
+                                    <Select>
+                                        <SelectTrigger className="rounded-xl border-slate-100 h-10 font-bold italic">
+                                            <SelectValue placeholder="Seleccionar item..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {[...finishedProducts, ...materiaPrima].map(p => (
+                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-[#e8820c] italic">Cantidad</Label>
+                                        <Input type="number" placeholder="Ej: 50" className="rounded-xl border-slate-100" />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-[#e8820c] italic">Almacén</Label>
+                                        <Select defaultValue="WH-01">
+                                            <SelectTrigger className="rounded-xl border-slate-100 h-10 font-bold italic">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="WH-01">Almacén Principal</SelectItem>
+                                                <SelectItem value="WH-02">Almacén Secundario</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-[#e8820c] italic">Motivo / Observación</Label>
+                                    <Input placeholder="Justificación del ajuste" className="rounded-xl border-slate-100 h-10 font-medium italic" />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    className="w-full bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black uppercase italic"
+                                    onClick={() => setIsAdjustModalOpen(false)}
+                                >
+                                    Aplicar Ajuste a Kardex
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                     <Button size="sm" className="bg-[#0f4c81] hover:bg-[#1a3a5a] text-white font-black uppercase tracking-tighter text-[10px]">
                         <Download className="h-4 w-4 mr-2" />
                         Exportar
@@ -147,7 +229,7 @@ export default function InventarioManufactura() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {FINISHED_PRODUCTS.map((p) => {
+                                    {finishedProducts.map((p) => {
                                         const available = p.stockReal - p.stockReserved;
                                         const isCritical = available <= 0;
                                         return (
@@ -204,9 +286,84 @@ export default function InventarioManufactura() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
-                                                        <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-[#e8820c]" />
-                                                    </Button>
+                                                    <Sheet>
+                                                        <SheetTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setSelectedProduct(p)}>
+                                                                <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-[#e8820c]" />
+                                                            </Button>
+                                                        </SheetTrigger>
+                                                        <SheetContent className="w-[500px] sm:max-w-none">
+                                                            <SheetHeader>
+                                                                <div className="flex items-center gap-3 mb-4">
+                                                                    <div className="p-2 bg-[#e8820c]/10 rounded-xl">
+                                                                        <HistoryIcon className="h-6 w-6 text-[#e8820c]" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <SheetTitle className="text-xl font-black italic uppercase text-slate-800">Kardex de Producto</SheetTitle>
+                                                                        <SheetDescription className="font-medium italic">Historial de movimientos y trazabilidad.</SheetDescription>
+                                                                    </div>
+                                                                </div>
+                                                            </SheetHeader>
+                                                            <div className="py-6 space-y-6">
+                                                                <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                                                                    <div className="flex justify-between items-start mb-4">
+                                                                        <div>
+                                                                            <h3 className="text-lg font-black italic text-[#0f4c81] leading-none uppercase">{selectedProduct?.name}</h3>
+                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{selectedProduct?.code}</span>
+                                                                        </div>
+                                                                        <Badge className="bg-[#0f4c81] text-white font-black italic">{selectedProduct?.stockReal - selectedProduct?.stockReserved} DISP.</Badge>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 gap-4">
+                                                                        <div className="p-3 bg-white rounded-xl border border-slate-100">
+                                                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Stock Actual</span>
+                                                                            <span className="text-sm font-black italic">{selectedProduct?.stockReal.toLocaleString()}</span>
+                                                                        </div>
+                                                                        <div className="p-3 bg-white rounded-xl border border-slate-100">
+                                                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ubicación</span>
+                                                                            <span className="text-sm font-black italic uppercase">{selectedProduct?.location}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="space-y-3">
+                                                                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic flex items-center gap-2 px-2">
+                                                                        <Layers className="h-3 w-3" /> Movimientos Recientes
+                                                                    </h4>
+                                                                    <div className="space-y-2">
+                                                                        {KARDEX_MOVEMENTS.map((mov, i) => (
+                                                                            <div key={i} className="group p-4 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 transition-colors">
+                                                                                <div className="flex justify-between items-start mb-2">
+                                                                                    <div className="flex flex-col">
+                                                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{mov.date}</span>
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className={cn(
+                                                                                                "h-1.5 w-1.5 rounded-full",
+                                                                                                mov.type === 'Ingreso' ? "bg-emerald-500" : mov.type === 'Salida' ? "bg-red-500" : "bg-amber-500"
+                                                                                            )} />
+                                                                                            <span className="text-xs font-black italic uppercase">{mov.type}</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <span className={cn(
+                                                                                        "text-sm font-black italic",
+                                                                                        mov.qty.startsWith('+') ? "text-emerald-500" : "text-red-500"
+                                                                                    )}>{mov.qty}</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Ref: {mov.source}</span>
+                                                                                    <span className="text-[10px] font-black text-[#0f4c81] italic">{mov.user}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-auto">
+                                                                <Button variant="outline" className="w-full border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest h-12 rounded-2xl italic gap-2 hover:bg-[#0f4c81] hover:text-white hover:border-[#0f4c81] transition-all">
+                                                                    <FileText className="h-4 w-4" /> Exportar Kardex Completo (Excel)
+                                                                </Button>
+                                                            </div>
+                                                        </SheetContent>
+                                                    </Sheet>
                                                 </td>
                                             </motion.tr>
                                         );
@@ -220,14 +377,14 @@ export default function InventarioManufactura() {
                 {/* MATERIA PRIMA VIEW */}
                 <TabsContent value="materia-prima" className="mt-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {RAW_MATERIALS.map((mat) => (
+                        {materiaPrima.map((mat) => (
                             <motion.div
                                 key={mat.id}
                                 className="p-5 bg-white rounded-3xl border border-border shadow-sm hover:shadow-lg transition-all group"
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="p-2 bg-slate-50 rounded-xl group-hover:bg-[#0f4c81]/5 transition-colors">
-                                        <Database className="h-5 w-5 text-slate-400 group-hover:text-[#0f4c81]" />
+                                        <mat.icon className="h-5 w-5 text-slate-400 group-hover:text-[#0f4c81]" />
                                     </div>
                                     <Badge className={cn(
                                         "font-black text-[9px] uppercase tracking-tighter",
@@ -282,13 +439,19 @@ export default function InventarioManufactura() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {LOTS.map((lot) => (
-                                <div key={lot.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                                <div key={lot.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-2 group/lot">
+                                    <div className="relative h-24 w-full bg-slate-200 rounded-xl overflow-hidden mb-2">
+                                        <img src={lot.image} alt={lot.id} className="h-full w-full object-cover group-hover/lot:scale-110 transition-transform duration-500" />
+                                        <div className="absolute top-2 right-2 flex gap-1">
+                                            <Badge className={cn(
+                                                "font-black text-[7px] uppercase tracking-tighter h-4 px-1 border-none",
+                                                lot.status === 'Crítico' ? "bg-red-500 text-white" : lot.status === 'Vence Pronto' ? "bg-amber-500 text-white" : "bg-emerald-500 text-white"
+                                            )}>{lot.status}</Badge>
+                                        </div>
+                                    </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-[10px] font-black text-[#0f4c81] tracking-tighter italic">{lot.id}</span>
-                                        <Badge className={cn(
-                                            "font-black text-[8px] uppercase tracking-tighter h-4 px-1.5",
-                                            lot.status === 'Crítico' ? "bg-red-500 text-white" : lot.status === 'Vence Pronto' ? "bg-amber-500 text-white" : "bg-emerald-500 text-white"
-                                        )}>{lot.status}</Badge>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase">{lot.qty}</span>
                                     </div>
                                     <span className="text-xs font-black text-slate-800 italic uppercase leading-tight">{lot.product}</span>
                                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-white">
@@ -353,9 +516,50 @@ export default function InventarioManufactura() {
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Kardex Diario Validado</p>
                         </div>
                     </div>
-                    <Button className="w-full bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black text-[10px] uppercase italic tracking-widest gap-2">
-                        <Plus className="h-4 w-4" /> Tomar Inventario
-                    </Button>
+                    <Dialog open={isInventoryAuditOpen} onOpenChange={setIsInventoryAuditOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="w-full bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black text-[10px] uppercase italic tracking-widest gap-2">
+                                <Plus className="h-4 w-4" /> Tomar Inventario
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl border-none p-0 overflow-hidden max-w-lg">
+                            <div className="p-8 bg-emerald-600 text-white">
+                                <ShieldCheck className="h-10 w-10 mb-2" />
+                                <h2 className="text-2xl font-black italic uppercase leading-none">Auditoría de Stock</h2>
+                                <p className="text-white/80 text-xs font-medium italic mt-1 uppercase tracking-widest">Validación de existencias físicas vs sistema</p>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="p-6 bg-slate-50 rounded-2xl border border-dotted border-slate-200 text-center">
+                                    <p className="text-xs text-slate-500 font-medium italic">Se recomienda el uso del escáner industrial Zebra o Promptive Mobile para una auditoría sin errores.</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-[#0f4c81] italic">Zona a Auditar</Label>
+                                        <Select defaultValue="secA">
+                                            <SelectTrigger className="rounded-xl border-slate-100 h-11 font-bold italic">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="secA">SECTOR A (PRODUCTO TERMINADO)</SelectItem>
+                                                <SelectItem value="secB">SECTOR B (MATERIA PRIMA)</SelectItem>
+                                                <SelectItem value="siloe">SILOE (RESERVA)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex gap-3">
+                                        <Info className="h-4 w-4 text-amber-500 shrink-0" />
+                                        <p className="text-[11px] text-amber-700 font-bold italic leading-tight">Esta acción bloqueará temporalmente los movimientos de salida para la zona seleccionada.</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    className="w-full bg-slate-900 hover:bg-black text-white h-12 rounded-xl font-black uppercase italic text-xs tracking-[0.2em]"
+                                    onClick={() => setIsInventoryAuditOpen(false)}
+                                >
+                                    Iniciar Conteo Ciego
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
         </div>
