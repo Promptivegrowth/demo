@@ -40,11 +40,13 @@ const INITIAL_MACHINES = [
 
 export default function ProduccionManufactura() {
     const [selectedOrder, setSelectedOrder] = useState<any>(null)
+    const [selectedMachine, setSelectedMachine] = useState<any>(null)
     const [machines, setMachines] = useState(INITIAL_MACHINES)
     const [orders, setOrders] = useState(INITIAL_ORDERS)
     const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false)
     const [isMixModalOpen, setIsMixModalOpen] = useState(false)
     const [mixAdjusted, setMixAdjusted] = useState(false)
+    const [telemetryLogs, setTelemetryLogs] = useState<string[]>([])
 
     // Telemetry Simulation
     useEffect(() => {
@@ -52,27 +54,34 @@ export default function ProduccionManufactura() {
             setMachines(prev => prev.map(m => {
                 if (m.status !== 'Activa') return m
                 const fluctuation = Math.floor(Math.random() * 101) - 50 // ±50
-                const newSpeed = Math.max(0, m.speed + fluctuation)
-                const newEfficiency = Math.min(100, Math.max(0, m.efficiency + (Math.random() * 2 - 1)))
+                const newSpeed = Math.max(2000, m.speed + fluctuation)
+                const newEfficiency = Math.min(100, Math.max(80, m.efficiency + (Math.random() * 2 - 1)))
+
+                // Random log sometimes
+                if (Math.random() > 0.95) {
+                    setTelemetryLogs(prev => [`[${new Date().toLocaleTimeString()}] ${m.name}: Estabilidad de flujo confirmada`, ...prev].slice(0, 5))
+                }
+
                 return {
                     ...m,
                     speed: newSpeed,
                     efficiency: Number(newEfficiency.toFixed(1)),
-                    temp: m.temp + (Math.random() > 0.5 ? 0.5 : -0.5)
+                    temp: m.temp + (Math.random() > 0.5 ? 0.2 : -0.2)
                 }
             }))
-        }, 3000)
+        }, 2000)
         return () => clearInterval(interval)
     }, [])
 
     const handleEmergencyStop = (machineId: string | 'all') => {
         setMachines(prev => prev.map(m => {
             if (machineId === 'all' || m.id === machineId) {
-                return { ...m, status: 'Parada', speed: 0, oee: m.oee * 0.8 }
+                return { ...m, status: 'Parada', speed: 0, oee: Math.floor(m.oee * 0.7) }
             }
             return m
         }))
         setIsEmergencyModalOpen(false)
+        setTelemetryLogs(prev => [`[${new Date().toLocaleTimeString()}] !!! PARADA DE EMERGENCIA REGISTRADA !!!`, ...prev].slice(0, 5))
     }
 
     const addNewOrder = (newOrder: any) => {
@@ -98,7 +107,7 @@ export default function ProduccionManufactura() {
                 const machine = machines.find(m => m.name === order.machine || m.id === order.machine)
                 if (machine && machine.status !== 'Activa') return order
 
-                const increment = Math.floor(Math.random() * 50) + 10
+                const increment = Math.floor(Math.random() * 80) + 20
                 const newReal = Math.min(order.target, order.real + increment)
                 return {
                     ...order,
@@ -106,7 +115,7 @@ export default function ProduccionManufactura() {
                     status: newReal >= order.target ? 'Completado' : order.status
                 }
             }))
-        }, 2000)
+        }, 1500)
         return () => clearInterval(interval)
     }, [machines])
 
@@ -227,77 +236,203 @@ export default function ProduccionManufactura() {
 
             {/* Machine Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {machines.map((machine) => (
-                    <motion.div
-                        key={machine.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className={cn(
-                            "p-5 bg-card rounded-2xl border-2 transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-xl",
-                            machine.status === 'Activa' ? "border-emerald-500/20 bg-emerald-50/10" :
-                                machine.status === 'Parada' ? "border-red-500/20 bg-red-50/10" :
-                                    "border-amber-500/20 bg-amber-50/10"
-                        )}
-                    >
-                        {/* Status Glow */}
-                        <div className={cn(
-                            "absolute top-0 right-0 w-24 h-24 blur-3xl -mr-12 -mt-12 opacity-20",
-                            machine.status === 'Activa' ? "bg-emerald-500" : machine.status === 'Parada' ? "bg-red-500" : "bg-amber-500"
-                        )} />
+                <Sheet open={!!selectedMachine} onOpenChange={(open) => !open && setSelectedMachine(null)}>
+                    {machines.map((machine) => (
+                        <motion.div
+                            key={machine.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            whileHover={{ y: -5 }}
+                            onClick={() => setSelectedMachine(machine)}
+                            className={cn(
+                                "p-5 bg-card rounded-2xl border-2 transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-xl cursor-pointer",
+                                machine.status === 'Activa' ? "border-emerald-500/20 bg-emerald-50/10" :
+                                    machine.status === 'Parada' ? "border-red-500/20 bg-red-50/10" :
+                                        "border-amber-500/20 bg-amber-50/10"
+                            )}
+                        >
+                            {/* Status Glow */}
+                            <div className={cn(
+                                "absolute top-0 right-0 w-24 h-24 blur-3xl -mr-12 -mt-12 opacity-20 transition-all duration-500 group-hover:scale-150",
+                                machine.status === 'Activa' ? "bg-emerald-500" : machine.status === 'Parada' ? "bg-red-500" : "bg-amber-500"
+                            )} />
 
-                        <div className="relative">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="font-black text-slate-800 text-sm leading-tight italic uppercase">{machine.name}</h3>
-                                    <p className="text-[10px] text-muted-foreground font-bold uppercase">{machine.type}</p>
-                                </div>
-                                <Badge className={cn(
-                                    "font-black text-[9px] uppercase tracking-tighter border-none",
-                                    machine.status === 'Activa' ? "bg-emerald-500 text-white" :
-                                        machine.status === 'Parada' ? "bg-red-500 text-white" :
-                                            "bg-amber-500 text-white"
-                                )}>
-                                    {machine.status}
-                                </Badge>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-slate-500">
-                                        <Gauge className="h-4 w-4" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest">Velocidad</span>
+                            <div className="relative">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="font-black text-slate-800 text-sm leading-tight italic uppercase">{machine.name}</h3>
+                                        <p className="text-[10px] text-muted-foreground font-bold uppercase">{machine.type}</p>
                                     </div>
-                                    <span className="text-sm font-black text-slate-800 italic">{machine.speed} <span className="text-[10px] text-slate-400 not-italic">UDS/H</span></span>
+                                    <Badge className={cn(
+                                        "font-black text-[9px] uppercase tracking-tighter border-none",
+                                        machine.status === 'Activa' ? "bg-emerald-500 text-white" :
+                                            machine.status === 'Parada' ? "bg-red-500 text-white" :
+                                                "bg-amber-500 text-white"
+                                    )}>
+                                        {machine.status}
+                                    </Badge>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                        <span>Eficiencia Turno</span>
-                                        <span className={cn(
-                                            machine.efficiency >= 85 ? "text-emerald-500" : machine.efficiency >= 60 ? "text-amber-500" : "text-red-500"
-                                        )}>{machine.efficiency}%</span>
-                                    </div>
-                                    <Progress value={machine.efficiency} className="h-1.5" />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                                    <div className="flex flex-col">
-                                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                            <Thermometer className="h-3 w-3" /> Temp.
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-slate-500">
+                                            <Gauge className="h-4 w-4" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Velocidad</span>
                                         </div>
-                                        <span className="text-xs font-black text-slate-700 italic">{machine.temp.toFixed(1)}°C</span>
+                                        <span className="text-sm font-black text-slate-800 italic">{machine.speed} <span className="text-[10px] text-slate-400 not-italic">UDS/H</span></span>
                                     </div>
-                                    <div className="flex flex-col border-l border-slate-100 pl-2">
-                                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                            <Zap className="h-3 w-3" /> OEE Act.
+
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500 italic">
+                                            <span>Eficiencia Turno</span>
+                                            <span className={cn(
+                                                machine.efficiency >= 85 ? "text-emerald-500" : machine.efficiency >= 60 ? "text-amber-500" : "text-red-500"
+                                            )}>{machine.efficiency}%</span>
                                         </div>
-                                        <span className="text-xs font-black text-[#0f4c81] italic">{machine.oee}%</span>
+                                        <Progress value={machine.efficiency} className="h-1.5" />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                                                <Thermometer className="h-3 w-3" /> Temp.
+                                            </div>
+                                            <span className="text-xs font-black text-slate-700 italic">{machine.temp.toFixed(1)}°C</span>
+                                        </div>
+                                        <div className="flex flex-col border-l border-slate-100 pl-2">
+                                            <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                                                <Zap className="h-3 w-3" /> OEE Act.
+                                            </div>
+                                            <span className="text-xs font-black text-[#0f4c81] italic">{machine.oee}%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </motion.div>
+                    ))}
+
+                    {/* Machine Detail Sheet */}
+                    <SheetContent className="w-[100vw] sm:max-w-[500px] p-0 border-l border-white/20 bg-slate-50 overflow-y-auto">
+                        <div className="p-8 space-y-8">
+                            {selectedMachine && (
+                                <>
+                                    <header className="space-y-4">
+                                        <div className="flex justify-between items-start">
+                                            <div className="p-4 bg-[#0f4c81] rounded-2xl text-white shadow-xl">
+                                                <Settings className="h-8 w-8 animate-spin-slow" />
+                                            </div>
+                                            <Badge className="bg-emerald-500 text-white font-black italic uppercase tracking-widest">
+                                                Sensor Link Activo
+                                            </Badge>
+                                        </div>
+                                        <div>
+                                            <h2 className="text-3xl font-black italic uppercase text-slate-800 leading-none">{selectedMachine.name}</h2>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">Dashboard de Telemetría Industrial</p>
+                                        </div>
+                                    </header>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Sistema</p>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                <span className="text-sm font-black italic text-slate-800 uppercase">{selectedMachine.status}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Carga Motor</p>
+                                            <span className="text-xl font-black italic text-[#0f4c81]">74.2%</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Simulated Real-time Graphs */}
+                                    <div className="space-y-6">
+                                        <div className="p-6 bg-slate-900 rounded-3xl shadow-2xl relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                                <Activity className="h-12 w-12 text-blue-400" />
+                                            </div>
+                                            <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic mb-6">Velocidad de Inyección (Real-time)</h4>
+                                            <div className="flex items-end gap-1.5 h-32">
+                                                {[...Array(20)].map((_, i) => (
+                                                    <motion.div
+                                                        key={i}
+                                                        initial={{ height: "10%" }}
+                                                        animate={{ height: `${20 + Math.random() * 80}%` }}
+                                                        transition={{ repeat: Infinity, duration: 1.5, repeatType: "reverse", delay: i * 0.1 }}
+                                                        className="flex-1 bg-gradient-to-t from-blue-600 to-cyan-400 rounded-t-sm"
+                                                    />
+                                                ))}
+                                            </div>
+                                            <div className="flex justify-between mt-4">
+                                                <span className="text-[9px] font-black text-white/30 uppercase tracking-widest italic">T-60s</span>
+                                                <span className="text-[9px] font-black text-white/30 uppercase tracking-widest italic">Actual</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-6">Temperatura de Fusión</h4>
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-baseline">
+                                                    <span className="text-3xl font-black italic text-slate-800">{selectedMachine.temp.toFixed(1)}°C</span>
+                                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 font-black italic">±0.2° VAR</Badge>
+                                                </div>
+                                                <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        animate={{ width: `${(selectedMachine.temp / 300) * 100}%` }}
+                                                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 to-red-500 rounded-full"
+                                                    />
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 font-medium italic">Parámetros dentro del rango óptimo para PP-V-01.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Controls */}
+                                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                                        <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest italic">Control Directo de Línea</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Button
+                                                variant="outline"
+                                                className="rounded-2xl h-12 font-black uppercase italic text-[10px] tracking-widest gap-2 bg-white hover:bg-slate-50"
+                                                onClick={() => handleEmergencyStop(selectedMachine.id)}
+                                            >
+                                                <Pause className="h-4 w-4" /> Detener Proceso
+                                            </Button>
+                                            <Button className="bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black uppercase italic text-[10px] tracking-widest gap-2 shadow-lg shadow-blue-900/20">
+                                                <Settings className="h-4 w-4" /> Calibrar Unit.
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Event Log */}
+                                    <div className="space-y-3">
+                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic flex items-center gap-2">
+                                            <History className="h-3 w-3" /> Log de Telemetría
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {telemetryLogs.map((log, i) => (
+                                                <motion.div
+                                                    key={i}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    className="p-3 bg-white rounded-xl border border-slate-100 flex gap-3 items-center"
+                                                >
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                    <span className="text-[10px] font-bold text-slate-600 font-mono italic">{log}</span>
+                                                </motion.div>
+                                            ))}
+                                            {telemetryLogs.length === 0 && (
+                                                <div className="p-3 bg-white rounded-xl border border-slate-100 text-center">
+                                                    <p className="text-[10px] text-slate-400 font-medium italic">Esperando datos de sensores...</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    </motion.div>
-                ))}
+                    </SheetContent>
+                </Sheet>
             </div>
 
             {/* Layout Main: Orders Table + Details */}
@@ -342,21 +477,25 @@ export default function ProduccionManufactura() {
                                         key={order.id}
                                         className="group hover:bg-slate-50/50 transition-colors cursor-pointer"
                                         layout
+                                        onClick={() => {
+                                            const machine = machines.find(m => m.name === order.machine || m.id === order.machine)
+                                            if (machine) setSelectedMachine(machine)
+                                        }}
                                     >
-                                        <td className="px-6 py-4" onClick={() => setSelectedOrder(order)}>
+                                        <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-black text-[#0f4c81] tracking-tighter">{order.id}</span>
                                                 <span className="text-sm font-black text-slate-800 italic uppercase leading-tight">{order.product}</span>
                                                 <span className="text-[10px] text-slate-400 font-bold italic">{order.presentation}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4" onClick={() => setSelectedOrder(order)}>
+                                        <td className="px-6 py-4">
                                             <div className="flex flex-col items-center">
                                                 <span className="text-xs font-black text-slate-700 italic">{order.real.toLocaleString()} / {order.target.toLocaleString()}</span>
                                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Unidades</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4" onClick={() => setSelectedOrder(order)}>
+                                        <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-1 w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                     <motion.div
@@ -372,7 +511,7 @@ export default function ProduccionManufactura() {
                                                 <span className="text-xs font-black text-slate-700 italic">{((order.real / order.target) * 100).toFixed(0)}%</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4" onClick={() => setSelectedOrder(order)}>
+                                        <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-1.5">
                                                     <Settings className={cn("h-3 w-3", order.status === 'Detenido' ? "text-red-500" : "text-emerald-500")} />
@@ -408,7 +547,7 @@ export default function ProduccionManufactura() {
                                                             <ClipboardCheck className="h-4 w-4" />
                                                         </Button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="rounded-3xl border-none p-8">
+                                                    <DialogContent className="rounded-3xl border-none p-8" onClick={(e) => e.stopPropagation()}>
                                                         <DialogHeader>
                                                             <DialogTitle className="text-xl font-black italic uppercase text-slate-800">Inspección de Calidad (QC)</DialogTitle>
                                                         </DialogHeader>
@@ -436,13 +575,22 @@ export default function ProduccionManufactura() {
                                                             </div>
                                                         </div>
                                                         <DialogFooter>
-                                                            <Button className="w-full bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black uppercase italic">Validar Lote y Continuar</Button>
+                                                            <Button
+                                                                className="w-full bg-[#0f4c81] hover:bg-[#1a3a5a] text-white rounded-2xl h-12 font-black uppercase italic"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    // Simulate validation
+                                                                    setTelemetryLogs(prev => [`[${new Date().toLocaleTimeString()}] QC Aprobado para ${order.id}`, ...prev].slice(0, 5))
+                                                                }}
+                                                            >
+                                                                Validar Lote y Continuar
+                                                            </Button>
                                                         </DialogFooter>
                                                     </DialogContent>
                                                 </Dialog>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4" onClick={() => setSelectedOrder(order)}>
+                                        <td className="px-6 py-4">
                                             <Badge className={cn(
                                                 "font-black text-[9px] uppercase italic tracking-tighter border-none",
                                                 order.status === 'En Proceso' ? "bg-blue-100 text-blue-700" :

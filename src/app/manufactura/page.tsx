@@ -191,29 +191,29 @@ export default function ManufacturaHub() {
                         </Badge>
                     </div>
 
-                    {/* Sync Column */}
-                    <div className="lg:col-span-3 flex flex-col items-center justify-center gap-4 relative py-12 lg:py-0">
-                        {/* Bi-directional Sync Animation */}
+                    {/* SYNC COLUMN: ENHANCED INTERACTIVE SECTION */}
+                    <div className="lg:col-span-3 flex flex-col items-center justify-center gap-6 relative py-12 lg:py-0">
+                        {/* Bi-directional Sync Animation with Glowing Streams */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-full h-[2px] bg-white/5 relative overflow-hidden">
-                                {/* Forward points */}
+                            <div className="w-full h-[3px] bg-white/5 relative overflow-hidden rounded-full">
+                                {/* Forward Stream (Cloud -> Local) */}
                                 <motion.div
-                                    animate={{ x: ['-200%', '200%'] }}
-                                    transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-                                    className="absolute top-0 left-0 flex gap-20"
+                                    animate={{ x: ['-100%', '100%'] }}
+                                    transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+                                    className="absolute top-0 left-0 flex gap-12 w-full"
                                 >
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="h-1 w-1 bg-[#e8820c] rounded-full shadow-[0_0_8px_#e8820c]" />
+                                    {[1, 2, 3, 4, 5].map(i => (
+                                        <div key={i} className="h-[3px] w-12 bg-gradient-to-r from-transparent via-[#e8820c] to-transparent shadow-[0_0_15px_#e8820c]" />
                                     ))}
                                 </motion.div>
-                                {/* Backward points */}
+                                {/* Backward Stream (Local -> Cloud) */}
                                 <motion.div
-                                    animate={{ x: ['200%', '-200%'] }}
-                                    transition={{ repeat: Infinity, duration: 3.5, ease: 'linear' }}
-                                    className="absolute top-0 left-0 flex gap-24"
+                                    animate={{ x: ['100%', '-100%'] }}
+                                    transition={{ repeat: Infinity, duration: 2.5, ease: 'linear' }}
+                                    className="absolute top-0 left-0 flex gap-16 w-full"
                                 >
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="h-1 w-1 bg-[#0f4c81] rounded-full shadow-[0_0_8px_#0f4c81] opacity-50" />
+                                    {[1, 2, 3, 4, 5].map(i => (
+                                        <div key={i} className="h-[3px] w-16 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_cyan] opacity-60" />
                                     ))}
                                 </motion.div>
                             </div>
@@ -221,15 +221,42 @@ export default function ManufacturaHub() {
 
                         <div className="flex flex-col items-center relative z-10">
                             <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
-                                className="relative bg-white/10 backdrop-blur-md p-4 rounded-full border border-white/20"
+                                whileHover={{ scale: 1.1, rotate: 180 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="relative bg-white/10 backdrop-blur-xl p-5 rounded-full border border-white/20 shadow-[0_0_30px_rgba(232,130,12,0.2)] cursor-pointer group"
+                                onClick={() => {
+                                    const event = new CustomEvent('manual-sync');
+                                    window.dispatchEvent(event);
+                                }}
                             >
-                                <RefreshCw className="h-8 w-8 text-[#e8820c]" />
+                                <RefreshCw className="h-10 w-10 text-[#e8820c] group-hover:animate-spin" />
+                                <div className="absolute -top-1 -right-1">
+                                    <span className="flex h-4 w-4">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8820c] opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-4 w-4 bg-[#e8820c]"></span>
+                                    </span>
+                                </div>
                             </motion.div>
-                            <p className="mt-8 text-white/50 text-[10px] font-black uppercase tracking-[0.3em] text-center">
-                                Sincronización Bidireccional
-                            </p>
+
+                            <div className="mt-6 text-center">
+                                <p className="text-white font-black text-[11px] uppercase tracking-[0.3em] mb-1">
+                                    Sync Híbrido Activo
+                                </p>
+                                <div className="flex items-center gap-2 justify-center">
+                                    <div className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-[9px] text-white/50 font-bold uppercase">Latencia: 14ms</span>
+                                </div>
+                            </div>
+
+                            {/* Interaction Info */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-4 px-3 py-1 bg-white/5 rounded-lg border border-white/10"
+                            >
+                                <p className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Último paquete:</p>
+                                <p className="text-[9px] text-[#e8820c] font-bold italic mt-1">POST /api/v1/pedidos (1.2MB)</p>
+                            </motion.div>
                         </div>
                     </div>
 

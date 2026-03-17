@@ -9,14 +9,70 @@ import {
     PieChart, BarChart3, Calendar,
     Download, Filter, Search, MoreVertical,
     CheckCircle2, AlertCircle, Clock,
-    Building2, Scale
+    Building2, Scale, Check, MapPin
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog"
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetDescription,
+} from "@/components/ui/sheet"
+import { toast } from 'sonner'
 
 export default function Contabilidad() {
+    const [isClosingMonthOpen, setIsClosingMonthOpen] = useState(false)
+    const [isExporting, setIsExporting] = useState(false)
+    const [isCollectionsOpen, setIsCollectionsOpen] = useState(false)
+    const [closingSteps, setClosingSteps] = useState([
+        { id: 1, label: 'Conciliación Bancaria', done: true },
+        { id: 2, label: 'Validación de Compras/Ventas (SUNAT)', done: false },
+        { id: 3, label: 'Depreciaciones y Amortizaciones', done: false },
+        { id: 4, label: 'Cálculo de Impuestos Mensuales', done: false },
+    ])
+
+    const handleExport = () => {
+        setIsExporting(true)
+        toast.info("Generación de libros electrónicos en curso...", {
+            description: "Preparando XML para PLE (SUNAT)"
+        })
+        setTimeout(() => {
+            setIsExporting(false)
+            toast.success("Libros exportados correctamente", {
+                description: "Los archivos están listos en la carpeta de descargas."
+            })
+        }, 3000)
+    }
+
+    const toggleStep = (id: number) => {
+        setClosingSteps(prev => prev.map(s => s.id === id ? { ...s, done: !s.done } : s))
+    }
+
+    const handleCloseMonth = () => {
+        if (closingSteps.every(s => s.done)) {
+            toast.success("Mes cerrado exitosamente", {
+                description: "Se han generado los asientos de cierre y bloqueado el periodo."
+            })
+            setIsClosingMonthOpen(false)
+        } else {
+            toast.error("Pendientes detectados", {
+                description: "Debes completar todos los pasos del checklist antes de cerrar el mes."
+            })
+        }
+    }
+
     return (
         <div className="space-y-8 pb-10">
             {/* Header */}
@@ -31,11 +87,19 @@ export default function Contabilidad() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="outline" className="h-11 rounded-xl text-[10px] font-black uppercase italic tracking-widest gap-2 bg-white">
-                        <Download className="h-4 w-4" />
-                        Exportar Libros
+                    <Button
+                        variant="outline"
+                        className="h-11 rounded-xl text-[10px] font-black uppercase italic tracking-widest gap-2 bg-white"
+                        onClick={handleExport}
+                        disabled={isExporting}
+                    >
+                        <Download className={cn("h-4 w-4", isExporting && "animate-bounce")} />
+                        {isExporting ? 'Exportando...' : 'Exportar Libros'}
                     </Button>
-                    <Button className="h-11 rounded-xl bg-slate-900 text-white hover:bg-black text-[10px] font-black uppercase italic tracking-widest">
+                    <Button
+                        className="h-11 rounded-xl bg-slate-900 text-white hover:bg-black text-[10px] font-black uppercase italic tracking-widest"
+                        onClick={() => setIsClosingMonthOpen(true)}
+                    >
                         Cierre de Mes
                     </Button>
                 </div>
@@ -142,7 +206,10 @@ export default function Contabilidad() {
                                 </div>
                             ))}
                         </div>
-                        <Button className="w-full mt-10 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-[9px] uppercase italic tracking-widest">
+                        <Button
+                            className="w-full mt-10 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-[9px] uppercase italic tracking-widest"
+                            onClick={() => setIsCollectionsOpen(true)}
+                        >
                             Cobranza Masiva
                         </Button>
                     </div>
@@ -177,6 +244,104 @@ export default function Contabilidad() {
                     </div>
                 </div>
             </div>
+
+            {/* Close Month Dialog */}
+            <Dialog open={isClosingMonthOpen} onOpenChange={setIsClosingMonthOpen}>
+                <DialogContent className="max-w-md bg-white rounded-[2.5rem] border-none shadow-2xl p-8">
+                    <DialogHeader className="mb-8">
+                        <DialogTitle className="text-2xl font-black italic tracking-tighter text-slate-800 uppercase">Checklist de Cierre</DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            Periodo: Febrero 2026
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        {closingSteps.map(step => (
+                            <div key={step.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition-colors cursor-pointer" onClick={() => toggleStep(step.id)}>
+                                <div className={cn(
+                                    "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors",
+                                    step.done ? "bg-slate-900 border-slate-900 text-white" : "border-slate-300 bg-white"
+                                )}>
+                                    {step.done && <Check className="h-3 w-3" />}
+                                </div>
+                                <span className={cn(
+                                    "text-[11px] font-black uppercase italic transition-all",
+                                    step.done ? "text-slate-400 line-through" : "text-slate-800"
+                                )}>
+                                    {step.label}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mt-8">
+                        <Button variant="outline" className="h-12 rounded-xl text-[10px] font-black uppercase italic" onClick={() => setIsClosingMonthOpen(false)}>Cancelar</Button>
+                        <Button
+                            className="h-12 bg-slate-900 hover:bg-black text-white rounded-xl text-[10px] font-black uppercase italic tracking-widest"
+                            onClick={handleCloseMonth}
+                        >
+                            Confirmar Cierre
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Collections Sheet */}
+            <Sheet open={isCollectionsOpen} onOpenChange={setIsCollectionsOpen}>
+                <SheetContent side="right" className="w-[450px] bg-white p-0 flex flex-col border-l">
+                    <div className="bg-emerald-600 p-8 text-white">
+                        <Badge className="bg-white/20 text-white border-none font-black text-[8px] uppercase tracking-widest mb-4 italic">Gestión de Cartera</Badge>
+                        <h2 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Cobranza Masiva</h2>
+                        <p className="text-xs font-bold text-white/70 uppercase">Total Pendiente: S/ 61,700</p>
+                    </div>
+                    <ScrollArea className="flex-1 p-8">
+                        <div className="space-y-6">
+                            {[
+                                { client: 'Distribuidora Norte', amount: 'S/ 12,450', dueDate: '15/02', status: 'Vencido' },
+                                { client: 'Bodegas Unidas', amount: 'S/ 8,200', dueDate: '28/02', status: 'Por Vencer' },
+                                { client: 'Empresa Textil SA', amount: 'S/ 41,000', dueDate: '05/03', status: 'Normal' },
+                            ].map((acc, i) => (
+                                <div key={i} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex gap-3 items-center">
+                                            <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center font-black italic text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                                                {acc.client[0]}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase italic text-slate-800">{acc.client}</h4>
+                                                <p className="text-[9px] font-bold text-slate-400">Vence: {acc.dueDate}</p>
+                                            </div>
+                                        </div>
+                                        <Badge className={cn(
+                                            "text-[8px] font-black uppercase italic border-none h-4 px-2",
+                                            acc.status === 'Vencido' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                                        )}>
+                                            {acc.status}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xl font-black italic tracking-tighter text-slate-800">{acc.amount}</span>
+                                        <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase text-[8px] italic rounded-lg h-8">
+                                            Emitir Aviso
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                    <div className="p-8 border-t bg-slate-50/50">
+                        <Button
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-14 rounded-2xl font-black text-[10px] uppercase italic tracking-[0.2em]"
+                            onClick={() => {
+                                toast.success("Avisos enviados", { description: "Se han enviado recordatorios por correo y WhatsApp a todos los clientes seleccionados." })
+                                setIsCollectionsOpen(false)
+                            }}
+                        >
+                            Confirmar Cobranzas
+                        </Button>
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     )
 }
