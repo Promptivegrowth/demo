@@ -8,7 +8,7 @@ import {
     Search, Filter, CheckCircle2, AlertTriangle,
     Server, Globe, Database, RefreshCw, Cpu,
     History, ShieldCheck, Mail, Zap, Settings,
-    Smartphone, Boxes, Factory
+    Smartphone, Boxes, Factory, Users
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

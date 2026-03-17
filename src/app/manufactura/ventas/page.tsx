@@ -7,7 +7,7 @@ import {
     Search, Plus, Minus, Trash2, CheckCircle2,
     Cloud, Server, ShieldCheck, Printer, Mail,
     Smartphone, Download, MoreVertical, LayoutGrid, List,
-    Percent, ArrowRight, Zap, History, Receipt
+    Percent, ArrowRight, Zap, History, Receipt, Activity
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,10 +17,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 // --- MOCK DATA ---
 const PRODUCTS = [
-    { id: '001', name: 'Vaso PP 12oz', price: 0.12, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/vaso_descartable_pp_1773781872568.png', category: 'Vasos' },
-    { id: '002', name: 'Plato PET 9"', price: 0.25, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/plato_descartable_pet_1773781887432.png', category: 'Platos' },
-    { id: '003', name: 'Contenedor Vianda', price: 0.45, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/contenedor_bisagra_portacomida_peru_1773781902193.png', category: 'Contenedores' },
-    { id: '004', name: 'Cubiertos Premium', price: 0.35, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/cubiertos_descartables_premium_1773781915994.png', category: 'Cubiertos' },
+    { id: '001', name: 'Vaso PP 12oz', price: 0.12, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/vaso_descartable_pp_1773781872568.png', category: 'Vasos', stock: 15400 },
+    { id: '002', name: 'Plato PET 9"', price: 0.25, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/plato_descartable_pet_1773781887432.png', category: 'Platos', stock: 8200 },
+    { id: '003', name: 'Contenedor Vianda', price: 0.45, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/contenedor_bisagra_portacomida_peru_1773781902193.png', category: 'Contenedores', stock: 3100 },
+    { id: '004', name: 'Cubiertos Premium', price: 0.35, image: '/brain/cf9f9bb3-b40e-4d4e-b2ea-cc0e8a7169a4/cubiertos_descartables_premium_1773781915994.png', category: 'Cubiertos', stock: 12500 },
 ]
 
 const CUSTOMER_TYPES = [
@@ -28,6 +28,8 @@ const CUSTOMER_TYPES = [
     { id: 'mayor', name: 'Mayorista (-10%)', color: 'bg-[#0f4c81]' },
     { id: 'minor', name: 'Minorista (Precio Base)', color: 'bg-slate-400' },
 ]
+
+const SALES_PRODUCTS = PRODUCTS;
 
 export default function VentasFacturacion() {
     const [cart, setCart] = useState<any[]>([])

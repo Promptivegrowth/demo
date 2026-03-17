@@ -9,7 +9,7 @@ import {
     ArrowRight, Map as MapIcon, Filter, Layers,
     Plus, DollarSign, Calendar, ChevronRight,
     Wifi, Battery, Signal, ArrowLeft, Home,
-    User, Menu, Send
+    User, Menu, Send, Activity
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

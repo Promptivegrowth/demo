@@ -6,7 +6,7 @@ import {
     Boxes, Package, Truck, AlertTriangle, Search,
     Filter, Plus, Download, Upload, ArrowRight,
     Calendar, Tag, Layers, Database, Warehouse,
-    CheckCircle2, Clock, MoreVertical, LayoutGrid, List
+    CheckCircle2, Clock, MoreVertical, LayoutGrid, List, ShieldCheck
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
