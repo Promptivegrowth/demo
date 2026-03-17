@@ -11,7 +11,8 @@ import {
     MapPin, BarChart3, Settings, ChevronLeft, ChevronRight, FileText,
     CalendarDays, ScrollText, Shield, X, Menu, Shirt, Factory,
     DraftingCompass, ClipboardCheck, BarChartHorizontal, Layers, Activity, Home,
-    ShieldCheck, Undo2, BadgeDollarSign, Receipt
+    ShieldCheck, Undo2, BadgeDollarSign, Receipt, Building2, Wrench, Boxes,
+    FileBarChart, Smartphone, Truck, Calculator, Server
 } from 'lucide-react'
 
 const textilNavItems = [
@@ -38,6 +39,17 @@ const automotrizNavItems = [
     { label: 'Garantías', icon: ShieldCheck, href: '/automotriz/garantias', operativeAccess: true },
     { label: 'Devoluciones', icon: Undo2, href: '/automotriz/devoluciones', operativeAccess: true },
     { label: 'Reportes de Ventas', icon: BarChart3, href: '/automotriz/reportes', operativeAccess: true },
+]
+
+const manufacturaNavItems = [
+    { label: 'Hub Empresarial', icon: Home, href: '/manufactura', operativeAccess: true },
+    { label: 'Producción & Manufactura', icon: Factory, href: '/manufactura/produccion', operativeAccess: true },
+    { label: 'Inventario & Almacenes', icon: Boxes, href: '/manufactura/inventario', operativeAccess: true },
+    { label: 'Ventas & Facturación', icon: FileBarChart, href: '/manufactura/ventas', operativeAccess: true },
+    { label: 'CRM de Campo', icon: Smartphone, href: '/manufactura/crm', operativeAccess: true },
+    { label: 'Logística & Distribución', icon: Truck, href: '/manufactura/logistica', operativeAccess: true },
+    { label: 'Contabilidad', icon: Calculator, href: '/manufactura/contabilidad', operativeAccess: true },
+    { label: 'Administración Servidor', icon: Server, href: '/manufactura/servidor', adminOnly: true },
 ]
 
 const navItems = [
@@ -204,6 +216,52 @@ export function Sidebar() {
                                 {(!sidebarCollapsed || mobileSidebarOpen) && (
                                     <motion.span
                                         initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="truncate"
+                                    >
+                                        {item.label}
+                                    </motion.span>
+                                )}
+                            </div>
+                        </Link>
+                    )
+                })}
+
+                {/* Sector Manufactura Divider & Header */}
+                <div className="pt-4 pb-2 px-4 flex items-center gap-2">
+                    <div className="h-px flex-1 bg-border/60" />
+                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sector Manufactura</span>
+                    )}
+                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                        <span className="text-[10px] bg-slate-100 text-[#0f4c81] px-1.5 py-0.5 rounded font-black border border-slate-200">DEMO</span>
+                    )}
+                    <div className="h-px flex-1 bg-border/60" />
+                </div>
+
+                {/* Manufactura Navigation */}
+                {manufacturaNavItems.map((item) => {
+                    const active = pathname === item.href || (item.href !== '/manufactura' && pathname.startsWith(item.href))
+                    return (
+                        <Link key={item.href} href={item.href} onClick={() => setMobileSidebarOpen(false)}>
+                            <div className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${active
+                                ? 'bg-[#0f4c81]/10 text-[#0f4c81]'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                }`}>
+                                <div className={`relative flex items-center justify-center shrink-0 ${active ? 'text-[#0f4c81]' : 'text-muted-foreground group-hover:text-foreground'
+                                    }`}>
+                                    {active && (
+                                        <motion.div
+                                            layoutId="sidebar-manufactura-active"
+                                            className="absolute inset-0 -m-1 rounded-lg bg-[#0f4c81]/10"
+                                            transition={{ type: 'spring', duration: 0.4 }}
+                                        />
+                                    )}
+                                    <item.icon className="h-[18px] w-[18px] relative z-10" />
+                                </div>
+                                {(!sidebarCollapsed || mobileSidebarOpen) && (
+                                    <motion.span
+                                        initial={{ opacity: 1 }}
                                         animate={{ opacity: 1 }}
                                         className="truncate"
                                     >
