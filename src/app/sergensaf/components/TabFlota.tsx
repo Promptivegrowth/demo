@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2
+    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2, User, Star, Calendar
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -335,59 +335,135 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                 )}
             </AnimatePresence>
 
-            {/* MODAL DETALLE VEHICULO */}
+            {/* MODAL DETALLE VEHICULO (WOW EFFECT) */}
             <AnimatePresence>
                 {modalDetalle.isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-                            <div className="flex justify-between items-center p-5 border-b border-[#30363d] bg-[#0d1117]">
-                                <h3 className="text-xl font-rajdhani font-bold text-[#1f6feb] flex items-center gap-2">
-                                    <BadgeInfo className="h-5 w-5" /> Vehículo {modalDetalle.data.placa}
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[#0b0f19] border border-[#30363d] rounded-2xl shadow-[0_0_80px_rgba(31,111,235,0.1)] w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="flex justify-between items-center p-5 border-b border-[#30363d] bg-[#161b22]">
+                                <h3 className="text-xl font-rajdhani font-bold text-white flex items-center gap-2">
+                                    <Truck className="h-5 w-5 text-[#1f6feb]" /> Ficha Técnica de Unidad {modalDetalle.data.placa}
                                 </h3>
-                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="text-[#8b949e] hover:text-white"><X className="h-5 w-5" /></button>
+                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="text-[#8b949e] hover:text-white bg-[#21262d] p-1.5 rounded-lg"><X className="h-5 w-5" /></button>
                             </div>
 
-                            <div className="p-6 space-y-5 bg-[#161b22]">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
-                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Chofer Principal</p>
-                                        <p className="text-base text-white font-medium mt-1">{modalDetalle.data.chofer_asignado || 'No Asignado'}</p>
+                            <div className="flex-1 overflow-y-auto p-6 bg-[#010409]">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* COLUMNA IZQUIERDA: CHOFER Y VEHICULO */}
+                                    <div className="lg:col-span-1 space-y-6">
+                                        {/* Perfil del Conductor */}
+                                        <div className="bg-[#161b22] p-5 rounded-2xl border border-[#30363d] relative overflow-hidden group">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#1f6feb] to-[#f0a500]"></div>
+                                            <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest mb-4 flex items-center gap-2"><User className="h-3 w-3" /> Operador Asignado</p>
+
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#21262d] to-[#0d1117] border-2 border-[#30363d] flex items-center justify-center flex-shrink-0 shadow-lg">
+                                                    <User className="h-8 w-8 text-[#8b949e]" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-lg font-rajdhani font-bold text-white leading-tight">{modalDetalle.data.chofer_asignado || 'Sin Asignar'}</h4>
+                                                    <div className="flex items-center gap-1 mt-1">
+                                                        <Star className="h-3 w-3 text-[#f0a500] fill-[#f0a500]" />
+                                                        <Star className="h-3 w-3 text-[#f0a500] fill-[#f0a500]" />
+                                                        <Star className="h-3 w-3 text-[#f0a500] fill-[#f0a500]" />
+                                                        <Star className="h-3 w-3 text-[#f0a500] fill-[#f0a500]" />
+                                                        <Star className="h-3 w-3 text-[#8b949e]" />
+                                                        <span className="text-xs text-[#8b949e] ml-1">4.2</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-[#0b0f19] p-2 rounded-lg border border-[#30363d] text-center">
+                                                    <p className="text-[10px] text-[#8b949e] uppercase">Viajes Mes</p>
+                                                    <p className="text-sm font-bold text-white">24</p>
+                                                </div>
+                                                <div className="bg-[#0b0f19] p-2 rounded-lg border border-[#30363d] text-center">
+                                                    <p className="text-[10px] text-[#8b949e] uppercase">Rendimiento</p>
+                                                    <p className="text-sm font-bold text-[#238636]">Óptimo</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Detalles Vehículo */}
+                                        <div className="bg-[#161b22] p-5 rounded-2xl border border-[#30363d]">
+                                            <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest mb-4 flex items-center gap-2"><Truck className="h-3 w-3" /> Espec. Técnicas</p>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <p className="text-xs text-[#8b949e]">Marca y Modelo</p>
+                                                    <p className="text-sm font-medium text-white uppercase">{modalDetalle.data.marca} {modalDetalle.data.modelo} ({modalDetalle.data.anio})</p>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-xs text-[#8b949e]">Capacidad</p>
+                                                        <p className="text-sm font-rajdhani font-bold text-[#f0a500]">{modalDetalle.data.capacidad_m3} m³</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-[#8b949e]">Estado Actual</p>
+                                                        <p className={`text-sm font-bold capitalize ${modalDetalle.data.estado === 'disponible' ? 'text-[#238636]' : modalDetalle.data.estado === 'en_ruta' ? 'text-[#1f6feb]' : 'text-[#da3633]'}`}>{modalDetalle.data.estado.replace('_', ' ')}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
-                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Vehículo</p>
-                                        <p className="text-base text-white font-medium mt-1 uppercase">{modalDetalle.data.marca} {modalDetalle.data.modelo} ({modalDetalle.data.anio})</p>
-                                    </div>
-                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
-                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Capacidad</p>
-                                        <p className="text-base text-[#f0a500] font-bold font-rajdhani mt-1">{modalDetalle.data.capacidad_m3} m³</p>
-                                    </div>
-                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
-                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Estado</p>
-                                        <p className="text-base text-white font-medium mt-1 capitalize">{modalDetalle.data.estado.replace('_', ' ')}</p>
+
+                                    {/* COLUMNA DERECHA: DOCUMENTACION E HISTORIAL */}
+                                    <div className="lg:col-span-2 space-y-6">
+                                        {/* Status de Documentación */}
+                                        <div className="bg-[#161b22] p-5 rounded-2xl border border-[#30363d]">
+                                            <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest mb-4 flex items-center gap-2"><ShieldAlert className="h-3 w-3" /> Estado Legal</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className={`p-4 rounded-xl border ${isExpired(modalDetalle.data.vencimiento_soat) ? 'bg-[#da3633]/5 border-[#da3633]/30' : isWarning(modalDetalle.data.vencimiento_soat) ? 'bg-[#f0a500]/5 border-[#f0a500]/30' : 'bg-[#238636]/5 border-[#238636]/30'}`}>
+                                                    <p className="text-xs text-[#8b949e]">Vencimiento SOAT</p>
+                                                    <div className="flex justify-between items-center mt-1">
+                                                        <p className="text-lg font-rajdhani font-bold text-white">{new Date(modalDetalle.data.vencimiento_soat).toLocaleDateString('es-PE')}</p>
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isExpired(modalDetalle.data.vencimiento_soat) ? 'bg-[#da3633] text-white' : isWarning(modalDetalle.data.vencimiento_soat) ? 'bg-[#f0a500] text-black' : 'bg-[#238636] text-white'}`}>
+                                                            {isExpired(modalDetalle.data.vencimiento_soat) ? 'VENCIDO' : isWarning(modalDetalle.data.vencimiento_soat) ? 'PRÓXIMO' : 'VIGENTE'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className={`p-4 rounded-xl border ${isExpired(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#da3633]/5 border-[#da3633]/30' : isWarning(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#f0a500]/5 border-[#f0a500]/30' : 'bg-[#238636]/5 border-[#238636]/30'}`}>
+                                                    <p className="text-xs text-[#8b949e]">Revisión Técnica</p>
+                                                    <div className="flex justify-between items-center mt-1">
+                                                        <p className="text-lg font-rajdhani font-bold text-white">{new Date(modalDetalle.data.vencimiento_rev_tecnica).toLocaleDateString('es-PE')}</p>
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isExpired(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#da3633] text-white' : isWarning(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#f0a500] text-black' : 'bg-[#238636] text-white'}`}>
+                                                            {isExpired(modalDetalle.data.vencimiento_rev_tecnica) ? 'VENCIDO' : isWarning(modalDetalle.data.vencimiento_rev_tecnica) ? 'PRÓXIMO' : 'VIGENTE'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Línea de Tiempo de Mantenimientos Mocks */}
+                                        <div className="bg-[#161b22] p-5 rounded-2xl border border-[#30363d]">
+                                            <div className="flex justify-between items-center mb-6">
+                                                <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest flex items-center gap-2"><Wrench className="h-3 w-3" /> Historial de Mantenimientos (Últ. 3 meses)</p>
+                                                <button className="text-xs text-[#1f6feb] hover:text-white transition-colors">Ver Completo</button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {[
+                                                    { id: 1, type: 'Preventivo', detail: 'Cambio de aceite y filtros generales.', pto: 'Taller Central', fecha: 'Hace 15 días', status: 'ok' },
+                                                    { id: 2, type: 'Correctivo', detail: 'Reemplazo de pastillas de freno y rectificado.', pto: 'Taller Norte', fecha: 'Hace 1 mes', status: 'warning' },
+                                                    { id: 3, type: 'Preventivo', detail: 'Revisión sistema eléctrico y luces.', pto: 'Taller Central', fecha: 'Hace 2 meses', status: 'ok' }
+                                                ].map(mt => (
+                                                    <div key={mt.id} className="flex gap-4 p-4 rounded-xl border border-[#30363d] bg-[#0b0f19] hover:bg-[#161b22] transition-colors group">
+                                                        <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 border ${mt.status === 'ok' ? 'bg-[#238636]/10 border-[#238636]/30 text-[#238636]' : 'bg-[#f0a500]/10 border-[#f0a500]/30 text-[#f0a500]'}`}>
+                                                            <Wrench className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-start">
+                                                                <h5 className="text-sm font-bold text-[#e6edf3]">Mantenimiento {mt.type}</h5>
+                                                                <span className="text-xs text-[#8b949e] flex items-center gap-1"><Calendar className="h-3 w-3" /> {mt.fecha}</span>
+                                                            </div>
+                                                            <p className="text-xs text-[#8b949e] mt-1">{mt.detail}</p>
+                                                            <span className="inline-block mt-2 text-[10px] text-[#8b949e] bg-[#21262d] px-2 py-0.5 rounded">{mt.pto}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div className="bg-[#21262d] p-4 rounded-xl border border-[#30363d] space-y-4">
-                                    <h4 className="text-xs font-bold text-[#8b949e] uppercase tracking-widest border-b border-[#30363d] pb-2">Estado de Documentación</h4>
-
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-[#e6edf3]">Vencimiento SOAT</span>
-                                        <span className={`px-2 py-1 rounded text-xs font-bold border ${isExpired(modalDetalle.data.vencimiento_soat) ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' : isWarning(modalDetalle.data.vencimiento_soat) ? 'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30' : 'bg-[#238636]/10 text-[#238636] border-[#238636]/30'}`}>
-                                            {isExpired(modalDetalle.data.vencimiento_soat) ? 'VENCIDO' : new Date(modalDetalle.data.vencimiento_soat).toLocaleDateString('es-PE')}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-[#e6edf3]">Revisión Técnica</span>
-                                        <span className={`px-2 py-1 rounded text-xs font-bold border ${isExpired(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' : isWarning(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30' : 'bg-[#238636]/10 text-[#238636] border-[#238636]/30'}`}>
-                                            {isExpired(modalDetalle.data.vencimiento_rev_tecnica) ? 'VENCIDO' : new Date(modalDetalle.data.vencimiento_rev_tecnica).toLocaleDateString('es-PE')}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-5 border-t border-[#30363d] bg-[#0d1117] flex justify-end">
-                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="px-6 py-2.5 bg-[#21262d] hover:bg-[#30363d] text-white font-bold rounded-lg transition-colors border border-[#30363d]">Cerrar</button>
                             </div>
                         </motion.div>
                     </div>

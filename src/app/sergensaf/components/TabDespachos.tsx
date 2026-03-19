@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Truck, Plus, CheckCircle2, Clock, Search, FileText, AlertTriangle, Play, X
+    Truck, Plus, CheckCircle2, Clock, Search, FileText, AlertTriangle, Play, X, Navigation
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -18,6 +18,7 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
 
     // Modals
     const [modalNuevo, setModalNuevo] = useState(false)
+    const [modalDetalle, setModalDetalle] = useState<{ isOpen: boolean, data: any }>({ isOpen: false, data: null })
 
     // New Dispatch State
     const [nuevaOrdenId, setNuevaOrdenId] = useState('')
@@ -242,9 +243,12 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
                                         <td className="px-4 py-3 text-center">
                                             <div className="flex items-center justify-center gap-1">
                                                 <button className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] bg-[#21262d] hover:bg-[#30363d] rounded" title="Ver Guía"><FileText className="h-4 w-4" /></button>
-                                                {d.estado === 'en_ruta' && (
-                                                    <button onClick={() => handleMarcarEntregado(d)} className="p-1.5 text-[#238636] hover:bg-[#238636]/20 bg-[#238636]/10 rounded" title="Marcar Entregado"><CheckCircle2 className="h-4 w-4" /></button>
+                                                {d.estado !== 'entregado' && (
+                                                    <button onClick={() => handleMarcarEntregado(d)} className="p-2 text-[#8b949e] hover:text-[#238636] bg-black/20 hover:bg-[#238636]/10 border border-transparent hover:border-[#238636]/30 rounded-lg transition-all" title="Marcar como Entregado"><CheckCircle2 className="h-4 w-4" /></button>
                                                 )}
+                                                <button onClick={() => setModalDetalle({ isOpen: true, data: d })} className="p-2 text-[#8b949e] hover:text-[#1f6feb] bg-black/20 hover:bg-[#1f6feb]/10 border border-transparent hover:border-[#1f6feb]/30 rounded-lg transition-all" title="Live Tracking">
+                                                    <Navigation className="h-4 w-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -314,6 +318,116 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
                                 <button onClick={handleCreateDespacho} className="flex-1 px-4 py-3 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg border-none transition-colors">
                                     Emitir Guía y Despachar
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL DETALLES & LIVE TRACKING */}
+            <AnimatePresence>
+                {modalDetalle.isOpen && modalDetalle.data && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[#0b0f19] border border-[#30363d] rounded-2xl shadow-[0_0_50px_rgba(31,111,235,0.1)] w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="flex justify-between items-center p-5 border-b border-[#30363d] bg-black/40 z-10">
+                                <h3 className="text-xl font-rajdhani font-bold text-white flex items-center gap-2">
+                                    <Navigation className="h-5 w-5 text-[#1f6feb]" /> GPS Tracking / Despacho <span className="text-[#f0a500] ml-2">{modalDetalle.data.numero_guia}</span>
+                                </h3>
+                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="text-[#8b949e] hover:text-white p-2 bg-black/20 rounded-lg"><X className="h-5 w-5" /></button>
+                            </div>
+
+                            <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+                                {/* SIDE PANEL */}
+                                <div className="w-full md:w-1/3 bg-[#161b22] border-r border-[#30363d] p-6 space-y-6 overflow-y-auto">
+
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-[#8b949e] tracking-widest uppercase font-bold">Cliente Destino</p>
+                                        <p className="font-medium text-white text-lg leading-tight">{modalDetalle.data.saf_ordenes?.saf_clientes?.razon_social || 'No Registrado'}</p>
+                                        <p className="text-xs text-[#8b949e] flex items-center gap-1 mt-1"><FileText className="w-3 h-3" /> Orden: {modalDetalle.data.saf_ordenes?.numero}</p>
+                                    </div>
+
+                                    <div className="bg-[#0d1117] p-4 rounded-xl border border-[#30363d] space-y-3">
+                                        <div className="flex justify-between items-center border-b border-[#30363d] pb-2">
+                                            <span className="text-xs text-[#8b949e] font-bold uppercase tracking-wider">Volumen</span>
+                                            <span className="text-sm text-[#f0a500] font-black">{modalDetalle.data.volumen_m3} m³</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-b border-[#30363d] pb-2">
+                                            <span className="text-xs text-[#8b949e] font-bold uppercase tracking-wider">Unidad</span>
+                                            <span className="text-sm text-white font-medium">{modalDetalle.data.saf_flota?.placa}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-[#8b949e] font-bold uppercase tracking-wider">Conductor</span>
+                                            <span className="text-sm text-white font-medium">{modalDetalle.data.conductor}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 pt-2">
+                                        <p className="text-xs text-[#8b949e] tracking-widest uppercase font-bold">Línea de Vida</p>
+
+                                        <div className="relative pl-6 space-y-6 border-l border-[#30363d] ml-3">
+                                            <div className="relative">
+                                                <div className="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-[#f0a500] shadow-[0_0_10px_#f0a500]"></div>
+                                                <p className="text-xs text-[#8b949e]">{new Date(new Date(modalDetalle.data.fecha_despacho).getTime() - 3600000).toLocaleTimeString('es-PE')}</p>
+                                                <p className="text-sm font-bold text-white uppercase mt-0.5">Carga en Planta</p>
+                                            </div>
+                                            <div className={`relative ${modalDetalle.data.estado !== 'preparando' ? 'opacity-100' : 'opacity-30'}`}>
+                                                <div className={`absolute -left-[29px] top-1 w-3 h-3 rounded-full ${modalDetalle.data.estado !== 'preparando' ? 'bg-[#1f6feb] shadow-[0_0_10px_#1f6feb]' : 'bg-[#30363d]'}`}></div>
+                                                <p className="text-xs text-[#8b949e]">{new Date(modalDetalle.data.fecha_despacho).toLocaleTimeString('es-PE')}</p>
+                                                <p className="text-sm font-bold text-white uppercase mt-0.5">En Ruta (Despachado)</p>
+                                            </div>
+                                            <div className={`relative ${modalDetalle.data.estado === 'entregado' ? 'opacity-100' : 'opacity-30'}`}>
+                                                <div className={`absolute -left-[29px] top-1 w-3 h-3 rounded-full ${modalDetalle.data.estado === 'entregado' ? 'bg-[#238636] shadow-[0_0_10px_#238636]' : 'bg-[#30363d]'}`}></div>
+                                                <p className="text-xs text-[#8b949e]">--:--</p>
+                                                <p className="text-sm font-bold text-[#238636] uppercase mt-0.5">Entregado</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                {/* MAP PANEL */}
+                                <div className="hidden md:flex flex-1 relative bg-[#010409] items-center justify-center overflow-hidden">
+                                    <div className="absolute inset-0 bg-[url('https://maps.gstatic.com/tactile/omni/satellite_1.png')] bg-cover opacity-20 filter grayscale blur-[1px]"></div>
+
+                                    {/* Grid Overlay for Technical Feel */}
+                                    <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#1f6feb1a 1px, transparent 1px), linear-gradient(90deg, #1f6feb1a 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+                                    {/* Scanning Radar Effect */}
+                                    <div className="absolute inset-0 rounded-full border border-[#1f6feb]/20 shadow-[0_0_50px_#1f6feb10_inset] animate-ping" style={{ animationDuration: '4s' }}></div>
+
+                                    {/* Route SVG */}
+                                    <svg className="absolute w-[80%] h-[80%] z-10" viewBox="0 0 400 300" preserveAspectRatio="none">
+                                        <path d="M 50,250 Q 150,250 200,150 T 350,50" fill="none" stroke="#30363d" strokeWidth="4" strokeDasharray="8 8" />
+                                        <path d="M 50,250 Q 150,250 200,150 T 350,50" fill="none" stroke={modalDetalle.data.estado === 'entregado' ? '#238636' : '#1f6feb'} strokeWidth="4" strokeDasharray="400" strokeDashoffset={modalDetalle.data.estado === 'preparando' ? '400' : (modalDetalle.data.estado === 'en_ruta' ? '200' : '0')} className="transition-all duration-[3s] ease-in-out" />
+
+                                        {/* Origin (Planta) */}
+                                        <circle cx="50" cy="250" r="8" fill="#f0a500" className="animate-pulse" />
+                                        <text x="50" y="275" fill="#e6edf3" fontSize="12" fontWeight="bold" textAnchor="middle" className="font-rajdhani drop-shadow">PLANTA</text>
+
+                                        {/* Destination (Cliente) */}
+                                        <circle cx="350" cy="50" r="8" fill={modalDetalle.data.estado === 'entregado' ? '#238636' : '#30363d'} />
+                                        <text x="350" y="30" fill="#e6edf3" fontSize="12" fontWeight="bold" textAnchor="middle" className="font-rajdhani drop-shadow">PUNTO ENTREGA</text>
+
+                                        {/* Truck Token - Animated based on status */}
+                                        {modalDetalle.data.estado === 'en_ruta' && (
+                                            <g transform="translate(190, 140)">
+                                                <circle cx="10" cy="10" r="20" fill="#1f6feb" opacity="0.2" className="animate-ping" />
+                                                <circle cx="10" cy="10" r="10" fill="#1f6feb" />
+                                                <text x="10" y="30" fill="#1f6feb" fontSize="10" fontWeight="bold" textAnchor="middle" className="font-rajdhani">EN RUTA</text>
+                                            </g>
+                                        )}
+                                    </svg>
+
+                                    {/* Status Overlay Float */}
+                                    <div className="absolute top-6 right-6 z-20 bg-black/60 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-[#8b949e] font-bold uppercase tracking-wider">Estado de Conexión</span>
+                                            <span className="text-xs text-white">GPS Satelital Activo</span>
+                                        </div>
+                                        <span className="w-2 h-2 rounded-full bg-[#238636] animate-pulse"></span>
+                                    </div>
+
+                                </div>
                             </div>
                         </motion.div>
                     </div>

@@ -460,45 +460,87 @@ export default function TabInventario({ showToast }: { showToast: Function }) {
                 )}
             </AnimatePresence>
 
-            {/* MODAL: HISTORIAL (Simulado) */}
+            {/* MODAL: KÁRDEX AVANZADO */}
             <AnimatePresence>
-                {modalHistorial.isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
-                            <div className="flex justify-between items-center p-5 border-b border-[#30363d]">
-                                <h3 className="text-lg font-rajdhani font-bold text-[#e6edf3] flex items-center gap-2"><History className="h-5 w-5" /> Historial de Movimientos</h3>
-                                <button onClick={() => setModalHistorial({ isOpen: false, data: null })} className="text-[#8b949e] hover:text-white"><X className="h-5 w-5" /></button>
-                            </div>
-                            <div className="p-4 bg-[#21262d] border-b border-[#30363d]">
-                                <p className="font-bold text-[#f0a500]">{modalHistorial.data.nombre}</p>
-                                <p className="text-xs text-[#8b949e] mt-1">Últimos ingresos y salidas registradas (Vista preliminar).</p>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                {/* Mock logs */}
-                                {[...Array(6)].map((_, i) => {
-                                    const isEntrada = Math.random() > 0.5;
-                                    const cant = (Math.random() * 50 + 10).toFixed(2);
-                                    return (
-                                        <div key={i} className="flex items-center justify-between p-3 bg-[#0d1117] rounded-lg border border-[#30363d]">
-                                            <div className="flex gap-3 items-center">
-                                                <div className={`p-1.5 rounded-lg ${isEntrada ? 'bg-[#238636]/20 text-[#238636]' : 'bg-[#da3633]/20 text-[#da3633]'}`}>
-                                                    <Activity className="h-4 w-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-bold text-[#e6edf3]">{isEntrada ? 'Reabastecimiento Producción' : 'Despacho Venta'}</p>
-                                                    <p className="text-[10px] text-[#8b949e]">Hace {i + 1} días</p>
-                                                </div>
-                                            </div>
-                                            <span className={`font-rajdhani font-bold text-lg ${isEntrada ? 'text-[#238636]' : 'text-[#da3633]'}`}>
-                                                {isEntrada ? '+' : '-'}{cant}
-                                            </span>
+                {modalHistorial.isOpen && modalHistorial.data && (() => {
+                    const currentStock = Number(modalHistorial.data.stock_actual);
+                    // Generate mock kárdex rows
+                    let balance = currentStock;
+                    const rows = Array.from({ length: 8 }).map((_, i) => {
+                        const isEntrada = Math.random() > 0.4;
+                        const qty = Math.floor(Math.random() * 50) + 10;
+                        const currentBalance = balance;
+                        if (isEntrada) balance -= qty; else balance += qty; // reverse eng balance
+                        return {
+                            id: i,
+                            fecha: new Date(Date.now() - (i * 86400000)).toLocaleDateString('es-PE'),
+                            tipo: isEntrada ? 'ENTRADA' : 'SALIDA',
+                            detalle: isEntrada ? 'Producción Planta' : 'Despacho Venta',
+                            entrada: isEntrada ? qty : 0,
+                            salida: !isEntrada ? qty : 0,
+                            saldo: currentBalance
+                        };
+                    }).reverse();
+
+                    return (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[#0b0f19] border border-[#30363d] rounded-2xl shadow-[0_0_80px_rgba(31,111,235,0.1)] w-full max-w-4xl overflow-hidden flex flex-col max-h-[85vh]">
+                                <div className="flex justify-between items-center p-5 border-b border-[#30363d] bg-[#161b22]">
+                                    <h3 className="text-xl font-rajdhani font-bold text-white flex items-center gap-2">
+                                        <History className="h-5 w-5 text-[#1f6feb]" /> Kárdex de Movimientos
+                                    </h3>
+                                    <button onClick={() => setModalHistorial({ isOpen: false, data: null })} className="text-[#8b949e] hover:text-white bg-[#21262d] p-1.5 rounded-lg"><X className="h-5 w-5" /></button>
+                                </div>
+
+                                <div className="p-6 bg-gradient-to-r from-[#161b22] to-[#0d1117] border-b border-[#30363d]">
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest mb-1">Producto / Material</p>
+                                            <p className="text-2xl font-bold text-[#f0a500]">{modalHistorial.data.nombre}</p>
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
+                                        <div className="text-right">
+                                            <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest mb-1">Stock Actual</p>
+                                            <p className="text-3xl font-rajdhani font-black text-white">{currentStock} <span className="text-lg text-[#8b949e]">{modalHistorial.data.unidad}</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-auto p-6 bg-[#010409]">
+                                    <div className="border border-[#30363d] rounded-xl overflow-hidden">
+                                        <table className="w-full text-left text-sm text-[#e6edf3]">
+                                            <thead className="bg-[#161b22] text-[#8b949e] uppercase text-[10px] tracking-wider border-b border-[#30363d]">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-medium">Fecha</th>
+                                                    <th className="px-4 py-3 font-medium">Tipo</th>
+                                                    <th className="px-4 py-3 font-medium">Detalle / Concepto</th>
+                                                    <th className="px-4 py-3 font-medium text-right text-[#238636]">Entrada</th>
+                                                    <th className="px-4 py-3 font-medium text-right text-[#da3633]">Salida</th>
+                                                    <th className="px-4 py-3 font-medium text-right text-white">Saldo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-[#30363d]">
+                                                {rows.map((r, i) => (
+                                                    <tr key={i} className="hover:bg-[#161b22]/50 transition-colors">
+                                                        <td className="px-4 py-3 text-xs text-[#8b949e]">{r.fecha}</td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${r.tipo === 'ENTRADA' ? 'bg-[#238636]/10 text-[#238636]' : 'bg-[#da3633]/10 text-[#da3633]'}`}>
+                                                                {r.tipo}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 font-medium">{r.detalle}</td>
+                                                        <td className="px-4 py-3 text-right font-bold text-[#238636]">{r.entrada > 0 ? `+${r.entrada}` : '-'}</td>
+                                                        <td className="px-4 py-3 text-right font-bold text-[#da3633]">{r.salida > 0 ? `-${r.salida}` : '-'}</td>
+                                                        <td className="px-4 py-3 text-right font-rajdhani font-bold text-white text-base">{r.saldo}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )
+                })()}
             </AnimatePresence>
 
         </div>

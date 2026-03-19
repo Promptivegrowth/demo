@@ -80,8 +80,11 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
             const bajos = (prods || []).filter(p => p.stock_actual < p.stock_minimo)
             bajos.forEach(b => newAlerts.push({ id: b.id, tipo: 'stock', prop: '🟡', texto: `Stock bajo: ${b.nombre}`, ref: `${b.stock_actual} ${b.unidad}` }))
 
-            const revision = (flota || []).filter(f => new Date(f.vencimiento_soat).getTime() - now.getTime() < 30 * 24 * 60 * 60 * 1000)
-            revision.forEach(r => newAlerts.push({ id: r.id, tipo: 'flota', prop: '🟠', texto: `SOAT próximo a vencer`, ref: r.placa }))
+            const revSoat = (flota || []).filter(f => new Date(f.vencimiento_soat).getTime() - now.getTime() < 30 * 24 * 60 * 60 * 1000)
+            revSoat.forEach(r => newAlerts.push({ id: r.id + '_soat', tipo: 'flota', prop: new Date(r.vencimiento_soat) < now ? '🔴' : '🟠', texto: new Date(r.vencimiento_soat) < now ? `SOAT VENCIDO` : `SOAT próximo a vencer`, ref: r.placa }))
+
+            const revTec = (flota || []).filter(f => new Date(f.vencimiento_rev_tecnica).getTime() - now.getTime() < 30 * 24 * 60 * 60 * 1000)
+            revTec.forEach(r => newAlerts.push({ id: r.id + '_rev', tipo: 'flota', prop: new Date(r.vencimiento_rev_tecnica) < now ? '🔴' : '🟠', texto: new Date(r.vencimiento_rev_tecnica) < now ? `REVISIÓN TÉC. VENCIDA` : `Rev. Técnica próxima a vencer`, ref: r.placa }))
 
             setAlertas(newAlerts)
             updateCharts()
@@ -358,9 +361,9 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
                                         <div className="flex items-center gap-4">
                                             <span className="font-bold text-white tracking-wider">{formatSoles(Number(o.total))}</span>
                                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border shadow-sm ${o.estado === 'despachado' ? 'bg-[#238636]/10 text-[#238636] border-[#238636]/30' :
-                                                    o.estado === 'pendiente' ? 'bg-[#1f6feb]/10 text-[#1f6feb] border-[#1f6feb]/30' :
-                                                        o.estado === 'anulado' ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' :
-                                                            'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30'
+                                                o.estado === 'pendiente' ? 'bg-[#1f6feb]/10 text-[#1f6feb] border-[#1f6feb]/30' :
+                                                    o.estado === 'anulado' ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' :
+                                                        'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30'
                                                 }`}>
                                                 {o.estado.replace('_', ' ')}
                                             </span>

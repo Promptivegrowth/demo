@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    DollarSign, Search, CheckCircle, FileText, AlertTriangle, X, Wallet
+    DollarSign, Search, CheckCircle, FileText, AlertTriangle, X, Wallet, Receipt
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -17,6 +17,7 @@ export default function TabCobranzas({ showToast }: { showToast: Function }) {
 
     // Modals
     const [modalPago, setModalPago] = useState<{ isOpen: boolean, data: any }>({ isOpen: false, data: null })
+    const [modalDetalle, setModalDetalle] = useState<{ isOpen: boolean, data: any, pagos: any[] }>({ isOpen: false, data: null, pagos: [] })
 
     // Nuevo Pago State
     const [montoPago, setMontoPago] = useState<number>(0)
@@ -33,7 +34,6 @@ export default function TabCobranzas({ showToast }: { showToast: Function }) {
             const resPagos = await supabase.from('saf_pagos')
                 .select('*, saf_cuentas_por_cobrar(numero_factura)')
                 .order('fecha_pago', { ascending: false })
-                .limit(5)
 
             if (resCuentas.error) throw resCuentas.error
             setCuentas(resCuentas.data || [])
@@ -158,7 +158,7 @@ export default function TabCobranzas({ showToast }: { showToast: Function }) {
                     </div>
                     <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                         {pagosRecientes.length === 0 ? <p className="text-center text-xs text-[#8b949e] mt-4">Sin pagos registrados</p> :
-                            pagosRecientes.map(p => (
+                            pagosRecientes.slice(0, 6).map(p => (
                                 <div key={p.id} className="bg-[#0d1117] border border-[#30363d] p-3 rounded-lg flex flex-col gap-1">
                                     <div className="flex justify-between items-center">
                                         <span className="text-xs font-bold text-[#8b949e]">{p.saf_cuentas_por_cobrar?.numero_factura}</span>
@@ -224,15 +224,15 @@ export default function TabCobranzas({ showToast }: { showToast: Function }) {
                                                     <td className={`px-4 py-3 text-right font-bold ${Number(c.saldo) === 0 ? 'text-[#238636]' : 'text-[#f0a500]'}`}>{formatSoles(Number(c.saldo))}</td>
                                                     <td className="px-4 py-3 text-center">
                                                         <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${c.estado === 'pagado' ? 'bg-[#238636]/10 text-[#238636] border-[#238636]/30' :
-                                                                isVencida ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30 animate-pulse' :
-                                                                    'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30'
+                                                            isVencida ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30 animate-pulse' :
+                                                                'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30'
                                                             }`}>
                                                             {isVencida && c.estado !== 'pagado' ? 'Vencida' : c.estado}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
                                                         <div className="flex items-center justify-center gap-1">
-                                                            <button className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] bg-[#21262d] hover:bg-[#30363d] rounded" title="Ver Detalle"><FileText className="h-4 w-4" /></button>
+                                                            <button onClick={() => setModalDetalle({ isOpen: true, data: c, pagos: pagosRecientes.filter(p => p.cuenta_cobrar_id === c.id) })} className="p-1.5 text-[#f0a500] hover:text-[#0d1117] bg-[#f0a500]/10 hover:bg-[#f0a500] rounded transition-all" title="Ver Factura & Timeline"><Receipt className="h-4 w-4" /></button>
                                                             {c.estado === 'pendiente' && (
                                                                 <button onClick={() => {
                                                                     setMontoPago(Number(c.saldo))
@@ -304,6 +304,149 @@ export default function TabCobranzas({ showToast }: { showToast: Function }) {
                                 <button onClick={handleRegistrarPago} className="flex-1 px-4 py-3 bg-[#238636] hover:bg-[#2ea043] text-white font-bold rounded-lg border-none transition-colors">
                                     Confirmar Abono
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL DETALLES FACTURA Y PAGOS */}
+            <AnimatePresence>
+                {modalDetalle.isOpen && modalDetalle.data && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[#0b0f19] border border-[#30363d] rounded-2xl shadow-[0_0_80px_rgba(240,165,0,0.1)] w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="flex justify-between items-center p-5 border-b border-[#30363d] bg-black/60 z-10 backdrop-blur-xl">
+                                <h3 className="text-xl font-rajdhani font-bold text-white flex items-center gap-3">
+                                    <Receipt className="h-5 w-5 text-[#f0a500]" /> Comprobante Electrónico <span className="text-[#f0a500] ml-2">{modalDetalle.data.numero_factura}</span>
+                                </h3>
+                                <button onClick={() => setModalDetalle({ isOpen: false, data: null, pagos: [] })} className="text-[#8b949e] hover:text-white p-2 bg-white/5 rounded-xl transition-colors"><X className="h-5 w-5" /></button>
+                            </div>
+
+                            <div className="flex flex-col md:flex-row flex-1 overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-blend-overlay bg-[#0b0f19]/90">
+
+                                {/* FACTURA PREVIEW PANEL */}
+                                <div className="w-full md:w-3/5 bg-white p-8 overflow-y-auto m-6 rounded-xl shadow-2xl mt-6 mb-6 ml-6 border border-white/10" style={{ backgroundImage: "radial-gradient(#00000010 1px, transparent 1px)", backgroundSize: "20px 20px" }}>
+
+                                    <div className="flex justify-between items-start border-b-2 border-gray-200 pb-6 mb-6">
+                                        <div>
+                                            <h1 className="text-3xl font-black text-gray-900 tracking-tighter">SERGENSAF</h1>
+                                            <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mt-1">Soluciones Mineras & Agregados</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="border-4 border-gray-900 p-2 text-center rounded-lg inline-block">
+                                                <p className="text-sm font-bold text-gray-900 leading-none">RUC: 20123456789</p>
+                                                <p className="text-lg font-black text-gray-900 bg-gray-100 mt-1 px-4 py-1 uppercase tracking-widest">Factura</p>
+                                                <p className="text-base font-bold text-gray-900 mt-1">{modalDetalle.data.numero_factura}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-8 mb-8">
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Facturar A</p>
+                                            <p className="text-base font-bold text-gray-800 uppercase leading-none">{modalDetalle.data.saf_clientes?.razon_social}</p>
+                                            <p className="text-sm text-gray-600">RUC: {modalDetalle.data.saf_clientes?.ruc}</p>
+                                        </div>
+                                        <div className="space-y-1 text-right">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Fechas</p>
+                                            <p className="text-sm text-gray-800"><span className="text-gray-500 inline-block w-20 text-left">Emisión:</span> <span className="font-bold">{new Date(modalDetalle.data.fecha_emision).toLocaleDateString('es-PE')}</span></p>
+                                            <p className="text-sm text-gray-800"><span className="text-gray-500 inline-block w-20 text-left">Vencimiento:</span> <span className="font-bold text-red-600">{new Date(modalDetalle.data.fecha_vencimiento).toLocaleDateString('es-PE')}</span></p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t-2 border-b-2 border-gray-800 py-3 mb-6">
+                                        <div className="flex justify-between items-center px-2">
+                                            <span className="font-bold text-gray-900 text-sm uppercase">Descripción</span>
+                                            <span className="font-bold text-gray-900 text-sm uppercase">Total</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center px-2 mb-12">
+                                        <span className="text-sm text-gray-800">Servicios/Materiales según Orden <span className="font-bold text-blue-600">{modalDetalle.data.saf_ordenes?.numero}</span></span>
+                                        <span className="font-mono font-bold text-gray-900">{formatSoles(Number(modalDetalle.data.monto_total))}</span>
+                                    </div>
+
+                                    <div className="flex flex-col items-end gap-2 border-t border-gray-200 pt-6">
+                                        <div className="flex justify-between w-64 text-sm text-gray-500">
+                                            <span>Subtotal:</span>
+                                            <span>{formatSoles(Number(modalDetalle.data.monto_total) * 0.82)}</span>
+                                        </div>
+                                        <div className="flex justify-between w-64 text-sm text-gray-500">
+                                            <span>IGV (18%):</span>
+                                            <span>{formatSoles(Number(modalDetalle.data.monto_total) * 0.18)}</span>
+                                        </div>
+                                        <div className="flex justify-between w-64 text-xl font-black text-gray-900 mt-2 p-2 bg-gray-100 rounded-lg border border-gray-300 shadow-sm">
+                                            <span>TOTAL:</span>
+                                            <span className="text-[#f0a500]">{formatSoles(Number(modalDetalle.data.monto_total))}</span>
+                                        </div>
+                                    </div>
+
+                                    {modalDetalle.data.estado === 'pagado' && (
+                                        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -rotate-12 border-8 border-green-500 text-green-500 p-4 opacity-30 select-none">
+                                            <span className="text-6xl font-black tracking-widest uppercase">CANCELADO</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* TIMELINE PANEL */}
+                                <div className="w-full md:w-2/5 p-8 flex flex-col bg-black/40 border-l border-[#30363d] overflow-y-auto">
+                                    <h4 className="text-xs font-bold text-[#8b949e] uppercase tracking-widest border-b border-[#30363d] pb-3 mb-6">Línea de Tiempo de Pagos</h4>
+
+                                    <div className="flex-1">
+                                        {modalDetalle.pagos.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center h-full text-[#8b949e]">
+                                                <AlertTriangle className="w-12 h-12 mb-4 opacity-50" />
+                                                <p className="text-sm font-bold">No hay abonos registrados.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="relative border-l-2 border-[#30363d] ml-4 space-y-8 pb-10">
+                                                {/* Inicio Deuda */}
+                                                <div className="relative">
+                                                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#f0a500] shadow-[0_0_10px_#f0a500]"></div>
+                                                    <div className="ml-6 bg-[#0d1117] p-4 rounded-xl border border-[#30363d] relative">
+                                                        <div className="absolute -left-[17px] top-3 w-4 h-0.5 bg-[#30363d]"></div>
+                                                        <p className="text-sm font-bold text-white uppercase">Emisión de Factura</p>
+                                                        <p className="text-[10px] text-[#8b949e]">{new Date(modalDetalle.data.fecha_emision).toLocaleDateString('es-PE')}</p>
+                                                        <p className="text-lg font-rajdhani font-bold text-[#f0a500] mt-2">Deuda: {formatSoles(Number(modalDetalle.data.monto_total))}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Pagos */}
+                                                {modalDetalle.pagos.map((p, idx) => (
+                                                    <div key={p.id} className="relative">
+                                                        <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#238636] shadow-[0_0_10px_#238636]"></div>
+                                                        <div className="ml-6 bg-[#161b22] p-4 rounded-xl border border-[#238636]/30 shadow-[0_0_15px_rgba(35,134,54,0.05)] relative">
+                                                            <div className="absolute -left-[17px] top-3 w-4 h-0.5 bg-[#238636]/30"></div>
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-[#e6edf3] uppercase flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[#238636]" /> Abono Recibido</p>
+                                                                    <p className="text-[10px] text-[#8b949e]">{new Date(p.fecha_pago).toLocaleString('es-PE')}</p>
+                                                                </div>
+                                                                <span className="text-xs bg-[#238636]/20 text-[#238636] px-2 py-0.5 rounded capitalize font-bold">{p.metodo_pago}</span>
+                                                            </div>
+                                                            <div className="mt-3 flex justify-between items-end border-t border-[#30363d] pt-2">
+                                                                <p className="text-[10px] text-[#8b949e]">Ref: <span className="font-mono text-white">{p.referencia}</span></p>
+                                                                <p className="text-lg font-mono font-bold text-[#238636]">+{formatSoles(Number(p.monto))}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Resumen Actual */}
+                                    <div className="mt-4 p-5 bg-gradient-to-r from-[#0d1117] to-[#161b22] rounded-xl border border-[#30363d] shrink-0">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-[#8b949e] uppercase font-bold tracking-wider">Saldo Actual por Pagar</span>
+                                            <span className={`text-2xl font-black font-rajdhani ${Number(modalDetalle.data.saldo) === 0 ? 'text-[#238636]' : 'text-[#da3633] drop-shadow-[0_0_10px_rgba(218,54,51,0.5)]'}`}>
+                                                {formatSoles(Number(modalDetalle.data.saldo))}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </motion.div>
                     </div>
