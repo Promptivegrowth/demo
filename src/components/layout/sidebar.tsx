@@ -56,6 +56,10 @@ const sergensafNavItems = [
     { label: 'ERP Agregados (Sergensaf)', icon: Building2, href: '/sergensaf', operativeAccess: true },
 ]
 
+const ecogestionNavItems = [
+    { label: '♻ EcoGestión', icon: Wrench, href: '/ecogestion', operativeAccess: true },
+]
+
 const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/', operativeAccess: true },
     { label: 'CRM & Ventas', icon: Users, href: '/crm', operativeAccess: true },
