@@ -1,236 +1,452 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+    Search,
+    Plus,
+    X,
+    FileText,
+    Calendar,
+    Briefcase,
+    Building2,
+    CalendarClock,
+    AlertCircle,
+    CheckCircle2,
+    ArrowRight,
+    Edit2,
+    Power,
+    FileSignature,
+    Clock,
+    Activity
+} from 'lucide-react'
 
-const ECO_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2aHJ6cXJkenlrYnZoaWZzb3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTExMTQsImV4cCI6MjA4ODY2NzExNH0.8hwx4D0tbe8e8b9sFhG6shO7yLgM-3Q-ViZNkavC4iE'
-const ECO_BASE = 'https://yvhrzqrdzykbvhifsoxk.supabase.co/rest/v1'
-const h = { apikey: ECO_ANON, Authorization: `Bearer ${ECO_ANON}`, 'Content-Type': 'application/json' }
+const ecoBadge = (tipo: string) => {
+    const map: any = {
+        municipal: ['bg-emerald-100 text-emerald-700 border-emerald-200', 'Municipal'],
+        industrial: ['bg-blue-100 text-blue-700 border-blue-200', 'Industrial'],
+        hospital: ['bg-purple-100 text-purple-700 border-purple-200', 'Hospital'],
+        construccion: ['bg-amber-100 text-amber-700 border-amber-200', 'Construcción'],
+        mixto: ['bg-slate-100 text-slate-700 border-slate-200', 'Mixto'],
+    }
+    const [style, txt] = map[tipo] || ['bg-slate-100 text-slate-700 border-slate-200', tipo]
+    return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${style}`}>{txt}</span>
+}
 
 export default function TabEcoContratos({ showToast, ecoQuery }: any) {
     const [data, setData] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [modal, setModal] = useState<any>(null)
-    const [detalle, setDetalle] = useState<any>(null)
-    const [form, setForm] = useState<any>({})
     const [clientes, setClientes] = useState<any[]>([])
+    const [filtrado, setFiltrado] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [buscar, setBuscar] = useState('')
+    const [pillActivo, setPillActivo] = useState('Todos')
+    const [modal, setModal] = useState<any>(null)
+    const [formData, setFormData] = useState<any>({})
     const [saving, setSaving] = useState(false)
 
     const cargar = async () => {
         setLoading(true)
-        const r = await ecoQuery('eco_contratos', { select: '*,eco_clientes(razon_social,ruc)', filters: ['order=created_at.desc'] })
-        setData(Array.isArray(r) ? r : [])
+        const [conts, clis] = await Promise.all([
+            ecoQuery('eco_contratos', { select: '*,eco_clientes(razon_social,ruc)', filters: ['order=created_at.desc'] }),
+            ecoQuery('eco_clientes', { select: 'id,razon_social,ruc,estado', filters: ['estado=eq.activo', 'order=razon_social.asc'] })
+        ])
+        const arr = Array.isArray(conts) ? conts : []
+        setData(arr); setFiltrado(arr)
+        setClientes(Array.isArray(clis) ? clis : [])
         setLoading(false)
     }
 
-    useEffect(() => {
+    useEffect(() => { cargar() }, [])
+
+    const filtrar = (lista: any[], busq: string, pill: string) => {
+        let res = lista
+        if (busq) {
+            const b = busq.toLowerCase()
+            res = res.filter((c: any) => c.numero?.toLowerCase().includes(b) || c.eco_clientes?.razon_social?.toLowerCase().includes(b))
+        }
+        if (pill !== 'Todos') {
+            if (pill === 'Activos') res = res.filter((c: any) => c.estado === 'activo')
+            else if (pill === 'Próximos a Vencer') {
+                const limit = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+                const today = new Date().toISOString().split('T')[0]
+                res = res.filter((c: any) => c.estado === 'activo' && c.fecha_fin >= today && c.fecha_fin <= limit)
+            }
+            else if (pill === 'Vencidos') {
+                const today = new Date().toISOString().split('T')[0]
+                res = res.filter((c: any) => c.fecha_fin < today || c.estado === 'vencido')
+            }
+            else if (pill === 'Inactivos') res = res.filter((c: any) => c.estado === 'inactivo')
+        }
+        setFiltrado(res)
+    }
+
+    const handleBuscar = (v: string) => { setBuscar(v); filtrar(data, v, pillActivo) }
+    const handlePill = (p: string) => { setPillActivo(p); filtrar(data, buscar, p) }
+
+    const abrirEditar = (item: any) => { setFormData({ ...item }); setModal('editar') }
+    const abrirNuevo = () => {
+        const nextNum = `CT-${new Date().getFullYear()}-${String(data.length + 1).padStart(4, '0')}`
+        setFormData({ estado: 'activo', numero: nextNum, tipo_residuo: 'municipal' })
+        setModal('nuevo')
+    }
+
+    const guardar = async () => {
+        if (!formData.cliente_id || !formData.fecha_inicio || !formData.fecha_fin) {
+            showToast('Complete los campos obligatorios', 'error'); return
+        }
+        if (formData.fecha_inicio > formData.fecha_fin) {
+            showToast('La fecha de inicio no puede ser posterior al fin', 'error'); return
+        }
+
+        setSaving(true)
+        try {
+            if (modal === 'nuevo') {
+                const r = await ecoQuery('eco_contratos', { insert: { numero: formData.numero, cliente_id: formData.cliente_id, fecha_inicio: formData.fecha_inicio, fecha_fin: formData.fecha_fin, tipo_residuo: formData.tipo_residuo, estado: 'activo' } })
+                if (Array.isArray(r) && r.length > 0) {
+                    await ecoQuery('eco_clientes', { update: { tiene_contrato: true }, id: formData.cliente_id })
+                    showToast('Contrato registrado exitosamente', 'success')
+                    setModal(null); cargar()
+                } else showToast('Error al registrar', 'error')
+            } else {
+                const r = await ecoQuery('eco_contratos', { update: { numero: formData.numero, cliente_id: formData.cliente_id, fecha_inicio: formData.fecha_inicio, fecha_fin: formData.fecha_fin, tipo_residuo: formData.tipo_residuo }, id: formData.id })
+                if (Array.isArray(r) || !r.error) {
+                    showToast('Contrato actualizado', 'success')
+                    setModal(null); cargar()
+                } else showToast('Error al actualizar', 'error')
+            }
+        } finally { setSaving(false) }
+    }
+
+    const setEstado = async (id: string, nuevoEstado: string) => {
+        if (!confirm(`¿Marcar contrato como ${nuevoEstado}?`)) return
+        await ecoQuery('eco_contratos', { update: { estado: nuevoEstado }, id })
+        showToast(`Contrato ${nuevoEstado}`, 'success')
         cargar()
-        ecoQuery('eco_clientes', { select: 'id,razon_social', filters: ['estado=eq.activo', 'order=razon_social.asc'] }).then((r: any) => setClientes(Array.isArray(r) ? r : []))
-    }, [])
+    }
 
+    const pills = ['Todos', 'Activos', 'Próximos a Vencer', 'Vencidos', 'Inactivos']
     const today = new Date().toISOString().split('T')[0]
-    const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+    const in30Days = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
 
-    const estadoVenc = (fecha: string) => {
-        if (!fecha) return ''
-        if (fecha < today) return 'vencido'
-        if (fecha < in30) return 'por_vencer'
-        return 'ok'
+    // KPI Data
+    const activos = data.filter(c => c.estado === 'activo').length
+    const vencidos = data.filter(c => c.fecha_fin < today || c.estado === 'vencido').length
+    const porVencer = data.filter(c => c.estado === 'activo' && c.fecha_fin >= today && c.fecha_fin <= in30Days).length
+    const pctActivos = data.length ? Math.round((activos / data.length) * 100) : 0
+
+    const getProgresoContrato = (ini: string, fin: string) => {
+        const dIni = new Date(ini).getTime()
+        const dFin = new Date(fin).getTime()
+        const dHoy = Date.now()
+        if (dHoy < dIni) return 0
+        if (dHoy > dFin) return 100
+        return Math.round(((dHoy - dIni) / (dFin - dIni)) * 100)
     }
 
-    const verDetalle = async (c: any) => {
-        const [ords, cuentas] = await Promise.all([
-            ecoQuery('eco_ordenes', { select: 'numero,fecha_programada,estado,tipo_residuo', filters: [`contrato_id=eq.${c.id}`, 'limit=5', 'order=created_at.desc'] }),
-            ecoQuery('eco_cuentas', { select: 'monto_total,estado', filters: [`cliente_id=eq.${c.cliente_id}`] }),
-        ])
-        const total = (Array.isArray(cuentas) ? cuentas : []).reduce((s: number, x: any) => s + Number(x.monto_total || 0), 0)
-        setDetalle({ contrato: c, ordenes: Array.isArray(ords) ? ords : [], totalFacturado: total })
-        setModal('detalle')
-    }
+    const FormModal = () => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        {modal === 'nuevo' ? <FileSignature className="w-5 h-5 text-[#00c96e]" /> : <Edit2 className="w-5 h-5 text-indigo-500" />}
+                        {modal === 'nuevo' ? 'Registrar Nuevo Contrato' : 'Editar Contrato'}
+                    </h3>
+                    <button onClick={() => setModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
-    const renovar = async () => {
-        if (!form.fecha_inicio || !form.fecha_fin) { showToast('Fechas requeridas', 'error'); return }
-        setSaving(true)
-        const cont = detalle?.contrato
-        if (!cont) return
-        // Patch old
-        await fetch(`${ECO_BASE}/eco_contratos?id=eq.${cont.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ estado: 'vencido' }) })
-        // Get next number
-        const maxR = await ecoQuery('eco_contratos', { select: 'numero', filters: ['order=numero.desc', 'limit=1'] })
-        const last = Array.isArray(maxR) && maxR[0] ? parseInt(maxR[0].numero.split('-')[1]) : 0
-        const nuevoNumero = 'CONT-' + String(last + 1).padStart(4, '0')
-        const payload = { numero: nuevoNumero, cliente_id: cont.cliente_id, fecha_inicio: form.fecha_inicio, fecha_fin: form.fecha_fin, tipo_residuo: cont.tipo_residuo, frecuencia: cont.frecuencia, precio: form.precio || cont.precio, modalidad: cont.modalidad, estado: 'vigente' }
-        const nr = await fetch(`${ECO_BASE}/eco_contratos`, { method: 'POST', headers: { ...h, Prefer: 'return=representation' }, body: JSON.stringify(payload) })
-        if (nr.ok) { showToast(`Contrato renovado: ${nuevoNumero}`, 'success'); setModal(null); cargar() }
-        else showToast('Error al renovar', 'error')
-        setSaving(false)
-    }
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-1.5 md:col-span-2">
+                            <label className="text-sm font-semibold text-slate-700">Cliente Asociado <span className="text-rose-500">*</span></label>
+                            <select
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all cursor-pointer"
+                                value={formData.cliente_id || ''} onChange={e => setFormData({ ...formData, cliente_id: e.target.value })}
+                            >
+                                <option value="" disabled>Seleccione un cliente...</option>
+                                {clientes.map(c => <option key={c.id} value={c.id}>{c.razon_social} (RUC: {c.ruc})</option>)}
+                            </select>
+                        </div>
 
-    const suspender = async () => {
-        if (!form.motivo || form.motivo.length < 5) { showToast('Motivo requerido', 'error'); return }
-        const cont = detalle?.contrato
-        await fetch(`${ECO_BASE}/eco_contratos?id=eq.${cont.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ estado: 'suspendido' }) })
-        showToast('Contrato suspendido', 'warning')
-        setModal(null); cargar()
-    }
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700">N° de Contrato <span className="text-rose-500">*</span></label>
+                            <input
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none font-mono"
+                                placeholder="Ej: CT-2024-001"
+                                value={formData.numero || ''} onChange={e => setFormData({ ...formData, numero: e.target.value })}
+                            />
+                        </div>
 
-    const guardarNuevo = async () => {
-        if (!form.cliente_id || !form.tipo_residuo || !form.fecha_inicio || !form.fecha_fin) { showToast('Complete todos los campos requeridos', 'error'); return }
-        setSaving(true)
-        const maxR = await ecoQuery('eco_contratos', { select: 'numero', filters: ['order=numero.desc', 'limit=1'] })
-        const last = Array.isArray(maxR) && maxR[0] ? parseInt(maxR[0].numero.split('-')[1]) : 0
-        const numero = 'CONT-' + String(last + 1).padStart(4, '0')
-        const r = await fetch(`${ECO_BASE}/eco_contratos`, { method: 'POST', headers: { ...h, Prefer: 'return=representation' }, body: JSON.stringify({ ...form, numero, estado: 'vigente' }) })
-        if (r.ok) { showToast('Contrato creado: ' + numero, 'success'); setModal(null); cargar() }
-        else showToast('Error al crear', 'error')
-        setSaving(false)
-    }
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700">Tipo de Residuo</label>
+                            <select
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all cursor-pointer"
+                                value={formData.tipo_residuo || 'municipal'} onChange={e => setFormData({ ...formData, tipo_residuo: e.target.value })}
+                            >
+                                <option value="municipal">Municipal (R.S.M.)</option>
+                                <option value="industrial">Industrial No Peligroso (R.S.I.)</option>
+                                <option value="peligroso">Peligroso (R.P.)</option>
+                                <option value="hospitalario">Hospitalario Biocontaminado (R.H.)</option>
+                                <option value="construccion">Construcción y Demolición (R.C.D.)</option>
+                                <option value="mixto">Mixto Institucional</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-1.5 md:col-span-2">
+                            <div className="h-px bg-slate-100 my-2" />
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Vigencia del Contrato</h4>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700">Fecha de Inicio <span className="text-rose-500">*</span></label>
+                            <input
+                                type="date"
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all"
+                                value={formData.fecha_inicio || ''} onChange={e => setFormData({ ...formData, fecha_inicio: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700">Fecha de Término <span className="text-rose-500">*</span></label>
+                            <input
+                                type="date"
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all"
+                                value={formData.fecha_fin || ''} onChange={e => setFormData({ ...formData, fecha_fin: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+                    <button
+                        onClick={() => setModal(null)}
+                        className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={guardar} disabled={saving}
+                        className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md shadow-slate-900/10 transition-all flex items-center gap-2"
+                    >
+                        {saving ? (
+                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
+                        ) : (
+                            <><CheckCircle2 className="w-4 h-4" /> {modal === 'nuevo' ? 'Registrar Contrato' : 'Guardar Cambios'}</>
+                        )}
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    )
 
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            {/* New Contract Modal */}
-            {modal === 'nuevo' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 600, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 16, color: 'var(--eco-text)' }}>Nuevo Contrato</span>
-                            <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <AnimatePresence>
+                {(modal === 'nuevo' || modal === 'editar') && <FormModal key="form" />}
+            </AnimatePresence>
+
+            {/* Cabecera y KPIs */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+                {/* Header / Buscador */}
+                <div className="xl:col-span-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                            <FileText className="w-6 h-6 text-[#00c96e]" />
+                            Contratos Corporativos
+                        </h2>
+                        <p className="text-slate-500 font-medium mt-1">Gestión de vigencias y obligaciones de recolección.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-64">
+                            <input
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all"
+                                placeholder="Buscar por N° o Cliente..."
+                                value={buscar} onChange={e => handleBuscar(e.target.value)}
+                            />
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         </div>
-                        <div style={{ padding: 24, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                            <div style={{ gridColumn: '1/-1' }}>
-                                <label className="eco-label">Cliente *</label>
-                                <select className="eco-select" value={form.cliente_id || ''} onChange={e => setForm({ ...form, cliente_id: e.target.value })}>
-                                    <option value="">Seleccione...</option>
-                                    {clientes.map((c: any) => <option key={c.id} value={c.id}>{c.razon_social}</option>)}
-                                </select>
-                            </div>
-                            <div><label className="eco-label">Tipo de Residuo *</label>
-                                <select className="eco-select" value={form.tipo_residuo || ''} onChange={e => setForm({ ...form, tipo_residuo: e.target.value })}>
-                                    <option value="">Seleccione...</option>
-                                    {['municipal', 'peligroso', 'hospitalario', 'desmonte'].map(t => <option key={t}>{t}</option>)}
-                                </select>
-                            </div>
-                            <div><label className="eco-label">Frecuencia</label>
-                                <select className="eco-select" value={form.frecuencia || ''} onChange={e => setForm({ ...form, frecuencia: e.target.value })}>
-                                    {['Diaria', 'Interdiaria', 'Semanal', 'Quincenal', 'Por requerimiento'].map(f => <option key={f}>{f}</option>)}
-                                </select>
-                            </div>
-                            <div><label className="eco-label">Fecha Inicio *</label>
-                                <input className="eco-input" type="date" value={form.fecha_inicio || ''} onChange={e => setForm({ ...form, fecha_inicio: e.target.value })} />
-                            </div>
-                            <div><label className="eco-label">Fecha Fin *</label>
-                                <input className="eco-input" type="date" value={form.fecha_fin || ''} onChange={e => setForm({ ...form, fecha_fin: e.target.value })} />
-                            </div>
-                            <div><label className="eco-label">Precio S/.</label>
-                                <input className="eco-input" type="number" value={form.precio || ''} onChange={e => setForm({ ...form, precio: e.target.value })} />
-                            </div>
-                            <div><label className="eco-label">Modalidad</label>
-                                <select className="eco-select" value={form.modalidad || ''} onChange={e => setForm({ ...form, modalidad: e.target.value })}>
-                                    {['mensual', 'por-servicio', 'anual'].map(m => <option key={m}>{m}</option>)}
-                                </select>
-                            </div>
-                            <div style={{ gridColumn: '1/-1' }}><label className="eco-label">Observaciones</label>
-                                <textarea className="eco-input" rows={2} value={form.observaciones || ''} onChange={e => setForm({ ...form, observaciones: e.target.value })} style={{ resize: 'none' }} />
-                            </div>
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal(null)}>Cancelar</button>
-                            <button className="eco-btn-primary" disabled={saving} onClick={guardarNuevo}>{saving ? 'Guardando...' : 'Crear Contrato'}</button>
-                        </div>
+                        <button
+                            onClick={abrirNuevo}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#00c96e] hover:bg-[#00b060] text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-md shadow-[#00c96e]/20 active:scale-95"
+                        >
+                            <Plus className="w-4 h-4" /> Nuevo Contrato
+                        </button>
                     </div>
                 </div>
-            )}
 
-            {/* Detalle Modal */}
-            {modal === 'detalle' && detalle && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 680, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 16, color: 'var(--eco-text)' }}>Contrato {detalle.contrato.numero}</span>
-                            <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                                {[['Cliente', detalle.contrato.eco_clientes?.razon_social], ['Tipo de Residuo', detalle.contrato.tipo_residuo], ['Frecuencia', detalle.contrato.frecuencia], ['Precio S/.', detalle.contrato.precio], ['Inicio', detalle.contrato.fecha_inicio], ['Fin', detalle.contrato.fecha_fin], ['Modalidad', detalle.contrato.modalidad], ['Estado', detalle.contrato.estado]].map(([k, v]) => (
-                                    <div key={k} style={{ background: 'var(--eco-surface2)', borderRadius: 8, padding: 12 }}>
-                                        <div style={{ fontSize: 11, color: 'var(--eco-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>{k}</div>
-                                        <div style={{ fontSize: 13, color: 'var(--eco-text)' }}>{v || '—'}</div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontWeight: 600, marginBottom: 8 }}>Órdenes del Contrato</div>
-                                {detalle.ordenes.length === 0 ? <div style={{ color: 'var(--eco-text-muted)', fontSize: 13 }}>Sin órdenes</div> :
-                                    <table className="eco-table"><thead><tr><th>N° OS</th><th>Fecha</th><th>Estado</th></tr></thead>
-                                        <tbody>{detalle.ordenes.map((o: any) => (<tr key={o.id}><td className="sg" style={{ color: 'var(--eco-green)' }}>{o.numero}</td><td>{o.fecha_programada}</td><td>{o.estado}</td></tr>))}</tbody>
-                                    </table>}
-                            </div>
-                            <div style={{ background: 'var(--eco-green-dim)', borderRadius: 8, padding: 12, fontSize: 13 }}>
-                                Total facturado: <strong style={{ color: 'var(--eco-green)' }}>S/ {detalle.totalFacturado.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</strong>
-                            </div>
-
-                            {/* Renovar */}
-                            {(detalle.contrato.estado === 'vencido' || estadoVenc(detalle.contrato.fecha_fin) !== 'ok') && (
-                                <div style={{ marginTop: 16, background: 'var(--eco-surface2)', borderRadius: 12, padding: 16 }}>
-                                    <div style={{ fontWeight: 600, color: 'var(--eco-yellow)', marginBottom: 12 }}>Renovar Contrato</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                        <div><label className="eco-label">Nueva fecha inicio</label><input className="eco-input" type="date" defaultValue={today} onChange={e => setForm({ ...form, fecha_inicio: e.target.value })} /></div>
-                                        <div><label className="eco-label">Nueva fecha fin</label><input className="eco-input" type="date" onChange={e => setForm({ ...form, fecha_fin: e.target.value })} /></div>
-                                        <div><label className="eco-label">Nuevo precio S/.</label><input className="eco-input" type="number" placeholder={detalle.contrato.precio} onChange={e => setForm({ ...form, precio: e.target.value })} /></div>
-                                    </div>
-                                    <button className="eco-btn-primary" style={{ marginTop: 12 }} disabled={saving} onClick={renovar}>Renovar Contrato</button>
-                                </div>
-                            )}
-
-                            {/* Suspender */}
-                            {detalle.contrato.estado === 'vigente' && (
-                                <div style={{ marginTop: 12, background: 'var(--eco-surface2)', borderRadius: 12, padding: 16 }}>
-                                    <div style={{ fontWeight: 600, color: 'var(--eco-yellow)', marginBottom: 8 }}>Suspender Contrato</div>
-                                    <textarea className="eco-input" rows={2} placeholder="Motivo de suspensión (obligatorio)" style={{ resize: 'none', marginBottom: 8 }} onChange={e => setForm({ ...form, motivo: e.target.value })} />
-                                    <button className="eco-btn-danger" onClick={suspender}>Confirmar Suspensión</button>
-                                </div>
-                            )}
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal(null)}>Cerrar</button>
-                        </div>
+                {/* Micro KPIs */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-[#00c96e]/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><Briefcase className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Contratos Vigentes</p>
+                        <p className="text-4xl font-black text-slate-800 mt-1">{activos}</p>
                     </div>
                 </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <span className="sg" style={{ fontSize: 20, fontWeight: 600 }}>Contratos</span>
-                <button className="eco-btn-primary" onClick={() => { setForm({}); setModal('nuevo') }}>+ Nuevo Contrato</button>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-amber-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><CalendarClock className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Próximos a Vencer (30d)</p>
+                        <p className="text-4xl font-black text-amber-500 mt-1">{porVencer}</p>
+                    </div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-rose-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><AlertCircle className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Extintos / Vencidos</p>
+                        <p className="text-4xl font-black text-rose-500 mt-1">{vencidos}</p>
+                    </div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-indigo-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><Activity className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Nivel de Salud</p>
+                        <p className="text-4xl font-black text-indigo-500 mt-1">{pctActivos}%</p>
+                    </div>
+                </div>
             </div>
 
-            <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 12, overflow: 'hidden' }}>
-                <table className="eco-table">
-                    <thead><tr><th>N° Contrato</th><th>Cliente</th><th>Tipo Residuo</th><th>Frecuencia</th><th>Precio S/.</th><th>Inicio</th><th>Vence</th><th>Estado</th><th>Acciones</th></tr></thead>
-                    <tbody>
-                        {loading ? <tr><td colSpan={9}><div style={{ height: 80, animation: 'ecoPulse 1.5s infinite', background: 'var(--eco-border)', margin: 12, borderRadius: 4 }} /></td></tr> :
-                            data.length === 0 ? <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--eco-text-muted)', padding: 32 }}>Sin contratos</td></tr> :
-                                data.map((c: any) => {
-                                    const ev = estadoVenc(c.fecha_fin)
-                                    const vencColor = ev === 'vencido' ? 'var(--eco-red)' : ev === 'por_vencer' ? 'var(--eco-yellow)' : 'var(--eco-text-muted)'
-                                    const estadoColors: any = { vigente: ['var(--eco-green-dim)', 'var(--eco-green)'], vencido: ['var(--eco-red-dim)', 'var(--eco-red)'], suspendido: ['var(--eco-yellow-dim)', 'var(--eco-yellow)'] }
-                                    const [bg, col] = estadoColors[c.estado] || ['rgba(180,180,180,0.1)', '#aaa']
+            {/* Listado Principal */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center gap-2">
+                    {pills.map(p => {
+                        const isA = pillActivo === p
+                        return (
+                            <button
+                                key={p} onClick={() => handlePill(p)}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isA ? 'bg-slate-800 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                                    }`}
+                            >
+                                {p}
+                            </button>
+                        )
+                    })}
+                </div>
+
+                <div className="overflow-x-auto min-h-[400px]">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-white text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
+                                <th className="px-6 py-4 whitespace-nowrap">Código Contrato</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Cliente Vinculado</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Clase Residuo</th>
+                                <th className="px-6 py-4 whitespace-nowrap w-64">Vigencia & Progreso</th>
+                                <th className="px-6 py-4 whitespace-nowrap text-right">Estado y Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i}>
+                                        <td colSpan={5} className="p-6"><div className="h-12 bg-slate-50 rounded-xl animate-pulse" /></td>
+                                    </tr>
+                                ))
+                            ) : filtrado.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-16 text-center text-slate-500">
+                                        <div className="w-16 h-16 mx-auto bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-3"><Search className="w-6 h-6" /></div>
+                                        <p className="font-semibold text-slate-700">No se encontraron contratos</p>
+                                        <p className="text-sm mt-1">Prueba con otra búsqueda o filtro.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtrado.map((c: any) => {
+                                    const v = c.fecha_fin < today ? true : false
+                                    const nextV = c.estado === 'activo' && c.fecha_fin >= today && c.fecha_fin <= in30Days
+                                    const pct = getProgresoContrato(c.fecha_inicio, c.fecha_fin)
+                                    const isRealVencido = v || c.estado === 'vencido'
+
                                     return (
-                                        <tr key={c.id}>
-                                            <td className="sg" style={{ color: 'var(--eco-green)', fontWeight: 600 }}>{c.numero}</td>
-                                            <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.eco_clientes?.razon_social}</td>
-                                            <td><span style={{ background: 'var(--eco-green-dim)', color: 'var(--eco-green)', fontSize: 11, padding: '2px 8px', borderRadius: 12 }}>{c.tipo_residuo}</span></td>
-                                            <td style={{ color: 'var(--eco-text-muted)' }}>{c.frecuencia}</td>
-                                            <td style={{ fontWeight: 600, color: 'var(--eco-green)' }}>S/ {Number(c.precio || 0).toLocaleString('es-PE')}</td>
-                                            <td style={{ color: 'var(--eco-text-muted)', fontSize: 12 }}>{c.fecha_inicio}</td>
-                                            <td style={{ color: vencColor, fontWeight: ev !== 'ok' ? 600 : 400, fontSize: 12 }}>{c.fecha_fin}{ev !== 'ok' ? ` ⚠` : ''}</td>
-                                            <td><span style={{ background: bg, color: col, fontSize: 11, padding: '2px 8px', borderRadius: 12 }}>{c.estado}</span></td>
-                                            <td>
-                                                <button onClick={() => verDetalle(c)} style={{ padding: '4px 10px', background: 'var(--eco-surface2)', border: '1px solid var(--eco-border)', borderRadius: 6, color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 12 }}>Ver →</button>
+                                        <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-indigo-600 font-mono text-sm">{c.numero}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="font-semibold text-slate-800">{c.eco_clientes?.razon_social || 'Cliente no encontrado'}</p>
+                                                <p className="text-xs text-slate-400 font-medium">RUC: {c.eco_clientes?.ruc || 'N/A'}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {ecoBadge(c.tipo_residuo)}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-1.5">
+                                                    <span>Inició: {c.fecha_inicio}</span>
+                                                    <span className={isRealVencido ? 'text-rose-500 font-bold' : nextV ? 'text-amber-500 font-bold' : ''}>Fin: {c.fecha_fin}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-1000 ${isRealVencido ? 'bg-rose-500' : nextV ? 'bg-amber-500' : 'bg-[#00c96e]'}`}
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                                <div className="text-[10px] font-bold text-slate-400 text-right mt-1">{pct}% consumido</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex flex-col items-end gap-2">
+                                                    {c.estado === 'activo' ? (
+                                                        isRealVencido ? (
+                                                            <span className="inline-flex items-center gap-1 text-rose-500 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold uppercase"><X className="w-3 h-3" /> Vencido Automático</span>
+                                                        ) : (
+                                                            <span className={`inline-flex items-center gap-1 ${nextV ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'} px-2 py-0.5 rounded text-[10px] font-bold uppercase`}><CheckCircle2 className="w-3 h-3" /> Activo Vigente</span>
+                                                        )
+                                                    ) : c.estado === 'vencido' ? (
+                                                        <span className="inline-flex items-center gap-1 text-rose-500 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold uppercase"><X className="w-3 h-3" /> Extinto</span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase"><Power className="w-3 h-3" /> Suspendido</span>
+                                                    )}
+
+                                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => abrirEditar(c)}
+                                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                                                            title="Editar Contrato"
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        {c.estado === 'activo' && !isRealVencido && (
+                                                            <button
+                                                                onClick={() => setEstado(c.id, 'inactivo')}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                                                                title="Suspender Contrato"
+                                                            >
+                                                                <Power className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                        {c.estado === 'inactivo' && !isRealVencido && (
+                                                            <button
+                                                                onClick={() => setEstado(c.id, 'activo')}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                                                                title="Reactivar"
+                                                            >
+                                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     )
-                                })}
-                    </tbody>
-                </table>
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background-color: #cbd5e1;
+                    border-radius: 20px;
+                }
+            `}</style>
+        </motion.div>
     )
 }

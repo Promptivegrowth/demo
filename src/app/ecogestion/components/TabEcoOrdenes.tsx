@@ -1,301 +1,644 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-
-const ECO_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2aHJ6cXJkenlrYnZoaWZzb3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTExMTQsImV4cCI6MjA4ODY2NzExNH0.8hwx4D0tbe8e8b9sFhG6shO7yLgM-3Q-ViZNkavC4iE'
-const BASE = 'https://yvhrzqrdzykbvhifsoxk.supabase.co/rest/v1'
-const H = { apikey: ECO_ANON, Authorization: `Bearer ${ECO_ANON}`, 'Content-Type': 'application/json' }
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+    Search,
+    Plus,
+    X,
+    Package,
+    CalendarClock,
+    Truck,
+    CheckCircle2,
+    Clock,
+    AlertCircle,
+    Activity,
+    MapPin,
+    Building2,
+    Scale,
+    FileText,
+    ArrowRight,
+    Edit2,
+    FileCheck,
+    Eye
+} from 'lucide-react'
 
 const ecoBadge = (tipo: string) => {
-    const m: any = { municipal: ['var(--eco-green-dim)', 'var(--eco-green)', 'Municipal'], peligroso: ['var(--eco-red-dim)', 'var(--eco-red)', 'Peligroso'], hospitalario: ['var(--eco-purple-dim)', 'var(--eco-purple)', 'Hospitalario'], desmonte: ['var(--eco-yellow-dim)', 'var(--eco-yellow)', 'Desmonte'] }
-    const [bg, c, t] = m[tipo] || ['rgba(180,180,180,0.1)', '#aaa', tipo]
-    return <span style={{ background: bg, color: c, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 12 }}>{t}</span>
+    const map: any = {
+        municipal: ['bg-emerald-100 text-emerald-700 border-emerald-200', 'Municipal'],
+        industrial: ['bg-blue-100 text-blue-700 border-blue-200', 'Industrial'],
+        hospital: ['bg-purple-100 text-purple-700 border-purple-200', 'Hospital'],
+        construccion: ['bg-amber-100 text-amber-700 border-amber-200', 'Construcción'],
+        peligroso: ['bg-rose-100 text-rose-700 border-rose-200', 'Peligroso'],
+        mixto: ['bg-slate-100 text-slate-700 border-slate-200', 'Mixto'],
+    }
+    const [style, txt] = map[tipo] || ['bg-slate-100 text-slate-700 border-slate-200', tipo]
+    return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${style}`}>{txt}</span>
 }
-const ecoEstado = (estado: string) => {
-    const m: any = { programado: ['var(--eco-blue-dim)', 'var(--eco-blue)', 'Programado'], en_ruta: ['var(--eco-yellow-dim)', 'var(--eco-yellow)', '⚡ En Ruta'], recogido: ['var(--eco-green-dim)', 'var(--eco-green)', 'Recogido'], en_planta: ['var(--eco-green-dim)', 'var(--eco-green)', 'En Planta'], completado: ['var(--eco-green-dim)', 'var(--eco-green)', '✓ Completado'], cancelado: ['var(--eco-red-dim)', 'var(--eco-red)', 'Cancelado'] }
-    const [bg, c, t] = m[estado] || ['rgba(180,180,180,0.1)', '#aaa', estado]
-    return <span style={{ background: bg, color: c, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 12 }}>{t}</span>
+
+const ecoEstadoBadge = (estado: string) => {
+    const map: any = {
+        programado: ['bg-blue-50 text-blue-600 border-blue-200', 'Programado', Clock],
+        en_ruta: ['bg-amber-50 text-amber-600 border-amber-200', 'En Ruta', Truck],
+        recogido: ['bg-emerald-50 text-emerald-600 border-emerald-200', 'Recogido', Package],
+        en_planta: ['bg-teal-50 text-teal-600 border-teal-200', 'En Planta', Building2],
+        completado: ['bg-emerald-100 text-emerald-700 border-emerald-300', 'Completado', CheckCircle2],
+        cancelado: ['bg-rose-50 text-rose-600 border-rose-200', 'Cancelado', AlertCircle],
+    }
+    const [style, txt, Icon] = map[estado] || ['bg-slate-50 text-slate-600 border-slate-200', estado, Activity]
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${style}`}>
+            <Icon className="w-3 h-3" /> {txt}
+        </span>
+    )
 }
 
 export default function TabEcoOrdenes({ showToast, ecoQuery }: any) {
     const [data, setData] = useState<any[]>([])
     const [filtrado, setFiltrado] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
     const [clientes, setClientes] = useState<any[]>([])
-    const [flota, setFlota] = useState<any[]>([])
-    const [operarios, setOperarios] = useState<any[]>([])
-    const [modal, setModal] = useState<any>(null)
-    const [selected, setSelected] = useState<any>(null)
-    const [form, setForm] = useState<any>({})
-    const [saving, setSaving] = useState(false)
-    const [pill, setPill] = useState('Todos')
+    const [vehiculos, setVehiculos] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [buscar, setBuscar] = useState('')
+    const [pillActivo, setPillActivo] = useState('Hoy')
 
-    const today = new Date().toISOString().split('T')[0]
+    const [modal, setModal] = useState<any>(null)
+    const [formData, setFormData] = useState<any>({})
+    const [saving, setSaving] = useState(false)
+    const [detalleData, setDetalleData] = useState<any>(null)
 
     const cargar = async () => {
         setLoading(true)
-        const r = await ecoQuery('eco_ordenes', { select: '*,eco_clientes(razon_social),eco_flota(placa)', filters: ['order=fecha_programada.desc'] })
-        const arr = Array.isArray(r) ? r : []
-        setData(arr); setFiltrado(arr)
+        const [ords, clis, vehi] = await Promise.all([
+            ecoQuery('eco_ordenes', { select: '*,eco_clientes(razon_social,ruc,direccion,distrito),eco_flota(placa,tipo)', filters: ['order=created_at.desc'] }),
+            ecoQuery('eco_clientes', { select: 'id,razon_social', filters: ['estado=eq.activo', 'order=razon_social.asc'] }),
+            ecoQuery('eco_flota', { select: 'id,placa,tipo', filters: ['estado=eq.activo'] })
+        ])
+        const arr = Array.isArray(ords) ? ords : []
+        setData(arr);
+        setClientes(Array.isArray(clis) ? clis : [])
+        setVehiculos(Array.isArray(vehi) ? vehi : [])
+        filtrar(arr, buscar, pillActivo)
         setLoading(false)
     }
 
-    useEffect(() => {
-        cargar()
-        Promise.all([
-            ecoQuery('eco_clientes', { select: 'id,razon_social', filters: ['estado=eq.activo'] }),
-            ecoQuery('eco_flota', { select: 'id,placa,tipo,capacidad_kg,tipos_habilitados', filters: ['estado=in.(disponible,en_ruta)'] }),
-            ecoQuery('eco_operarios', { select: 'id,nombres,apellidos,cargo', filters: ['estado=eq.activo'] }),
-        ]).then(([c, f, o]) => { setClientes(Array.isArray(c) ? c : []); setFlota(Array.isArray(f) ? f : []); setOperarios(Array.isArray(o) ? o : []) })
-    }, [])
+    useEffect(() => { cargar() }, [])
 
-    const filtrar = (arr: any[], p: string) => {
-        if (p === 'Todos') return setFiltrado(arr)
-        const mp: any = { Programado: 'programado', 'En Ruta': 'en_ruta', Recogido: 'recogido', 'En Planta': 'en_planta', Completado: 'completado', Cancelado: 'cancelado' }
-        setFiltrado(arr.filter((o: any) => o.estado === mp[p]))
+    const filtrar = (lista: any[], busq: string, pill: string) => {
+        let res = lista
+        if (busq) {
+            const b = busq.toLowerCase()
+            res = res.filter((c: any) => c.numero?.toLowerCase().includes(b) || c.eco_clientes?.razon_social?.toLowerCase().includes(b))
+        }
+
+        const today = new Date().toISOString().split('T')[0]
+        if (pill === 'Hoy') res = res.filter((c: any) => c.fecha_programada === today)
+        else if (pill === 'Pendientes') res = res.filter((c: any) => ['programado', 'en_ruta', 'recogido', 'en_planta'].includes(c.estado))
+        else if (pill === 'Completados') res = res.filter((c: any) => c.estado === 'completado')
+        else if (pill === 'Por Asignar') res = res.filter((c: any) => !c.vehiculo_id && c.estado !== 'cancelado' && c.estado !== 'completado')
+
+        setFiltrado(res)
     }
 
-    const patchOrden = async (id: string, body: any) => {
-        return fetch(`${BASE}/eco_ordenes?id=eq.${id}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) })
+    const handleBuscar = (v: string) => { setBuscar(v); filtrar(data, v, pillActivo) }
+    const handlePill = (p: string) => { setPillActivo(p); filtrar(data, buscar, p) }
+
+    const abrirNuevo = () => {
+        const today = new Date().toISOString().split('T')[0]
+        const nextNum = `OS-${new Date().getFullYear()}${new Date().getMonth() + 1}${new Date().getDate()}-${String(data.length + 1).padStart(3, '0')}`
+        setFormData({ estado: 'programado', numero: nextNum, tipo_residuo: 'municipal', fecha_programada: today })
+        setModal('nuevo')
     }
 
-    const registrarRecojo = async () => {
-        if (!form.kg_reales || Number(form.kg_reales) <= 0) { showToast('Kg reales requeridos', 'error'); return }
+    const abrirAsignar = (ord: any) => { setFormData({ id: ord.id, vehiculo_id: ord.vehiculo_id || '' }); setModal('asignar') }
+    const abrirCierre = (ord: any) => { setFormData({ id: ord.id, kg_reales: ord.peso_estimado || '' }); setModal('cierre') }
+    const verDetalle = (ord: any) => { setDetalleData(ord); setModal('detalle') }
+
+    const guardar = async () => {
         setSaving(true)
-        const r = await patchOrden(selected.id, { kg_reales: Number(form.kg_reales), estado: 'recogido' })
-        if (r.ok) { showToast(`Recojo registrado: ${form.kg_reales} kg`, 'success'); setModal(null); cargar() }
-        else showToast('Error al registrar', 'error')
-        setSaving(false)
+        try {
+            if (modal === 'nuevo') {
+                if (!formData.cliente_id || !formData.fecha_programada || !formData.peso_estimado) {
+                    showToast('Complete cliente, fecha y peso', 'error'); setSaving(false); return
+                }
+                const r = await ecoQuery('eco_ordenes', { insert: { numero: formData.numero, cliente_id: formData.cliente_id, fecha_programada: formData.fecha_programada, tipo_residuo: formData.tipo_residuo, peso_estimado: formData.peso_estimado, observaciones: formData.observaciones, estado: 'programado' } })
+                if (Array.isArray(r) && r.length > 0) { showToast('Orden creada exitosamente', 'success'); setModal(null); cargar() }
+                else showToast('Error al crear orden', 'error')
+            } else if (modal === 'asignar') {
+                await ecoQuery('eco_ordenes', { update: { vehiculo_id: formData.vehiculo_id, estado: 'en_ruta' }, id: formData.id })
+                showToast('Vehículo asignado e iniciado ruta', 'success'); setModal(null); cargar()
+            } else if (modal === 'cierre') {
+                if (!formData.kg_reales) { showToast('Ingrese el peso real recabado', 'error'); setSaving(false); return }
+                const payload: any = { estado: 'completado', kg_reales: formData.kg_reales }
+                await ecoQuery('eco_ordenes', { update: payload, id: formData.id })
+                showToast('Orden completada', 'success'); setModal(null); cargar()
+            }
+        } finally { setSaving(false) }
     }
 
-    const cancelarOrden = async () => {
-        if (!form.motivo || form.motivo.length < 10) { showToast('Motivo mínimo 10 caracteres', 'error'); return }
-        await patchOrden(selected.id, { estado: 'cancelado' })
-        if (selected.vehiculo_id) await fetch(`${BASE}/eco_flota?id=eq.${selected.vehiculo_id}`, { method: 'PATCH', headers: H, body: JSON.stringify({ estado: 'disponible' }) })
-        showToast('Orden cancelada', 'warning'); setModal(null); cargar()
+    const setEstadoDirecto = async (id: string, st: string) => {
+        if (!confirm(`¿Actualizar estado a ${st}?`)) return
+        await ecoQuery('eco_ordenes', { update: { estado: st }, id })
+        showToast(`Orden actualizada a ${st}`, 'success'); cargar()
     }
 
-    const asignarVehiculo = async () => {
-        if (!form.vehiculo_id) { showToast('Seleccione un vehículo', 'error'); return }
-        setSaving(true)
-        await Promise.all([
-            patchOrden(selected.id, { vehiculo_id: form.vehiculo_id, operario_id: form.operario_id || null }),
-            fetch(`${BASE}/eco_flota?id=eq.${form.vehiculo_id}`, { method: 'PATCH', headers: H, body: JSON.stringify({ estado: 'en_ruta' }) }),
-        ])
-        showToast('Vehículo asignado', 'success'); setModal(null); setSaving(false); cargar()
+    const pills = ['Todos', 'Hoy', 'Pendientes', 'Completados', 'Por Asignar']
+    const today = new Date().toISOString().split('T')[0]
+
+    // KPI Data
+    const ordenesHoy = data.filter(c => c.fecha_programada === today)
+    const pendientesHoy = ordenesHoy.filter(c => ['programado', 'en_ruta', 'recogido', 'en_planta'].includes(c.estado)).length
+    const completadosHoy = ordenesHoy.filter(c => c.estado === 'completado').length
+    const sinAsignar = data.filter(c => !c.vehiculo_id && ['programado', 'en_ruta'].includes(c.estado)).length
+    const pctHoy = ordenesHoy.length ? Math.round((completadosHoy / ordenesHoy.length) * 100) : 0
+
+    const FormModals = () => {
+        if (!modal || modal === 'detalle') return null
+
+        const isNuevo = modal === 'nuevo'
+        const isAsignar = modal === 'asignar'
+        const isCierre = modal === 'cierre'
+
+        let titulo = isNuevo ? 'Generar Orden de Servicio' : isAsignar ? 'Asignar Vehículo' : 'Cierre y Recepción'
+        let Icono = isNuevo ? Package : isAsignar ? Truck : CheckCircle2
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]"
+                >
+                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <Icono className={`w-5 h-5 ${isCierre ? 'text-emerald-500' : isAsignar ? 'text-amber-500' : 'text-indigo-500'}`} />
+                            {titulo}
+                        </h3>
+                        <button onClick={() => setModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="p-6 overflow-y-auto flex-1 custom-scrollbar space-y-5">
+
+                        {isNuevo && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-sm font-semibold text-slate-700">Cliente / Generador <span className="text-rose-500">*</span></label>
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                                        value={formData.cliente_id || ''} onChange={e => setFormData({ ...formData, cliente_id: e.target.value })}
+                                    >
+                                        <option value="" disabled>Seleccione un cliente...</option>
+                                        {clientes.map(c => <option key={c.id} value={c.id}>{c.razon_social}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700">N° de OS <span className="text-rose-500">*</span></label>
+                                    <input
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none font-mono"
+                                        value={formData.numero || ''} readOnly
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700">Fecha Programada <span className="text-rose-500">*</span></label>
+                                    <input
+                                        type="date"
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        value={formData.fecha_programada || ''} onChange={e => setFormData({ ...formData, fecha_programada: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700">Clase de Residuo</label>
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                                        value={formData.tipo_residuo || 'municipal'} onChange={e => setFormData({ ...formData, tipo_residuo: e.target.value })}
+                                    >
+                                        <option value="municipal">Municipal</option>
+                                        <option value="industrial">Industrial</option>
+                                        <option value="peligroso">Peligroso</option>
+                                        <option value="hospitalario">Hospitalario</option>
+                                        <option value="construccion">Construcción</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700">Volumen/Peso Estimado (kg) <span className="text-rose-500">*</span></label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
+                                        placeholder="0.00"
+                                        value={formData.peso_estimado || ''} onChange={e => setFormData({ ...formData, peso_estimado: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-sm font-semibold text-slate-700">Observaciones</label>
+                                    <textarea
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 h-24 resize-none"
+                                        placeholder="Instrucciones especiales para el recojo..."
+                                        value={formData.observaciones || ''} onChange={e => setFormData({ ...formData, observaciones: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {isAsignar && (
+                            <div className="space-y-5">
+                                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-900">Despacho de Unidad</p>
+                                        <p className="text-sm text-amber-700 mt-0.5">Asigne un vehículo disponible en flota. La orden cambiará de estado automáticamente a <span className="font-bold">En Ruta</span> y el conductor será notificado.</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700">Vehículo a Despachar <span className="text-rose-500">*</span></label>
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer text-lg font-medium"
+                                        value={formData.vehiculo_id || ''} onChange={e => setFormData({ ...formData, vehiculo_id: e.target.value })}
+                                    >
+                                        <option value="" disabled>Seleccione placa...</option>
+                                        {vehiculos.map(v => <option key={v.id} value={v.id}>{v.placa} ({v.tipo})</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
+                        {isCierre && (
+                            <div className="space-y-5">
+                                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-start gap-3">
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-bold text-emerald-900">Recepción en Planta y Cierre</p>
+                                        <p className="text-sm text-emerald-700 mt-0.5">Registre el pesaje real comprobado en planta para certificar la OS y emitir el Manifiesto final.</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700">Peso Bruto Verificado (kg) <span className="text-rose-500">*</span></label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xl rounded-xl pl-4 pr-12 py-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-black tracking-tight"
+                                            placeholder="0.00"
+                                            value={formData.kg_reales || ''} onChange={e => setFormData({ ...formData, kg_reales: e.target.value })}
+                                        />
+                                        <span className="absolute right-4 top-4 text-emerald-600 font-bold uppercase tracking-wider">KG</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+
+                    <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+                        <button
+                            onClick={() => setModal(null)}
+                            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={guardar} disabled={saving}
+                            className={`px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all flex items-center gap-2 ${isCierre ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20' :
+                                    isAsignar ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/20' :
+                                        'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
+                                }`}
+                        >
+                            {saving ? (
+                                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
+                            ) : (
+                                <><Icono className="w-4 h-4" /> {isCierre ? 'Certificar y Cerrar' : isAsignar ? 'Despachar a Ruta' : 'Generar OS'}</>
+                            )}
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        )
     }
 
-    const crearOrden = async () => {
-        const req = ['cliente_id', 'tipo_residuo', 'descripcion', 'kg_estimados', 'fecha_programada', 'direccion']
-        for (const k of req) { if (!form[k]) { showToast(`Campo requerido: ${k}`, 'error'); return } }
-        if (form.fecha_programada < today) { showToast('La fecha no puede ser pasada', 'error'); return }
-        setSaving(true)
-        const maxR = await ecoQuery('eco_ordenes', { select: 'numero', filters: ['order=numero.desc', 'limit=1'] })
-        const last = Array.isArray(maxR) && maxR[0] ? parseInt(maxR[0].numero.split('-')[1]) : 0
-        const numero = 'OS-' + String(last + 1).padStart(4, '0')
-        const r = await fetch(`${BASE}/eco_ordenes`, { method: 'POST', headers: { ...H, Prefer: 'return=representation' }, body: JSON.stringify({ ...form, numero, estado: 'programado' }) })
-        if (r.ok) { showToast('Orden ' + numero + ' registrada', 'success'); setModal(null); cargar() }
-        else showToast('Error al crear orden', 'error')
-        setSaving(false)
-    }
+    const DetalleModal = () => !detalleData ? null : (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-xl font-black text-indigo-600 font-mono tracking-tight">{detalleData.numero}</h3>
+                            {ecoEstadoBadge(detalleData.estado)}
+                            {detalleData.fecha_programada === today && <span className="bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider animate-pulse">Servicio Hoy</span>}
+                        </div>
+                        <p className="text-sm font-medium text-slate-500 flex items-center gap-1.5"><CalendarClock className="w-4 h-4" /> Programado para: {detalleData.fecha_programada}</p>
+                    </div>
+                    <button onClick={() => setModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
-    const resumen = [
-        { label: 'Hoy', val: data.filter((o: any) => o.fecha_programada === today).length, color: 'var(--eco-blue)' },
-        { label: 'Esta Semana', val: (() => { const d = new Date(); const mon = new Date(d.setDate(d.getDate() - d.getDay() + 1)).toISOString().split('T')[0]; const sun = new Date(d.setDate(d.getDate() - d.getDay() + 7)).toISOString().split('T')[0]; return data.filter((o: any) => o.fecha_programada >= mon && o.fecha_programada <= sun).length })(), color: 'var(--eco-green)' },
-        { label: 'Kg Mes', val: data.filter((o: any) => o.estado === 'completado' && o.fecha_programada?.startsWith(today.slice(0, 7))).reduce((s: number, o: any) => s + (Number(o.kg_reales) || 0), 0), color: 'var(--eco-text)', fmt: (v: number) => v.toLocaleString('es-PE') + ' kg' },
-        { label: 'Sin Vehículo', val: data.filter((o: any) => o.fecha_programada === today && !o.vehiculo_id).length, color: 'var(--eco-red)' },
-    ]
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
 
-    const pills = ['Todos', 'Programado', 'En Ruta', 'Recogido', 'En Planta', 'Completado', 'Cancelado']
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                        {/* Generador Info */}
+                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2"><Building2 className="w-4 h-4" /> Generador / Cliente</h4>
 
-    const flotaFiltrada = selected ? flota.filter((v: any) => !v.tipos_habilitados || v.tipos_habilitados.includes(selected.tipo_residuo)) : flota
+                            <p className="text-base font-bold text-slate-800 mb-1">{detalleData.eco_clientes?.razon_social || 'Cliente Sin Nombre'}</p>
+                            <p className="text-sm text-slate-500 font-mono mb-4">RUC: {detalleData.eco_clientes?.ruc || 'N/A'}</p>
+
+                            <div className="flex items-start gap-2">
+                                <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-medium text-slate-700 leading-snug">{detalleData.eco_clientes?.direccion || '—'}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{detalleData.eco_clientes?.distrito || '—'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Servicio Info */}
+                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2"><Package className="w-4 h-4" /> Detalle Biológico/Físico</h4>
+
+                            <div className="mb-4">
+                                <p className="text-xs text-slate-500 font-semibold mb-1.5">Clasificación Declarada</p>
+                                {ecoBadge(detalleData.tipo_residuo)}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 border-t border-slate-200/60 pt-4">
+                                <div>
+                                    <p className="text-xs text-slate-500 font-semibold mb-1">Vol. Estimado</p>
+                                    <p className="text-sm font-bold text-slate-800 font-mono">{Number(detalleData.peso_estimado).toLocaleString()} kg</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-emerald-600 font-bold mb-1">Peso Real (Planta)</p>
+                                    <p className={`text-lg font-black font-mono ${detalleData.kg_reales ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                        {detalleData.kg_reales ? `${Number(detalleData.kg_reales).toLocaleString()} kg` : 'S/R'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Logistica */}
+                    <div className="mb-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 border-b border-slate-100 pb-2 flex items-center gap-2"><Truck className="w-4 h-4" /> Control Logístico</h4>
+
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                                <Truck className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Unidad de Transporte</p>
+                                {detalleData.eco_flota ? (
+                                    <p className="text-base font-bold text-slate-800 flex items-center gap-2">
+                                        Placa <span className="bg-slate-200 px-2 py-0.5 rounded text-sm font-mono tracking-widest">{detalleData.eco_flota.placa}</span> ({detalleData.eco_flota.tipo})
+                                    </p>
+                                ) : (
+                                    <div className="flex items-center gap-3">
+                                        <p className="text-sm font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">Sin vehículo asignado a la ruta</p>
+                                        <button onClick={() => { setModal(null); abrirAsignar(detalleData) }} className="text-xs font-bold text-indigo-600 hover:underline">Asignar Ahora →</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {detalleData.observaciones && (
+                        <div className="mt-6 p-4 rounded-xl bg-amber-50/50 border border-amber-100 text-amber-900 text-sm">
+                            <span className="font-bold text-amber-700 mb-1 block">Observaciones:</span>
+                            {detalleData.observaciones}
+                        </div>
+                    )}
+                </div>
+
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        {['programado', 'en_ruta', 'recogido', 'en_planta'].includes(detalleData.estado) && (
+                            <button
+                                onClick={() => { setModal(null); abrirCierre(detalleData) }}
+                                className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2"
+                            >
+                                <CheckCircle2 className="w-4 h-4" /> Certificar OS
+                            </button>
+                        )}
+                        {detalleData.estado === 'programado' && (
+                            <button
+                                onClick={() => setEstadoDirecto(detalleData.id, 'cancelado')}
+                                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors"
+                            >
+                                Cancelar Servicio
+                            </button>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setModal(null)}
+                        className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
+                    >
+                        Cerrar Resumen
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    )
 
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            {/* Detalle modal */}
-            {modal === 'detalle' && selected && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 660, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 16, color: 'var(--eco-text)' }}>OS {selected.numero}</span>
-                            <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <AnimatePresence>
+                <FormModals />
+                <DetalleModal />
+            </AnimatePresence>
+
+            {/* Cabecera y KPIs */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+                <div className="xl:col-span-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                            <Package className="w-6 h-6 text-[#00c96e]" />
+                            Órdenes de Servicio (OS)
+                        </h2>
+                        <p className="text-slate-500 font-medium mt-1">Control logístico y trazabilidad de recolecciones.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-64">
+                            <input
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all"
+                                placeholder="OS-2024... o Empresa"
+                                value={buscar} onChange={e => handleBuscar(e.target.value)}
+                            />
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         </div>
-                        <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
-                            <div style={{ marginBottom: 12 }}>{ecoEstado(selected.estado)}</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                                {[['Cliente', selected.eco_clientes?.razon_social], ['Tipo', selected.tipo_residuo], ['Fecha', selected.fecha_programada], ['Hora', selected.hora_programada || '—'], ['Dirección', selected.direccion], ['Distrito', selected.distrito], ['Kg Estimados', selected.kg_estimados + ' kg'], ['Kg Reales', selected.kg_reales ? selected.kg_reales + ' kg' : 'No registrado aún']].map(([k, v]) => (
-                                    <div key={k} style={{ background: 'var(--eco-surface2)', borderRadius: 8, padding: 10 }}>
-                                        <div style={{ fontSize: 11, color: 'var(--eco-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>{k}</div>
-                                        <div style={{ fontSize: 13 }}>{v}</div>
-                                    </div>
-                                ))}
-                            </div>
-                            {selected.requiere_manifiesto && <div style={{ background: 'var(--eco-yellow-dim)', border: '1px solid var(--eco-yellow)', borderRadius: 8, padding: 10, fontSize: 13, color: 'var(--eco-yellow)' }}>⚠ Esta orden requiere Manifiesto MINEM</div>}
-                            <div style={{ display: 'flex', gap: 6, marginTop: 16, flexWrap: 'wrap' }}>
-                                {['programado', 'en_ruta'].includes(selected.estado) && <button className="eco-btn-primary" style={{ fontSize: 12 }} onClick={() => setModal('recojo')}>Registrar Recojo</button>}
-                                {!selected.vehiculo_id && <button className="eco-btn-secondary" style={{ fontSize: 12 }} onClick={() => setModal('vehiculo')}>Asignar Vehículo</button>}
-                                {selected.estado === 'programado' && <button className="eco-btn-danger" style={{ fontSize: 12 }} onClick={() => setModal('cancelar')}>Cancelar Orden</button>}
-                            </div>
-                        </div>
+                        <button
+                            onClick={abrirNuevo}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#00c96e] hover:bg-[#00b060] text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-md shadow-[#00c96e]/20 active:scale-95"
+                        >
+                            <Plus className="w-4 h-4" /> Generar OS
+                        </button>
                     </div>
                 </div>
-            )}
 
-            {/* Recojo Modal */}
-            {modal === 'recojo' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 460, maxWidth: '95vw' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 15 }}>Registrar Recojo</span>
-                            <button onClick={() => setModal('detalle')} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div><label className="eco-label">Kg Reales Recolectados *</label><input className="eco-input" type="number" min="0.1" onChange={e => setForm({ ...form, kg_reales: e.target.value })} /></div>
-                            <div><label className="eco-label">Observaciones</label><textarea className="eco-input" rows={2} style={{ resize: 'none' }} onChange={e => setForm({ ...form, obs: e.target.value })} /></div>
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal('detalle')}>Cancelar</button>
-                            <button className="eco-btn-primary" disabled={saving} onClick={registrarRecojo}>Registrar</button>
-                        </div>
+                {/* Micro KPIs */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-[#00c96e]/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><CalendarClock className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Hoy</p>
+                        <p className="text-4xl font-black text-slate-800 mt-1">{ordenesHoy.length}</p>
                     </div>
                 </div>
-            )}
-
-            {/* Vehículo Modal */}
-            {modal === 'vehiculo' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 500, maxWidth: '95vw' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 15 }}>Asignar Vehículo</span>
-                            <button onClick={() => setModal('detalle')} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div><label className="eco-label">Vehículo (compatible con {selected?.tipo_residuo})</label>
-                                <select className="eco-select" onChange={e => setForm({ ...form, vehiculo_id: e.target.value })}>
-                                    <option value="">Seleccione...</option>
-                                    {flotaFiltrada.map((v: any) => <option key={v.id} value={v.id}>{v.placa} — {v.tipo} — Cap: {v.capacidad_kg} kg</option>)}
-                                </select>
-                            </div>
-                            <div><label className="eco-label">Conductor</label>
-                                <select className="eco-select" onChange={e => setForm({ ...form, operario_id: e.target.value })}>
-                                    <option value="">Seleccione...</option>
-                                    {operarios.filter((o: any) => o.cargo === 'conductor' || o.cargo === 'supervisor').map((o: any) => <option key={o.id} value={o.id}>{o.nombres} {o.apellidos}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal('detalle')}>Cancelar</button>
-                            <button className="eco-btn-primary" disabled={saving} onClick={asignarVehiculo}>Confirmar Asignación</button>
-                        </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-blue-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><Activity className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">En Proceso</p>
+                        <p className="text-4xl font-black text-blue-500 mt-1">{pendientesHoy}</p>
                     </div>
                 </div>
-            )}
-
-            {/* Cancelar Modal */}
-            {modal === 'cancelar' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 460, maxWidth: '95vw' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 15, color: 'var(--eco-red)' }}>Cancelar Orden</span>
-                            <button onClick={() => setModal('detalle')} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24 }}>
-                            <label className="eco-label">Motivo de cancelación * (mínimo 10 caracteres)</label>
-                            <textarea className="eco-input" rows={3} style={{ resize: 'none' }} onChange={e => setForm({ ...form, motivo: e.target.value })} />
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal('detalle')}>No, volver</button>
-                            <button className="eco-btn-danger" onClick={cancelarOrden}>Confirmar Cancelación</button>
-                        </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-amber-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><AlertCircle className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Sin Asignar Ruta</p>
+                        <p className="text-4xl font-black text-amber-500 mt-1">{sinAsignar}</p>
                     </div>
                 </div>
-            )}
-
-            {/* Nueva Orden Modal */}
-            {modal === 'nuevo' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 700, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 16 }}>Nueva Orden de Servicio</span>
-                            <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                            <div><label className="eco-label">Cliente *</label>
-                                <select className="eco-select" onChange={e => setForm({ ...form, cliente_id: e.target.value })}>
-                                    <option value="">Seleccione...</option>
-                                    {clientes.map((c: any) => <option key={c.id} value={c.id}>{c.razon_social}</option>)}
-                                </select></div>
-                            <div><label className="eco-label">Tipo de Residuo *</label>
-                                <select className="eco-select" onChange={e => setForm({ ...form, tipo_residuo: e.target.value, requiere_manifiesto: ['peligroso', 'hospitalario'].includes(e.target.value) })}>
-                                    <option value="">Seleccione...</option>
-                                    {['municipal', 'peligroso', 'hospitalario', 'desmonte'].map(t => <option key={t}>{t}</option>)}
-                                </select>
-                                {['peligroso', 'hospitalario'].includes(form.tipo_residuo) && <div style={{ marginTop: 6, fontSize: 12, color: 'var(--eco-blue)', background: 'var(--eco-blue-dim)', padding: '6px 10px', borderRadius: 6 }}>⚠ Requiere Manifiesto MINEM automáticamente</div>}
-                            </div>
-                            <div style={{ gridColumn: '1/-1' }}><label className="eco-label">Descripción *</label><textarea className="eco-input" rows={2} style={{ resize: 'none' }} onChange={e => setForm({ ...form, descripcion: e.target.value })} /></div>
-                            <div><label className="eco-label">Kg Estimados *</label><input className="eco-input" type="number" onChange={e => setForm({ ...form, kg_estimados: Number(e.target.value) })} /></div>
-                            <div><label className="eco-label">Fecha Programada *</label><input className="eco-input" type="date" min={today} onChange={e => setForm({ ...form, fecha_programada: e.target.value })} /></div>
-                            <div><label className="eco-label">Hora Programada *</label><input className="eco-input" type="time" onChange={e => setForm({ ...form, hora_programada: e.target.value })} /></div>
-                            <div><label className="eco-label">Precio S/.</label><input className="eco-input" type="number" onChange={e => setForm({ ...form, precio: Number(e.target.value) })} /></div>
-                            <div style={{ gridColumn: '1/-1' }}><label className="eco-label">Dirección de Recojo *</label><input className="eco-input" onChange={e => setForm({ ...form, direccion: e.target.value })} /></div>
-                            <div><label className="eco-label">Distrito *</label><input className="eco-input" onChange={e => setForm({ ...form, distrito: e.target.value })} /></div>
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal(null)}>Cancelar</button>
-                            <button className="eco-btn-primary" disabled={saving} onClick={crearOrden}>{saving ? 'Creando...' : 'Registrar Orden'}</button>
-                        </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><CheckCircle2 className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Eficiencia Hoy</p>
+                        <p className="text-4xl font-black text-emerald-500 mt-1">{pctHoy}%</p>
                     </div>
                 </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <span className="sg" style={{ fontSize: 20, fontWeight: 600 }}>Órdenes de Servicio</span>
-                <button className="eco-btn-primary" onClick={() => { setForm({}); setModal('nuevo') }}>+ Nueva Orden</button>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                {pills.map(p => <button key={p} onClick={() => { setPill(p); filtrar(data, p) }} style={{ padding: '6px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer', border: '1px solid', borderColor: pill === p ? 'var(--eco-green)' : 'var(--eco-border)', background: pill === p ? 'var(--eco-green-dim)' : 'transparent', color: pill === p ? 'var(--eco-green)' : 'var(--eco-text-muted)', transition: 'all 200ms' }}>{p}</button>)}
-            </div>
+            {/* Listado Principal */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center gap-2">
+                    {pills.map(p => {
+                        const isA = pillActivo === p
+                        return (
+                            <button
+                                key={p} onClick={() => handlePill(p)}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isA ? 'bg-slate-800 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                                    }`}
+                            >
+                                {p}
+                            </button>
+                        )
+                    })}
+                </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
-                {resumen.map((r, i) => <div key={i} className="eco-card" style={{ cursor: 'default' }}>
-                    <div style={{ fontSize: 12, color: 'var(--eco-text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>{r.label}</div>
-                    <div className="sg" style={{ fontSize: 26, fontWeight: 700, color: r.color }}>{r.fmt ? r.fmt(r.val) : r.val}</div>
-                </div>)}
-            </div>
-
-            <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="eco-table" style={{ minWidth: 900 }}>
-                        <thead><tr><th>N° OS</th><th>Cliente</th><th>Tipo</th><th>Fecha</th><th>Km Estimados</th><th>Kg Reales</th><th>Vehículo</th><th>Estado</th><th>Acciones</th></tr></thead>
-                        <tbody>
-                            {loading ? <tr><td colSpan={9}><div style={{ height: 80, animation: 'ecoPulse 1.5s infinite', background: 'var(--eco-border)', margin: 12, borderRadius: 4 }} /></td></tr> :
-                                filtrado.length === 0 ? <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--eco-text-muted)' }}>Sin órdenes</td></tr> :
-                                    filtrado.map((o: any) => {
-                                        const atrasada = o.fecha_programada < today && !['completado', 'cancelado'].includes(o.estado)
-                                        return (
-                                            <tr key={o.id}>
-                                                <td className="sg" style={{ color: 'var(--eco-green)', fontWeight: 600 }}>{o.numero}</td>
-                                                <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.eco_clientes?.razon_social}</td>
-                                                <td>{ecoBadge(o.tipo_residuo)}</td>
-                                                <td style={{ color: atrasada ? 'var(--eco-red)' : 'var(--eco-text-muted)', fontSize: 12 }}>{o.fecha_programada}</td>
-                                                <td style={{ color: 'var(--eco-text-muted)' }}>{o.kg_estimados} kg</td>
-                                                <td style={{ color: 'var(--eco-text-muted)' }}>{o.kg_reales ? o.kg_reales + ' kg' : '—'}</td>
-                                                <td>{o.eco_flota?.placa ? <span className="sg" style={{ color: 'var(--eco-green)', fontSize: 12, fontWeight: 600 }}>{o.eco_flota.placa}</span> : <span style={{ background: 'var(--eco-red-dim)', color: 'var(--eco-red)', fontSize: 11, padding: '2px 6px', borderRadius: 8 }}>Sin asignar</span>}</td>
-                                                <td>{ecoEstado(o.estado)}</td>
-                                                <td>
-                                                    <div style={{ display: 'flex', gap: 4 }}>
-                                                        <button title="Ver detalle" onClick={() => { setSelected(o); setForm({}); setModal('detalle') }} style={{ padding: '4px 8px', background: 'var(--eco-surface2)', border: '1px solid var(--eco-border)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--eco-text-muted)' }}>👁</button>
-                                                        {!o.vehiculo_id && <button title="Asignar vehículo" onClick={() => { setSelected(o); setForm({}); setModal('vehiculo') }} style={{ padding: '4px 8px', background: 'var(--eco-green-dim)', border: '1px solid var(--eco-green)', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--eco-green)' }}>🚛</button>}
-                                                        {['programado', 'en_ruta'].includes(o.estado) && <button title="Registrar recojo" onClick={() => { setSelected(o); setForm({}); setModal('recojo') }} style={{ padding: '4px 8px', background: 'var(--eco-blue-dim)', border: '1px solid var(--eco-blue)', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--eco-blue)' }}>✔</button>}
+                <div className="overflow-x-auto min-h-[400px]">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-white text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
+                                <th className="px-6 py-4 whitespace-nowrap">N° Orden</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Generador Confirmado</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Carga / Volumen</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Logística Ruteo</th>
+                                <th className="px-6 py-4 whitespace-nowrap text-right">Progreso / Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i}>
+                                        <td colSpan={5} className="p-6"><div className="h-12 bg-slate-50 rounded-xl animate-pulse" /></td>
+                                    </tr>
+                                ))
+                            ) : filtrado.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-16 text-center text-slate-500">
+                                        <div className="w-16 h-16 mx-auto bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-3"><Package className="w-6 h-6" /></div>
+                                        <p className="font-semibold text-slate-700">Canal Despejado</p>
+                                        <p className="text-sm mt-1">No se encontraron órdenes para esta vista.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtrado.map((c: any) => {
+                                    return (
+                                        <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-indigo-600 font-mono text-sm">{c.numero}</p>
+                                                <p className="text-[10px] uppercase font-bold text-slate-400 mt-1">{c.fecha_programada}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-slate-800 max-w-[200px] truncate">{c.eco_clientes?.razon_social || 'Desconocido'}</p>
+                                                <p className="text-xs text-slate-500 truncate flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" /> {c.eco_clientes?.distrito || '—'}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="mb-1.5">{ecoBadge(c.tipo_residuo)}</div>
+                                                <p className="text-xs text-slate-500 font-mono">
+                                                    {c.estado === 'completado' ? (
+                                                        <span className="text-emerald-600 font-bold">{c.kg_reales} kg Reales</span>
+                                                    ) : (
+                                                        <span>{c.peso_estimado} kg Estimado</span>
+                                                    )}
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {c.vehiculo_id ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600"><Truck className="w-4 h-4" /></div>
+                                                        <div>
+                                                            <p className="text-xs font-bold text-slate-700">Unidad Asignada</p>
+                                                            <p className="text-[10px] font-mono font-bold tracking-widest text-slate-500">{c.eco_flota?.placa}</p>
+                                                        </div>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold"><AlertCircle className="w-3.5 h-3.5" /> Sin Vehículo</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex flex-col items-end gap-2">
+                                                    {ecoEstadoBadge(c.estado)}
+
+                                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => verDetalle(c)}
+                                                            className="px-2 py-1 flex items-center gap-1 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-[10px] font-bold uppercase transition-colors"
+                                                            title="Ver Detalle OS"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5" /> Detalle
+                                                        </button>
+
+                                                        {!c.vehiculo_id && c.estado !== 'cancelado' && (
+                                                            <button
+                                                                onClick={() => abrirAsignar(c)}
+                                                                className="px-2 py-1 flex items-center gap-1 rounded bg-amber-50 text-amber-600 hover:bg-amber-100 text-[10px] font-bold uppercase transition-colors"
+                                                            >
+                                                                <Truck className="w-3.5 h-3.5" /> Despachar
+                                                            </button>
+                                                        )}
+
+                                                        {['programado', 'en_ruta', 'recogido', 'en_planta'].includes(c.estado) && (
+                                                            <button
+                                                                onClick={() => abrirCierre(c)}
+                                                                className="px-2 py-1 flex items-center gap-1 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 text-[10px] font-bold uppercase transition-colors"
+                                                            >
+                                                                <CheckCircle2 className="w-3.5 h-3.5" /> Certificar
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background-color: #cbd5e1;
+                    border-radius: 20px;
+                }
+            `}</style>
+        </motion.div>
     )
 }

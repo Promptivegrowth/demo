@@ -1,260 +1,285 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+    Search,
+    X,
+    FileCheck,
+    CheckCircle2,
+    CalendarClock,
+    Truck,
+    AlertCircle,
+    Activity,
+    FileText,
+    ArrowRight,
+    UserCircle,
+    Building2,
+    Lock
+} from 'lucide-react'
 
-const ECO_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2aHJ6cXJkenlrYnZoaWZzb3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTExMTQsImV4cCI6MjA4ODY2NzExNH0.8hwx4D0tbe8e8b9sFhG6shO7yLgM-3Q-ViZNkavC4iE'
-const BASE = 'https://yvhrzqrdzykbvhifsoxk.supabase.co/rest/v1'
-const H = { apikey: ECO_ANON, Authorization: `Bearer ${ECO_ANON}`, 'Content-Type': 'application/json' }
+const ecoEstadoBadge = (estado: string) => {
+    const map: any = {
+        generado: ['bg-blue-50 text-blue-600 border-blue-200', 'Generado', FileText],
+        en_transito: ['bg-amber-50 text-amber-600 border-amber-200', 'En Tránsito', Truck],
+        entregado: ['bg-indigo-50 text-indigo-600 border-indigo-200', 'En Planta', Building2],
+        cerrado: ['bg-emerald-100 text-emerald-700 border-emerald-300', 'Cerrado', Lock],
+    }
+    const [style, txt, Icon] = map[estado] || ['bg-slate-50 text-slate-600 border-slate-200', estado, Activity]
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${style}`}>
+            <Icon className="w-3 h-3" /> {txt}
+        </span>
+    )
+}
 
 export default function TabEcoManifiestos({ showToast, ecoQuery }: any) {
     const [data, setData] = useState<any[]>([])
+    const [filtrado, setFiltrado] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [modal, setModal] = useState<any>(null)
-    const [selected, setSelected] = useState<any>(null)
-    const [form, setForm] = useState<any>({})
-    const [saving, setSaving] = useState(false)
-    const [ordenesSinManifiesto, setOrdenesSinManifiesto] = useState<any[]>([])
-
-    const today = new Date().toISOString().split('T')[0]
+    const [buscar, setBuscar] = useState('')
+    const [pillActivo, setPillActivo] = useState('Pendientes Cierre')
 
     const cargar = async () => {
         setLoading(true)
-        const [r, ords] = await Promise.all([
-            ecoQuery('eco_manifiestos', { select: '*,eco_clientes(razon_social),eco_ordenes(numero)', filters: ['order=created_at.desc'] }),
-            ecoQuery('eco_ordenes', { select: 'id,numero,tipo_residuo,kg_estimados,cliente_id', filters: ['requiere_manifiesto=eq.true', 'order=created_at.desc'] }),
-        ])
-        const manifArr = Array.isArray(r) ? r : []
-        setData(manifArr)
-        const manifOrdIds = new Set(manifArr.map((m: any) => m.orden_id))
-        setOrdenesSinManifiesto((Array.isArray(ords) ? ords : []).filter((o: any) => !manifOrdIds.has(o.id)))
+        const mans = await ecoQuery('eco_manifiestos', {
+            select: '*,eco_ordenes(numero,eco_clientes(razon_social)),eco_operarios(nombres),eco_flota(placa)',
+            filters: ['order=created_at.desc']
+        })
+        const arr = Array.isArray(mans) ? mans : []
+        setData(arr)
+        filtrar(arr, buscar, pillActivo)
         setLoading(false)
     }
 
     useEffect(() => { cargar() }, [])
 
-    const diasActivo = (fecha: string) => Math.floor((Date.now() - new Date(fecha).getTime()) / 86400000)
+    const filtrar = (lista: any[], busq: string, pill: string) => {
+        let res = lista
+        if (busq) {
+            const b = busq.toLowerCase()
+            res = res.filter((c: any) => c.numero?.toLowerCase().includes(b) || c.eco_ordenes?.numero?.toLowerCase().includes(b) || c.eco_ordenes?.eco_clientes?.razon_social?.toLowerCase().includes(b))
+        }
 
-    const estadosBadge: any = {
-        generado: ['var(--eco-blue-dim)', 'var(--eco-blue)', 'Generado'],
-        en_transporte: ['var(--eco-yellow-dim)', 'var(--eco-yellow)', 'En Transporte'],
-        recibido: ['var(--eco-green-dim)', 'var(--eco-green)', 'Recibido'],
-        disposicion_final: ['var(--eco-green-dim)', 'var(--eco-green)', 'Disposición Final'],
-        cerrado: ['rgba(180,180,180,0.05)', '#aaa', 'Cerrado ✓'],
+        if (pill === 'Pendientes Cierre') res = res.filter((c: any) => c.estado !== 'cerrado')
+        else if (pill === 'Cerrados') res = res.filter((c: any) => c.estado === 'cerrado')
+        else if (pill === 'En Tránsito') res = res.filter((c: any) => c.estado === 'en_transito')
+        else if (pill === 'Observados (>30d)') {
+            res = res.filter((m: any) => m.estado !== 'cerrado' && Math.floor((Date.now() - new Date(m.fecha_generacion).getTime()) / 86400000) > 30)
+        }
+
+        setFiltrado(res)
     }
 
-    const siguienteEstado: any = { generado: 'en_transporte', en_transporte: 'recibido', recibido: 'disposicion_final', disposicion_final: 'cerrado' }
-    const titulosAvance: any = { en_transporte: 'Confirmar Salida a Transporte', recibido: 'Confirmar Recepción en Planta', disposicion_final: 'Registrar Disposición Final', cerrado: 'Cerrar Manifiesto' }
+    const handleBuscar = (v: string) => { setBuscar(v); filtrar(data, v, pillActivo) }
+    const handlePill = (p: string) => { setPillActivo(p); filtrar(data, buscar, p) }
 
-    const avanzarEstado = async () => {
-        if (!selected) return
-        const sig = siguienteEstado[selected.estado]
-        setSaving(true)
-        const body: any = { estado: sig }
-        if (sig === 'disposicion_final') { body.empresa_disposicion = form.empresa; body.numero_certificado = form.certificado; body.fecha_disposicion = form.fecha_disposicion }
-        if (sig === 'cerrado') { if (!form.num_minem) { showToast('N° Registro MINEM requerido', 'error'); setSaving(false); return } body.numero_certificado = form.num_minem }
-        await fetch(`${BASE}/eco_manifiestos?id=eq.${selected.id}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) })
-        showToast(`Manifiesto ${selected.numero}: ${sig}`, 'success')
-        setModal(null); cargar()
-        setSaving(false)
+    const setEstadoDirecto = async (id: string, st: string) => {
+        if (!confirm(`¿Actualizar manifiesto a ${st}?`)) return
+        await ecoQuery('eco_manifiestos', { update: { estado: st }, id })
+        showToast(`Manifiesto actualizado a ${st}`, 'success'); cargar()
     }
 
-    const crearManifiesto = async () => {
-        if (!form.orden_id || !form.descripcion) { showToast('Complete los campos requeridos', 'error'); return }
-        setSaving(true)
-        const maxR = await ecoQuery('eco_manifiestos', { select: 'numero', filters: ['order=numero.desc', 'limit=1'] })
-        const last = Array.isArray(maxR) && maxR[0] ? parseInt(maxR[0].numero.split('-')[1]) : 0
-        const numero = 'MAN-' + String(last + 1).padStart(4, '0')
-        const orden = ordenesSinManifiesto.find((o: any) => o.id === form.orden_id)
-        const r = await fetch(`${BASE}/eco_manifiestos`, { method: 'POST', headers: { ...H, Prefer: 'return=representation' }, body: JSON.stringify({ numero, orden_id: form.orden_id, cliente_id: orden?.cliente_id, tipo_residuo: form.tipo_residuo || orden?.tipo_residuo, codigo_residuo: form.codigo_residuo, descripcion: form.descripcion, cantidad_kg: form.cantidad_kg || orden?.kg_estimados, empresa_disposicion: form.empresa_disposicion, fecha_generacion: today, estado: 'generado' }) })
-        if (r.ok) { showToast(`Manifiesto ${numero} generado`, 'success'); setModal(null); cargar() }
-        else showToast('Error al generar manifiesto', 'error')
-        setSaving(false)
-    }
+    const pills = ['Todos', 'Pendientes Cierre', 'Cerrados', 'En Tránsito', 'Observados (>30d)']
 
-    const criticos = data.filter((m: any) => diasActivo(m.fecha_generacion) > 30 && m.estado !== 'cerrado')
-    const resumen = [
-        { label: 'Manifiestos Activos', val: data.filter((m: any) => m.estado !== 'cerrado').length, color: 'var(--eco-yellow)' },
-        { label: 'Pendientes Transporte', val: data.filter((m: any) => m.estado === 'generado').length, color: 'var(--eco-blue)' },
-        { label: 'En Proceso', val: data.filter((m: any) => ['en_transporte', 'recibido'].includes(m.estado)).length, color: 'var(--eco-green)' },
-        { label: 'Sin cerrar >30 días', val: criticos.length, color: 'var(--eco-red)' },
-    ]
-
-    const etapas = ['generado', 'en_transporte', 'recibido', 'disposicion_final', 'cerrado']
-    const etapaLabels = ['Generado', 'En Transporte', 'Recibido', 'Disp. Final', 'Cerrado']
+    // KPI Data
+    const total = data.length
+    const pendientes = data.filter(c => c.estado !== 'cerrado').length
+    const enTransito = data.filter(c => c.estado === 'en_transito').length
+    const observados = data.filter((m: any) => m.estado !== 'cerrado' && Math.floor((Date.now() - new Date(m.fecha_generacion).getTime()) / 86400000) > 30).length
+    const pctCierre = total ? Math.round(((total - pendientes) / total) * 100) : 0
 
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            {/* Modal Nuevo Manifiesto */}
-            {modal === 'nuevo' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 600, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 16 }}>Generar Manifiesto</span>
-                            <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                            <div><label className="eco-label">Orden de Servicio *</label>
-                                <select className="eco-select" onChange={e => { const o = ordenesSinManifiesto.find((x: any) => x.id === e.target.value); setForm({ ...form, orden_id: e.target.value, tipo_residuo: o?.tipo_residuo, cantidad_kg: o?.kg_estimados }) }}>
-                                    <option value="">Seleccione OS con manifiesto requerido...</option>
-                                    {ordenesSinManifiesto.map((o: any) => <option key={o.id} value={o.id}>{o.numero} — {o.tipo_residuo}</option>)}
-                                </select>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div><label className="eco-label">Código Residuo MINEM</label><input className="eco-input" placeholder="Ej: A4-210" onChange={e => setForm({ ...form, codigo_residuo: e.target.value })} /></div>
-                                <div><label className="eco-label">Kg</label><input className="eco-input" type="number" value={form.cantidad_kg || ''} onChange={e => setForm({ ...form, cantidad_kg: Number(e.target.value) })} /></div>
-                            </div>
-                            <div><label className="eco-label">Descripción del Residuo *</label><textarea className="eco-input" rows={2} style={{ resize: 'none' }} onChange={e => setForm({ ...form, descripcion: e.target.value })} /></div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div><label className="eco-label">Empresa de Disposición Final</label><input className="eco-input" onChange={e => setForm({ ...form, empresa_disposicion: e.target.value })} /></div>
-                                <div><label className="eco-label">Fecha Programada Disposición</label><input className="eco-input" type="date" onChange={e => setForm({ ...form, fecha_disposicion: e.target.value })} /></div>
-                            </div>
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal(null)}>Cancelar</button>
-                            <button className="eco-btn-primary" disabled={saving} onClick={crearManifiesto}>{saving ? 'Generando...' : 'Generar Manifiesto'}</button>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            {/* Cabecera y KPIs */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+                <div className="xl:col-span-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                            <FileCheck className="w-6 h-6 text-[#00c96e]" />
+                            Manifiestos MRyS
+                        </h2>
+                        <p className="text-slate-500 font-medium mt-1">Control del ciclo de vida documentario obligatorio por MINAM.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-80">
+                            <input
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all"
+                                placeholder="Buscar por N° de Manifiesto u Orden (OS)..."
+                                value={buscar} onChange={e => handleBuscar(e.target.value)}
+                            />
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         </div>
                     </div>
                 </div>
-            )}
 
-            {/* Modal Avanzar Estado */}
-            {modal === 'avanzar' && selected && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 500, maxWidth: '95vw', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 16 }}>{titulosAvance[siguienteEstado[selected.estado]]}</span>
-                            <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {siguienteEstado[selected.estado] === 'en_transporte' && (<>
-                                <div><label className="eco-label">Hora de salida</label><input className="eco-input" type="time" defaultValue={new Date().toTimeString().slice(0, 5)} onChange={e => setForm({ ...form, hora: e.target.value })} /></div>
-                                <div><label className="eco-label">Nombre del transportista</label><input className="eco-input" onChange={e => setForm({ ...form, transportista: e.target.value })} /></div>
-                            </>)}
-                            {siguienteEstado[selected.estado] === 'recibido' && (<>
-                                <div><label className="eco-label">Fecha de recepción</label><input className="eco-input" type="date" defaultValue={today} onChange={e => setForm({ ...form, fecha_rec: e.target.value })} /></div>
-                                <div><label className="eco-label">Nombre del receptor</label><input className="eco-input" onChange={e => setForm({ ...form, receptor: e.target.value })} /></div>
-                            </>)}
-                            {siguienteEstado[selected.estado] === 'disposicion_final' && (<>
-                                <div><label className="eco-label">Empresa de Disposición</label><input className="eco-input" onChange={e => setForm({ ...form, empresa: e.target.value })} /></div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                    <div><label className="eco-label">N° Certificado</label><input className="eco-input" onChange={e => setForm({ ...form, certificado: e.target.value })} /></div>
-                                    <div><label className="eco-label">Fecha</label><input className="eco-input" type="date" defaultValue={today} onChange={e => setForm({ ...form, fecha_disposicion: e.target.value })} /></div>
-                                </div>
-                            </>)}
-                            {siguienteEstado[selected.estado] === 'cerrado' && (<>
-                                <div style={{ background: 'var(--eco-surface2)', borderRadius: 8, padding: 10, fontSize: 13, color: 'var(--eco-text-muted)' }}>Al cerrar este manifiesto, el proceso legal quedará completado.</div>
-                                <div><label className="eco-label">N° de Registro MINEM *</label><input className="eco-input" onChange={e => setForm({ ...form, num_minem: e.target.value })} /></div>
-                            </>)}
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal(null)}>Cancelar</button>
-                            <button className="eco-btn-primary" disabled={saving} onClick={avanzarEstado}>{saving ? 'Guardando...' : 'Confirmar'}</button>
-                        </div>
+                {/* Micro KPIs */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-slate-400/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><FileText className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Firmas Pendientes</p>
+                        <p className="text-4xl font-black text-slate-800 mt-1">{pendientes}</p>
                     </div>
                 </div>
-            )}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-[#00c96e]/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><CheckCircle2 className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Tasa de Cierre Anual</p>
+                        <p className="text-4xl font-black text-[#00c96e] mt-1">{pctCierre}%</p>
+                    </div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-blue-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><Truck className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Guías En Tránsito</p>
+                        <p className="text-4xl font-black text-blue-500 mt-1">{enTransito}</p>
+                    </div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-rose-500/30 transition-colors">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><AlertCircle className="w-24 h-24" /></div>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Fuera de Plazo MTC</p>
+                        <p className="text-4xl font-black text-rose-500 mt-1">{observados}</p>
+                    </div>
+                </div>
+            </div>
 
-            {/* Modal Detalle */}
-            {modal === 'detalle' && selected && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 16, width: 680, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="sg" style={{ fontWeight: 600, fontSize: 16, color: 'var(--eco-green)' }}>{selected.numero}</span>
-                            <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', color: 'var(--eco-text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
-                        </div>
-                        <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
-                            {/* Timeline */}
-                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24, overflowX: 'auto' }}>
-                                {etapas.map((e, i) => {
-                                    const idx = etapas.indexOf(selected.estado)
-                                    const done = i < idx; const current = i === idx
+            {/* Listado Principal */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden min-h-[500px]">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center gap-2">
+                    {pills.map(p => {
+                        const isA = pillActivo === p
+                        return (
+                            <button
+                                key={p} onClick={() => handlePill(p)}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isA ? 'bg-slate-800 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                                    }`}
+                            >
+                                {p}
+                            </button>
+                        )
+                    })}
+                </div>
+
+                <div className="overflow-x-auto flex-1">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-white text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
+                                <th className="px-6 py-4 whitespace-nowrap">Documento MRyS</th>
+                                <th className="px-6 py-4 whitespace-nowrap">OS y Procedencia</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Agente Operativo</th>
+                                <th className="px-6 py-4 whitespace-nowrap text-right">Trazabilidad (Dias)</th>
+                                <th className="px-6 py-4 whitespace-nowrap text-right">Estatus Legal</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i}>
+                                        <td colSpan={5} className="p-6"><div className="h-12 bg-slate-50 rounded-xl animate-pulse" /></td>
+                                    </tr>
+                                ))
+                            ) : filtrado.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-16 text-center text-slate-500">
+                                        <div className="w-16 h-16 mx-auto bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-3"><FileCheck className="w-6 h-6" /></div>
+                                        <p className="font-semibold text-slate-700">Sin Manifiestos Visibles</p>
+                                        <p className="text-sm mt-1">Acorde al filtro seleccionado, no existen documentos.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtrado.map((c: any) => {
+                                    const days = Math.floor((Date.now() - new Date(c.fecha_generacion).getTime()) / 86400000)
+                                    const isLate = c.estado !== 'cerrado' && days > 30
+
                                     return (
-                                        <React.Fragment key={e}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 80 }}>
-                                                <div style={{ width: 28, height: 28, borderRadius: '50%', background: done ? 'var(--eco-green-dark)' : current ? 'var(--eco-green)' : 'var(--eco-surface2)', border: `2px solid ${done || current ? 'var(--eco-green)' : 'var(--eco-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: done ? 'white' : current ? '#0a0f0d' : 'var(--eco-text-muted)', fontWeight: 700 }}>
-                                                    {done ? '✓' : i + 1}
+                                        <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-slate-800 font-mono tracking-wide">{c.numero}</p>
+                                                <p className="text-xs text-slate-400 mt-1">EM: {c.fecha_generacion}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-indigo-600 font-mono text-sm mb-1">{c.eco_ordenes?.numero || 'S/OS'}</p>
+                                                <p className="text-xs text-slate-600 font-semibold truncate max-w-[200px]" title={c.eco_ordenes?.eco_clientes?.razon_social}>
+                                                    {c.eco_ordenes?.eco_clientes?.razon_social || 'Cliente Desconocido'}
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Truck className="w-3.5 h-3.5 text-slate-400" />
+                                                    <span className="text-xs font-bold text-slate-700 font-mono uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">{c.eco_flota?.placa || 'N/A'}</span>
                                                 </div>
-                                                <div style={{ fontSize: 9, marginTop: 4, color: current ? 'var(--eco-green)' : 'var(--eco-text-muted)', textAlign: 'center' }}>{etapaLabels[i]}</div>
-                                            </div>
-                                            {i < etapas.length - 1 && <div style={{ flex: 1, height: 2, background: done ? 'var(--eco-green)' : 'var(--eco-border)', minWidth: 20 }} />}
-                                        </React.Fragment>
-                                    )
-                                })}
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                                {[['Código Residuo', selected.codigo_residuo], ['Tipo Residuo', selected.tipo_residuo], ['Kg', selected.cantidad_kg], ['Empresa Disposición', selected.empresa_disposicion], ['F. Generación', selected.fecha_generacion], ['F. Disposición', selected.fecha_disposicion || '—'], ['OS Vinculada', selected.eco_ordenes?.numero], ['Cliente', selected.eco_clientes?.razon_social]].map(([k, v]) => (
-                                    <div key={k} style={{ background: 'var(--eco-surface2)', borderRadius: 8, padding: 10 }}>
-                                        <div style={{ fontSize: 11, color: 'var(--eco-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>{k}</div>
-                                        <div style={{ fontSize: 13 }}>{v || '—'}</div>
-                                    </div>
-                                ))}
-                            </div>
-                            {selected.estado === 'cerrado' && selected.numero_certificado && (
-                                <div style={{ background: 'var(--eco-green-dim)', border: '1px solid var(--eco-green)', borderRadius: 8, padding: 12, fontSize: 14, color: 'var(--eco-green)', fontWeight: 600 }}>
-                                    ✓ Certificado: {selected.numero_certificado}
-                                </div>
-                            )}
-                        </div>
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--eco-border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="eco-btn-secondary" onClick={() => setModal(null)}>Cerrar</button>
-                            {selected.estado !== 'cerrado' && <button className="eco-btn-primary" onClick={() => { setForm({}); setModal('avanzar') }}>Avanzar Estado →</button>}
-                        </div>
-                    </div>
-                </div>
-            )}
+                                                <div className="flex items-center gap-2">
+                                                    <UserCircle className="w-3.5 h-3.5 text-slate-400" />
+                                                    <span className="text-xs text-slate-500 font-medium">{c.eco_operarios?.nombres?.split(' ')[0] || 'Por Asignar'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                {c.estado === 'cerrado' ? (
+                                                    <span className="text-emerald-500 font-bold text-sm bg-emerald-50 px-2 py-1 rounded"><CheckCircle2 className="w-4 h-4 inline mr-1 -mt-0.5" /> OK</span>
+                                                ) : (
+                                                    <span className={`text-xl font-black ${isLate ? 'text-rose-500' : 'text-slate-700'}`}>
+                                                        {days} <span className="text-xs font-bold text-slate-400">d</span>
+                                                    </span>
+                                                )}
+                                                {isLate && (
+                                                    <p className="text-[10px] font-bold text-rose-500 uppercase mt-1 animate-pulse tracking-wider">Multa MINAM</p>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex flex-col items-end gap-2 text-right">
+                                                    {ecoEstadoBadge(c.estado)}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <span className="sg" style={{ fontSize: 20, fontWeight: 600 }}>Manifiestos MINEM</span>
-                <button className="eco-btn-primary" onClick={() => { setForm({}); setModal('nuevo') }}>+ Generar Manifiesto</button>
-            </div>
-
-            {criticos.length > 0 && (
-                <div style={{ background: 'var(--eco-red-dim)', borderLeft: '4px solid var(--eco-red)', borderRadius: 8, padding: '14px 20px', marginBottom: 16 }}>
-                    <span style={{ color: 'var(--eco-red)', fontSize: 14 }}>⚠ Tienes {criticos.length} manifiestos con más de 30 días sin cerrar. Esto puede generar observaciones de MINEM.</span>
-                </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
-                {resumen.map((r, i) => <div key={i} className="eco-card" style={{ cursor: 'default', borderColor: r.label.includes('30 días') && r.val > 0 ? 'var(--eco-red)' : undefined }}>
-                    <div style={{ fontSize: 12, color: 'var(--eco-text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>{r.label}</div>
-                    <div className="sg" style={{ fontSize: 28, fontWeight: 700, color: r.color }}>{r.val}</div>
-                </div>)}
-            </div>
-
-            <div style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="eco-table" style={{ minWidth: 900 }}>
-                        <thead><tr><th>N° Manifiesto</th><th>N° OS</th><th>Cliente</th><th>Tipo</th><th>Kg</th><th>Empresa</th><th>F. Generación</th><th>Días</th><th>Estado</th><th>Acciones</th></tr></thead>
-                        <tbody>
-                            {loading ? <tr><td colSpan={10}><div style={{ height: 80, animation: 'ecoPulse 1.5s infinite', background: 'var(--eco-border)', margin: 12, borderRadius: 4 }} /></td></tr> :
-                                data.length === 0 ? <tr><td colSpan={10} style={{ textAlign: 'center', padding: 32, color: 'var(--eco-text-muted)' }}>Sin manifiestos</td></tr> :
-                                    data.map((m: any) => {
-                                        const dias = diasActivo(m.fecha_generacion)
-                                        const critico = dias > 30 && m.estado !== 'cerrado'
-                                        const [bg, c, t] = estadosBadge[m.estado] || ['rgba(180,180,180,0.1)', '#aaa', m.estado]
-                                        return (
-                                            <tr key={m.id}>
-                                                <td className="sg" style={{ color: 'var(--eco-green)', fontWeight: 600 }}>{m.numero}</td>
-                                                <td style={{ color: 'var(--eco-text-muted)', fontSize: 12 }}>{m.eco_ordenes?.numero}</td>
-                                                <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.eco_clientes?.razon_social}</td>
-                                                <td><span style={{ background: 'var(--eco-purple-dim)', color: 'var(--eco-purple)', fontSize: 11, padding: '2px 8px', borderRadius: 10 }}>{m.tipo_residuo}</span></td>
-                                                <td style={{ color: 'var(--eco-text-muted)' }}>{m.cantidad_kg} kg</td>
-                                                <td style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--eco-text-muted)' }}>{m.empresa_disposicion || '—'}</td>
-                                                <td style={{ fontSize: 12, color: 'var(--eco-text-muted)' }}>{m.fecha_generacion}</td>
-                                                <td style={{ fontWeight: critico ? 700 : 400, color: critico ? 'var(--eco-red)' : 'var(--eco-text-muted)', fontSize: 13 }}>{dias}d</td>
-                                                <td><span style={{ background: bg, color: c, fontSize: 11, padding: '2px 8px', borderRadius: 10 }}>{t}</span></td>
-                                                <td>
-                                                    <div style={{ display: 'flex', gap: 4 }}>
-                                                        <button onClick={() => { setSelected(m); setForm({}); setModal('detalle') }} style={{ padding: '4px 8px', background: 'var(--eco-surface2)', border: '1px solid var(--eco-border)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--eco-text-muted)' }}>👁</button>
-                                                        {m.estado !== 'cerrado' && <button onClick={() => { setSelected(m); setForm({}); setModal('avanzar') }} style={{ padding: '4px 8px', background: 'var(--eco-green-dim)', border: '1px solid var(--eco-green)', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--eco-green)' }}>→</button>}
+                                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {c.estado !== 'cerrado' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => setEstadoDirecto(c.id, 'en_transito')}
+                                                                    className="px-2 py-1 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded text-[10px] font-bold uppercase transition-colors"
+                                                                >
+                                                                    Tránsito
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setEstadoDirecto(c.id, 'cerrado')}
+                                                                    className="px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-colors"
+                                                                >
+                                                                    <Lock className="w-3 h-3" /> Cerrar Ciclo
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {c.estado === 'cerrado' && (
+                                                            <button
+                                                                onClick={() => setEstadoDirecto(c.id, 'generado')}
+                                                                className="px-2 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-colors"
+                                                                title="Reabrir Expediente y Corregir"
+                                                            >
+                                                                Reaperturar
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background-color: #cbd5e1;
+                    border-radius: 20px;
+                }
+            `}</style>
+        </motion.div>
     )
 }
