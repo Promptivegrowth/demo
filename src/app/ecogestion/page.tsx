@@ -24,8 +24,7 @@ import TabEcoOrdenes from './components/TabEcoOrdenes'
 import TabEcoRutas from './components/TabEcoRutas'
 import TabEcoManifiestos from './components/TabEcoManifiestos'
 import TabEcoCobranzas from './components/TabEcoCobranzas'
-import TabEcoFlota from './components/TabEcoFlota'
-
+import TabEcoFlotaPersonal from './components/TabEcoFlotaPersonal'
 const ECO_URL = 'https://yvhrzqrdzykbvhifsoxk.supabase.co'
 const ECO_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2aHJ6cXJkenlrYnZoaWZzb3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTExMTQsImV4cCI6MjA4ODY2NzExNH0.8hwx4D0tbe8e8b9sFhG6shO7yLgM-3Q-ViZNkavC4iE'
 
@@ -121,7 +120,7 @@ export default function EcoGestionPage() {
             case 'rutas': return <TabEcoRutas {...props} />
             case 'manifiestos': return <TabEcoManifiestos {...props} />
             case 'cobranzas': return <TabEcoCobranzas {...props} />
-            case 'flota': return <TabEcoFlota {...props} />
+            case 'flota': return <TabEcoFlotaPersonal {...props} />
             default: return <TabEcoDashboard {...props} setActiveTab={setActiveTab} />
         }
     }
@@ -277,9 +276,9 @@ export default function EcoGestionPage() {
                             className="bg-slate-900 border border-slate-800 text-white rounded-xl shadow-2xl p-4 flex items-start gap-3 pointer-events-auto overflow-hidden relative"
                         >
                             <div className={`mt-0.5 shrink-0 w-2 h-2 rounded-full shadow-[0_0_8px] ${t.tipo === 'success' ? 'bg-emerald-500 shadow-emerald-500/50' :
-                                    t.tipo === 'error' ? 'bg-rose-500 shadow-rose-500/50' :
-                                        t.tipo === 'warning' ? 'bg-amber-500 shadow-amber-500/50' :
-                                            'bg-blue-500 shadow-blue-500/50'
+                                t.tipo === 'error' ? 'bg-rose-500 shadow-rose-500/50' :
+                                    t.tipo === 'warning' ? 'bg-amber-500 shadow-amber-500/50' :
+                                        'bg-blue-500 shadow-blue-500/50'
                                 }`} />
                             <div className="flex-1 text-sm font-medium pr-6 text-slate-100">{t.msg}</div>
                             <button

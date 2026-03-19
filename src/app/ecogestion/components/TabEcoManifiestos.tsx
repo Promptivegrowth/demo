@@ -39,13 +39,23 @@ export default function TabEcoManifiestos({ showToast, ecoQuery }: any) {
     const [buscar, setBuscar] = useState('')
     const [pillActivo, setPillActivo] = useState('Pendientes Cierre')
 
+    const [modal, setModal] = useState<any>(null)
+    const [detalleData, setDetalleData] = useState<any>(null)
+
     const cargar = async () => {
         setLoading(true)
         const mans = await ecoQuery('eco_manifiestos', {
             select: '*,eco_ordenes(numero,eco_clientes(razon_social)),eco_operarios(nombres),eco_flota(placa)',
             filters: ['order=created_at.desc']
         })
-        const arr = Array.isArray(mans) ? mans : []
+        let arr = Array.isArray(mans) ? mans : []
+        if (arr.length === 0) {
+            arr = [
+                { id: 'm1', numero: 'MAN-2024-0001', estado: 'en_transito', fecha_generacion: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], eco_ordenes: { numero: 'OS-2024-999', eco_clientes: { razon_social: 'Industrias Tech Corp S.A.C.' } }, eco_operarios: { nombres: 'Juan Perez' }, eco_flota: { placa: 'F-892' } },
+                { id: 'm2', numero: 'MAN-2024-0002', estado: 'cerrado', fecha_generacion: new Date(Date.now() - 15 * 86400000).toISOString().split('T')[0], eco_ordenes: { numero: 'OS-2024-888', eco_clientes: { razon_social: 'Clínica San Borja' } }, eco_operarios: { nombres: 'Carlos Gomez' }, eco_flota: { placa: 'M-501' } },
+                { id: 'm3', numero: 'MAN-2024-0003', estado: 'generado', fecha_generacion: new Date(Date.now() - 40 * 86400000).toISOString().split('T')[0], eco_ordenes: { numero: 'OS-2024-777', eco_clientes: { razon_social: 'Consorcio Constructor Lima' } }, eco_operarios: null, eco_flota: null },
+            ]
+        }
         setData(arr)
         filtrar(arr, buscar, pillActivo)
         setLoading(false)
@@ -73,6 +83,8 @@ export default function TabEcoManifiestos({ showToast, ecoQuery }: any) {
     const handleBuscar = (v: string) => { setBuscar(v); filtrar(data, v, pillActivo) }
     const handlePill = (p: string) => { setPillActivo(p); filtrar(data, buscar, p) }
 
+    const abrirDetalle = (item: any) => { setDetalleData(item); setModal('detalle') }
+
     const setEstadoDirecto = async (id: string, st: string) => {
         if (!confirm(`¿Actualizar manifiesto a ${st}?`)) return
         await ecoQuery('eco_manifiestos', { update: { estado: st }, id })
@@ -88,8 +100,62 @@ export default function TabEcoManifiestos({ showToast, ecoQuery }: any) {
     const observados = data.filter((m: any) => m.estado !== 'cerrado' && Math.floor((Date.now() - new Date(m.fecha_generacion).getTime()) / 86400000) > 30).length
     const pctCierre = total ? Math.round(((total - pendientes) / total) * 100) : 0
 
+    const DetalleModal = () => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <FileCheck className="w-5 h-5 text-[#00c96e]" /> Detalle de Manifiesto {detalleData?.numero}
+                    </h3>
+                    <button onClick={() => setModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Orden de Servicio</span>
+                            <span className="text-sm font-bold text-indigo-600 font-mono">{detalleData?.eco_ordenes?.numero || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Cliente / Generador</span>
+                            <span className="text-sm font-bold text-slate-800">{detalleData?.eco_ordenes?.eco_clientes?.razon_social || 'Desconocido'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Operario Encargado</span>
+                            <span className="text-sm font-bold text-slate-800">{detalleData?.eco_operarios?.nombres || 'Por Asignar'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Vehículo / Placa</span>
+                            <span className="text-sm font-bold text-slate-800">{detalleData?.eco_flota?.placa || 'Por Asignar'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Fecha Emisión</span>
+                            <span className="text-sm font-bold text-slate-800">{detalleData?.fecha_generacion}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Estado MINAM</span>
+                            {ecoEstadoBadge(detalleData?.estado)}
+                        </div>
+                    </div>
+                </div>
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                    <button onClick={() => setModal(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md transition-all">
+                        Cerrar Visor
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    )
+
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <AnimatePresence>
+                {modal === 'detalle' && detalleData && <DetalleModal key="detalle" />}
+            </AnimatePresence>
             {/* Cabecera y KPIs */}
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
 
@@ -231,6 +297,13 @@ export default function TabEcoManifiestos({ showToast, ecoQuery }: any) {
                                                     {ecoEstadoBadge(c.estado)}
 
                                                     <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => abrirDetalle(c)}
+                                                            className="w-7 h-7 flex items-center justify-center rounded bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors mr-1"
+                                                            title="Ver Documento"
+                                                        >
+                                                            <FileText className="w-3.5 h-3.5" />
+                                                        </button>
                                                         {c.estado !== 'cerrado' && (
                                                             <>
                                                                 <button

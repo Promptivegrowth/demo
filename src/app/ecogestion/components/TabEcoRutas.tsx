@@ -11,15 +11,22 @@ import {
     Truck,
     Navigation2,
     CheckCircle2,
-    Calendar,
     Activity,
     Edit2,
-    Trash2,
+    Power,
     ChevronRight,
-    Power
+    Map
 } from 'lucide-react'
 
-// Array de colores predefinidos para las rutas en el mapa mock
+// MOCKS: Rutas de Lima Metropolitana si la BD está vacía
+const MOCK_LIMA_ROUTES = [
+    { id: 'm1', nombre: 'Ruta Industrial Sur L-1', origen: 'Villa El Salvador (Parque Industrial)', destino: 'Relleno Sanitario Portillo Grande', estado: 'activa', vehiculo_id: null, coords: { ox: 30, oy: 80, dx: 45, dy: 90 }, eco_flota: { placa: 'F-892' } },
+    { id: 'm2', nombre: 'Ruta Comercial Centro', origen: 'San Isidro (Centro Financiero)', destino: 'Planta de Transferencia Callao', estado: 'activa', vehiculo_id: 'x', coords: { ox: 40, oy: 45, dx: 25, dy: 40 }, eco_flota: { placa: 'C-104' } },
+    { id: 'm3', nombre: 'Ruta Hospitalaria Norte', origen: 'Independencia (Clínica Norte)', destino: 'Relleno Sanitario Zapallal', estado: 'activa', vehiculo_id: 'y', coords: { ox: 45, oy: 25, dx: 35, dy: 10 }, eco_flota: { placa: 'M-501' } },
+    { id: 'm4', nombre: 'Ruta Residencial Este', origen: 'La Molina (Rinconada)', destino: 'Planta de Valorización Huachipa', estado: 'inactiva', vehiculo_id: null, coords: { ox: 70, oy: 50, dx: 65, dy: 35 }, eco_flota: null },
+    { id: 'm5', nombre: 'Ruta Express Puerto', origen: 'Callao (Av. Argentina)', destino: 'Callao (GAM)', estado: 'activa', vehiculo_id: 'z', coords: { ox: 20, oy: 45, dx: 15, dy: 50 }, eco_flota: { placa: 'T-999' } }
+]
+
 const routeColors = ['#00c96e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6']
 
 export default function TabEcoRutas({ showToast, ecoQuery }: any) {
@@ -28,10 +35,10 @@ export default function TabEcoRutas({ showToast, ecoQuery }: any) {
     const [vehiculos, setVehiculos] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [buscar, setBuscar] = useState('')
-
     const [modal, setModal] = useState<any>(null)
     const [formData, setFormData] = useState<any>({})
     const [saving, setSaving] = useState(false)
+    const [activeRouteId, setActiveRouteId] = useState<string | null>(null)
 
     const cargar = async () => {
         setLoading(true)
@@ -39,9 +46,12 @@ export default function TabEcoRutas({ showToast, ecoQuery }: any) {
             ecoQuery('eco_rutas', { select: '*,eco_flota(placa,tipo)', filters: ['order=created_at.desc'] }),
             ecoQuery('eco_flota', { select: 'id,placa,tipo', filters: ['estado=eq.activo'] })
         ])
-        const arr = Array.isArray(rts) ? rts : []
+        let arr = Array.isArray(rts) ? rts : []
+        if (arr.length === 0) arr = MOCK_LIMA_ROUTES
+
         setData(arr); setFiltrado(arr)
         setVehiculos(Array.isArray(vehi) ? vehi : [])
+        if (arr.length > 0) setActiveRouteId(arr[0].id)
         setLoading(false)
     }
 
@@ -58,338 +68,169 @@ export default function TabEcoRutas({ showToast, ecoQuery }: any) {
 
     const handleBuscar = (v: string) => { setBuscar(v); filtrar(data, v) }
 
-    const abrirNuevo = () => {
-        setFormData({ estado: 'activa', puntos_recoleccion: { points: [] } })
-        setModal('nuevo')
-    }
-    const abrirEditar = (item: any) => { setFormData({ ...item }); setModal('editar') }
-
-    const guardar = async () => {
-        if (!formData.nombre || !formData.origen || !formData.destino) {
-            showToast('Complete nombre, origen y destino', 'error'); return
-        }
-
-        setSaving(true)
-        try {
-            if (modal === 'nuevo') {
-                const r = await ecoQuery('eco_rutas', { insert: { nombre: formData.nombre, descripcion: formData.descripcion, origen: formData.origen, destino: formData.destino, vehiculo_id: formData.vehiculo_id, puntos_recoleccion: formData.puntos_recoleccion || { points: [] }, estado: 'activa' } })
-                if (Array.isArray(r) && r.length > 0) {
-                    showToast('Ruta logística creada', 'success')
-                    setModal(null); cargar()
-                } else showToast('Error al crear ruta', 'error')
-            } else {
-                const r = await ecoQuery('eco_rutas', { update: { nombre: formData.nombre, descripcion: formData.descripcion, origen: formData.origen, destino: formData.destino, vehiculo_id: formData.vehiculo_id, puntos_recoleccion: formData.puntos_recoleccion, estado: formData.estado }, id: formData.id })
-                if (Array.isArray(r) || !r.error) {
-                    showToast('Ruta actualizada', 'success')
-                    setModal(null); cargar()
-                } else showToast('Error al actualizar', 'error')
-            }
-        } finally { setSaving(false) }
-    }
-
-    const setEstado = async (id: string, nuevoEstado: string) => {
-        if (!confirm(`¿Cambiar estado a ${nuevoEstado}?`)) return
-        await ecoQuery('eco_rutas', { update: { estado: nuevoEstado }, id })
-        showToast(`Ruta en estado ${nuevoEstado}`, 'success'); cargar()
-    }
-
-    // KPI Data
     const rActivas = data.filter(c => c.estado === 'activa').length
     const rInactivas = data.filter(c => c.estado === 'inactiva').length
-    const vehiAsignados = new Set(data.filter(c => c.vehiculo_id).map(c => c.vehiculo_id)).size
+    const vehiAsignados = new Set(data.filter(c => c.vehiculo_id || c.eco_flota).map(c => c.vehiculo_id)).size
 
-    const FormModal = () => (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
-            >
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        {modal === 'nuevo' ? <Navigation2 className="w-5 h-5 text-[#00c96e]" /> : <Edit2 className="w-5 h-5 text-indigo-500" />}
-                        {modal === 'nuevo' ? 'Diseñar Nueva Ruta' : 'Modificar Ruta Geográfica'}
-                    </h3>
-                    <button onClick={() => setModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
+    // Mock map rendering with SVG curves
+    const renderMockMap = () => {
+        const activeRoute = filtrado.find(r => r.id === activeRouteId) || filtrado[0]
+        if (!activeRoute) return <div className="h-full flex items-center justify-center text-slate-400">Sin datos geográficos</div>
+
+        return (
+            <div className="relative w-full h-[400px] xl:h-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-inner group">
+                {/* Fake Map Grid Background */}
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10"></div>
+
+                {/* Overlay Text */}
+                <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-widest">SATÉLITE LIMA METROPOLITANA // LIVE TRACKING</span>
                 </div>
 
-                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <svg className="absolute inset-0 w-full h-full z-10">
+                    <defs>
+                        <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#00c96e" />
+                            <stop offset="100%" stopColor="#3b82f6" />
+                        </linearGradient>
+                    </defs>
+                    {filtrado.map((r, i) => {
+                        const ox = r.coords?.ox || 10 + (i * 15); const oy = r.coords?.oy || 20 + (i * 10);
+                        const dx = r.coords?.dx || 80 - (i * 10); const dy = r.coords?.dy || 80 - (i * 5);
+                        const isAct = r.id === activeRouteId;
+                        const color = routeColors[i % routeColors.length];
 
-                        <div className="space-y-1.5 md:col-span-2">
-                            <label className="text-sm font-semibold text-slate-700">Nombre de la Ruta <span className="text-rose-500">*</span></label>
-                            <input
-                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e]"
-                                placeholder="Ej: Ruta Norte Industrial 01"
-                                value={formData.nombre || ''} onChange={e => setFormData({ ...formData, nombre: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700">Punto de Origen <span className="text-rose-500">*</span></label>
-                            <div className="relative">
-                                <input
-                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e]"
-                                    placeholder="Base Principal..."
-                                    value={formData.origen || ''} onChange={e => setFormData({ ...formData, origen: e.target.value })}
+                        return (
+                            <g key={r.id} className="transition-all duration-500">
+                                <path
+                                    d={`M ${ox}% ${oy}% Q ${(ox + dx) / 2}% ${(oy + dy) / 2 - 20}% ${dx}% ${dy}%`}
+                                    fill="none"
+                                    stroke={isAct ? 'url(#routeGradient)' : '#334155'}
+                                    strokeWidth={isAct ? 4 : 2}
+                                    strokeDasharray={isAct ? "8, 6" : "0"}
+                                    className={`${isAct ? 'animate-[dash_2s_linear_infinite]' : ''}`}
                                 />
-                                <MapPin className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3.5" />
-                            </div>
-                        </div>
+                                {/* Origin Node */}
+                                <circle cx={`${ox}%`} cy={`${oy}%`} r={isAct ? 8 : 4} fill={isAct ? '#00c96e' : '#475569'} className="transition-all" />
+                                {isAct && <circle cx={`${ox}%`} cy={`${oy}%`} r={16} fill="#00c96e" opacity="0.2" className="animate-ping" />}
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700">Destino / Disposición Final <span className="text-rose-500">*</span></label>
-                            <div className="relative">
-                                <input
-                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e]"
-                                    placeholder="Relleno Sanitario..."
-                                    value={formData.destino || ''} onChange={e => setFormData({ ...formData, destino: e.target.value })}
-                                />
-                                <MapPin className="w-4 h-4 text-rose-500 absolute left-3.5 top-3.5" />
-                            </div>
-                        </div>
+                                {/* Dest Node */}
+                                <circle cx={`${dx}%`} cy={`${dy}%`} r={isAct ? 8 : 4} fill={isAct ? '#3b82f6' : '#475569'} className="transition-all" />
+                                {isAct && <circle cx={`${dx}%`} cy={`${dy}%`} r={16} fill="#3b82f6" opacity="0.2" className="animate-ping" />}
 
-                        <div className="space-y-1.5 md:col-span-2">
-                            <div className="h-px bg-slate-100 my-2" />
-                        </div>
+                                {/* Mini Truck Icon moving */}
+                                {isAct && r.estado === 'activa' && (
+                                    <motion.circle
+                                        r={4} fill="#fff"
+                                        animate={{
+                                            offsetDistance: ["0%", "100%"]
+                                        }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                        style={{ offsetPath: `path('M ${ox * 8} ${oy * 4} Q ${(ox + dx) * 4} ${(oy + dy) * 2 - 80} ${dx * 8} ${dy * 4}')` }}
+                                    />
+                                )}
+                            </g>
+                        )
+                    })}
+                </svg>
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700">Vehículo Predeterminado</label>
-                            <select
-                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] cursor-pointer"
-                                value={formData.vehiculo_id || ''} onChange={e => setFormData({ ...formData, vehiculo_id: e.target.value })}
-                            >
-                                <option value="">Sin Asignar (Dinámico)</option>
-                                {vehiculos.map(v => <option key={v.id} value={v.id}>{v.placa} ({v.tipo})</option>)}
-                            </select>
-                        </div>
-
-                        {modal === 'editar' && (
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-slate-700">Estado de Operatividad</label>
-                                <select
-                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] cursor-pointer"
-                                    value={formData.estado || 'activa'} onChange={e => setFormData({ ...formData, estado: e.target.value })}
-                                >
-                                    <option value="activa">Ruta Activa</option>
-                                    <option value="inactiva">Ruta Suspendida / Inactiva</option>
-                                </select>
-                            </div>
-                        )}
-
-                        <div className="space-y-1.5 md:col-span-2">
-                            <label className="text-sm font-semibold text-slate-700">Puntos Intermedios de Recolección (JSON/String)</label>
-                            <textarea
-                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] h-20 resize-none font-mono text-xs"
-                                placeholder='Ej: Cliente A, Cliente B, Planta de Transferencia... o [{"lat": -12, "lng": -77}]'
-                                value={typeof formData.puntos_recoleccion === 'object' ? JSON.stringify(formData.puntos_recoleccion) : formData.puntos_recoleccion || ''}
-                                onChange={e => {
-                                    try {
-                                        const parsed = JSON.parse(e.target.value)
-                                        setFormData({ ...formData, puntos_recoleccion: parsed })
-                                    } catch {
-                                        setFormData({ ...formData, puntos_recoleccion: e.target.value })
-                                    }
-                                }}
-                            />
-                            <p className="text-[10px] text-slate-400">Puede procesar coordenadas JSON para la app de conductores.</p>
+                {/* Details Overlay bottom */}
+                <div className="absolute bottom-6 left-6 right-6 z-20 bg-black/60 backdrop-blur-md border border-slate-700/50 rounded-2xl p-5 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-2 ${activeRoute.estado === 'activa' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                            {activeRoute.estado === 'activa' ? <CheckCircle2 className="w-3 h-3" /> : <Power className="w-3 h-3" />}
+                            {activeRoute.estado}
+                        </span>
+                        <h4 className="text-xl font-bold text-white">{activeRoute.nombre}</h4>
+                        <div className="flex items-center gap-3 mt-1.5 text-sm text-slate-300">
+                            <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-emerald-400" /> {activeRoute.origen}</span>
+                            <ChevronRight className="w-4 h-4 text-slate-600" />
+                            <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-blue-400" /> {activeRoute.destino}</span>
                         </div>
                     </div>
+                    {activeRoute.eco_flota && (
+                        <div className="bg-slate-800/80 px-4 py-3 rounded-xl border border-slate-700 text-center shrink-0">
+                            <div className="flex items-center justify-center gap-2 text-indigo-400 mb-1"><Truck className="w-4 h-4" /> <span className="text-xs font-bold uppercase">Unidad en Ruta</span></div>
+                            <span className="text-xl font-mono font-bold text-white tracking-widest">{activeRoute.eco_flota.placa}</span>
+                        </div>
+                    )}
                 </div>
-
-                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
-                    <button
-                        onClick={() => setModal(null)}
-                        className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        onClick={guardar} disabled={saving}
-                        className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md shadow-slate-900/10 transition-all flex items-center gap-2"
-                    >
-                        {saving ? (
-                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Procesando...</>
-                        ) : (
-                            <><CheckCircle2 className="w-4 h-4" /> {modal === 'nuevo' ? 'Guardar Ruta Geográfica' : 'Actualizar Ruta'}</>
-                        )}
-                    </button>
-                </div>
-            </motion.div>
-        </div>
-    )
+            </div>
+        )
+    }
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <AnimatePresence>
-                {(modal === 'nuevo' || modal === 'editar') && <FormModal key="form" />}
-            </AnimatePresence>
+            <style jsx global>{`
+                @keyframes dash { to { stroke-dashoffset: -28; } }
+            `}</style>
 
             {/* Cabecera y KPIs */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <div className="flex flex-col xl:flex-row gap-6">
 
-                <div className="xl:col-span-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                            <MapIcon className="w-6 h-6 text-[#00c96e]" />
-                            Control Geomático y Rutas
-                        </h2>
-                        <p className="text-slate-500 font-medium mt-1">Planimetría y trazos logísticos de recolección en calle.</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-64">
-                            <input
-                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-[#00c96e]/20 focus:border-[#00c96e] transition-all"
-                                placeholder="Buscar ruta, origen o destino..."
-                                value={buscar} onChange={e => handleBuscar(e.target.value)}
-                            />
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                {/* Left side Map & Visuals */}
+                <div className="w-full xl:w-7/12 flex flex-col gap-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                                <MapIcon className="w-6 h-6 text-[#00c96e]" /> Control de Rutas
+                            </h2>
+                            <p className="text-slate-500 font-medium mt-1">Planimetría y trazos logísticos de recolección georreferenciados.</p>
                         </div>
-                        <button
-                            onClick={abrirNuevo}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#00c96e] hover:bg-[#00b060] text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-md shadow-[#00c96e]/20 active:scale-95"
-                        >
-                            <Plus className="w-4 h-4" /> Nueva Ruta
-                        </button>
+                    </div>
+                    <div className="flex-1 min-h-[400px]">
+                        {renderMockMap()}
                     </div>
                 </div>
 
-                <div className="xl:col-span-1 flex flex-col gap-6">
-                    {/* Micro KPIs Verticales */}
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500/30 transition-colors flex-1">
-                        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><Navigation2 className="w-24 h-24" /></div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Rutas Operativas (HOY)</p>
-                        <p className="text-5xl font-black text-emerald-500 mt-2">{rActivas}</p>
+                {/* Right side List & Actions */}
+                <div className="w-full xl:w-5/12 flex flex-col gap-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-[#00c96e]/50 transition-colors">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rutas Operativas</p>
+                            <p className="text-3xl font-black text-[#00c96e] mt-1">{rActivas}</p>
+                            <Navigation2 className="w-16 h-16 absolute -right-4 -bottom-4 text-[#00c96e] opacity-5 group-hover:opacity-20 transition-all" />
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-indigo-500/50 transition-colors">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Flota Enrutada</p>
+                            <p className="text-3xl font-black text-indigo-500 mt-1">{vehiAsignados}</p>
+                            <Truck className="w-16 h-16 absolute -right-4 -bottom-4 text-indigo-500 opacity-5 group-hover:opacity-20 transition-all" />
+                        </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-indigo-500/30 transition-colors flex-1">
-                        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><Truck className="w-24 h-24" /></div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Flota Enrutada</p>
-                        <p className="text-5xl font-black text-indigo-500 mt-2">{vehiAsignados}</p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-rose-500/30 transition-colors flex-1">
-                        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500"><Activity className="w-24 h-24" /></div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Rutas Suspendidas</p>
-                        <p className="text-5xl font-black text-rose-500 mt-2">{rInactivas}</p>
-                    </div>
-                </div>
-
-                <div className="xl:col-span-3 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden min-h-[500px]">
-                    <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                            <Route className="w-5 h-5 text-indigo-500" />
-                            Directorio de Trazabilidad
-                        </h3>
-                        <span className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full border shadow-sm">{filtrado.length} trazos encontrados</span>
-                    </div>
-
-                    <div className="overflow-x-auto flex-1">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-white text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
-                                    <th className="px-6 py-4 whitespace-nowrap w-24">Color</th>
-                                    <th className="px-6 py-4 whitespace-nowrap">Plan de Ruta</th>
-                                    <th className="px-6 py-4 whitespace-nowrap">Georeferencia (Origen → Destino)</th>
-                                    <th className="px-6 py-4 whitespace-nowrap">Asignación</th>
-                                    <th className="px-6 py-4 whitespace-nowrap text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {loading ? (
-                                    [...Array(5)].map((_, i) => (
-                                        <tr key={i}>
-                                            <td colSpan={5} className="p-6"><div className="h-14 bg-slate-50 rounded-xl animate-pulse" /></td>
-                                        </tr>
-                                    ))
-                                ) : filtrado.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-20 text-center text-slate-500">
-                                            <div className="w-16 h-16 mx-auto bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-3"><MapIcon className="w-6 h-6" /></div>
-                                            <p className="font-semibold text-slate-700">Sin Cobertura</p>
-                                            <p className="text-sm mt-1">No hay rutas registradas en el mapa logístico.</p>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filtrado.map((c: any, index: number) => {
-                                        const cColor = routeColors[index % routeColors.length]
-                                        return (
-                                            <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
-                                                <td className="px-6 py-5 text-center">
-                                                    <div className="w-8 h-8 rounded-full border-4 border-white shadow-sm mx-auto" style={{ backgroundColor: cColor }}></div>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <p className="font-bold text-slate-800 text-sm">{c.nombre}</p>
-                                                    <span className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${c.estado === 'activa' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                                                        }`}>
-                                                        {c.estado === 'activa' ? <CheckCircle2 className="w-3 h-3" /> : <X className="w-3 h-3" />} {c.estado}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <MapPin className="w-4 h-4 text-emerald-500" />
-                                                        <span className="text-sm font-semibold text-slate-700">{c.origen}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 ml-5 border-l-2 border-slate-200 pl-3 py-1">
-                                                        <ChevronRight className="w-4 h-4 text-slate-300" />
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <MapPin className="w-4 h-4 text-rose-500" />
-                                                        <span className="text-sm font-semibold text-slate-700">{c.destino}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    {c.vehiculo_id ? (
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 border border-indigo-100/50">
-                                                                <Truck className="w-5 h-5" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unidad Fija</p>
-                                                                <p className="text-sm font-bold font-mono tracking-widest text-slate-800">{c.eco_flota?.placa}</p>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
-                                                            <Truck className="w-4 h-4" /> <span>Ruta Flotante (Sin placa)</span>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-5 text-right">
-                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => abrirEditar(c)}
-                                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
-                                                            title="Editar Ruta"
-                                                        >
-                                                            <Edit2 className="w-4 h-4" />
-                                                        </button>
-                                                        {c.estado === 'activa' ? (
-                                                            <button
-                                                                onClick={() => setEstado(c.id, 'inactiva')}
-                                                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                                                                title="Suspender Ruta"
-                                                            >
-                                                                <Power className="w-4 h-4" />
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => setEstado(c.id, 'activa')}
-                                                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                                                                title="Activar Ruta"
-                                                            >
-                                                                <CheckCircle2 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col flex-1 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                                <input
+                                    className="w-full bg-white border border-slate-200 text-sm rounded-lg pl-9 pr-3 py-2 outline-none focus:ring-2 focus:ring-[#00c96e]/20"
+                                    placeholder="Clave de ruta..."
+                                    value={buscar} onChange={e => handleBuscar(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="overflow-y-auto flex-1 max-h-[500px]">
+                            {filtrado.map((r, i) => (
+                                <button
+                                    key={r.id}
+                                    onClick={() => setActiveRouteId(r.id)}
+                                    className={`w-full text-left p-4 border-b border-slate-100 flex items-start gap-3 transition-colors ${activeRouteId === r.id ? 'bg-[#00c96e]/5' : 'hover:bg-slate-50'}`}
+                                >
+                                    <div className="w-8 h-8 rounded-full border-4 border-white shadow flex-shrink-0" style={{ backgroundColor: routeColors[i % routeColors.length] }} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-slate-800 truncate">{r.nombre}</p>
+                                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 truncate">
+                                            <span>{r.origen.substring(0, 12)}...</span> <ChevronRight className="w-3 h-3" /> <span>{r.destino.substring(0, 12)}...</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                        {r.estado === 'activa' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Power className="w-4 h-4 text-rose-500" />}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -41,6 +41,7 @@ export default function TabEcoContratos({ showToast, ecoQuery }: any) {
     const [pillActivo, setPillActivo] = useState('Todos')
     const [modal, setModal] = useState<any>(null)
     const [formData, setFormData] = useState<any>({})
+    const [detalleData, setDetalleData] = useState<any>(null)
     const [saving, setSaving] = useState(false)
 
     const cargar = async () => {
@@ -83,6 +84,7 @@ export default function TabEcoContratos({ showToast, ecoQuery }: any) {
     const handlePill = (p: string) => { setPillActivo(p); filtrar(data, buscar, p) }
 
     const abrirEditar = (item: any) => { setFormData({ ...item }); setModal('editar') }
+    const abrirDetalle = (item: any) => { setDetalleData(item); setModal('detalle') }
     const abrirNuevo = () => {
         const nextNum = `CT-${new Date().getFullYear()}-${String(data.length + 1).padStart(4, '0')}`
         setFormData({ estado: 'activo', numero: nextNum, tipo_residuo: 'municipal' })
@@ -241,10 +243,66 @@ export default function TabEcoContratos({ showToast, ecoQuery }: any) {
         </div>
     )
 
+    const DetalleModal = () => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-indigo-500" /> Detalle del Contrato {detalleData?.numero}
+                    </h3>
+                    <button onClick={() => setModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Cliente Asociado</span>
+                            <span className="text-sm font-bold text-slate-800">{detalleData?.eco_clientes?.razon_social || 'Desconocido'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">RUC Cliente</span>
+                            <span className="text-sm font-mono text-slate-800">{detalleData?.eco_clientes?.ruc || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Tipo de Residuo</span>
+                            <span className="text-sm font-bold text-slate-800 uppercase">{detalleData?.tipo_residuo}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Fecha Inicio</span>
+                            <span className="text-sm font-bold text-slate-800">{detalleData?.fecha_inicio}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Fecha Vencimiento</span>
+                            <span className="text-sm font-bold text-rose-500">{detalleData?.fecha_fin}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Estado</span>
+                            <span className="text-sm font-bold text-slate-800 uppercase">{detalleData?.estado}</span>
+                        </div>
+                        <div className="pt-4 border-t border-slate-200">
+                            <p className="text-xs text-slate-500">ID del Contrato interno: {detalleData?.id}</p>
+                            <p className="text-xs text-slate-500">Fecha de Creación: {new Date(detalleData?.created_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                    <button onClick={() => setModal(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md transition-all">
+                        Cerrar Detalle
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    )
+
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <AnimatePresence>
                 {(modal === 'nuevo' || modal === 'editar') && <FormModal key="form" />}
+                {modal === 'detalle' && detalleData && <DetalleModal key="detalle" />}
             </AnimatePresence>
 
             {/* Cabecera y KPIs */}
@@ -398,6 +456,13 @@ export default function TabEcoContratos({ showToast, ecoQuery }: any) {
                                                     )}
 
                                                     <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => abrirDetalle(c)}
+                                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                                                            title="Ver Detalles"
+                                                        >
+                                                            <FileText className="w-3.5 h-3.5" />
+                                                        </button>
                                                         <button
                                                             onClick={() => abrirEditar(c)}
                                                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"

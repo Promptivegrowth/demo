@@ -299,8 +299,8 @@ export default function TabEcoOrdenes({ showToast, ecoQuery }: any) {
                         <button
                             onClick={guardar} disabled={saving}
                             className={`px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all flex items-center gap-2 ${isCierre ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20' :
-                                    isAsignar ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/20' :
-                                        'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
+                                isAsignar ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/20' :
+                                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
                                 }`}
                         >
                             {saving ? (
@@ -315,7 +315,7 @@ export default function TabEcoOrdenes({ showToast, ecoQuery }: any) {
         )
     }
 
-    const DetalleModal = () => !detalleData ? null : (
+    const DetalleModal = () => (modal !== 'detalle' || !detalleData) ? null : (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}

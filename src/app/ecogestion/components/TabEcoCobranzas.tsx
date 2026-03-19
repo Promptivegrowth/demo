@@ -44,6 +44,7 @@ export default function TabEcoCobranzas({ showToast, ecoQuery }: any) {
 
     const [modal, setModal] = useState<any>(null)
     const [formData, setFormData] = useState<any>({})
+    const [detalleData, setDetalleData] = useState<any>(null)
     const [saving, setSaving] = useState(false)
     const [clientes, setClientes] = useState<any[]>([])
 
@@ -57,7 +58,16 @@ export default function TabEcoCobranzas({ showToast, ecoQuery }: any) {
             ecoQuery('eco_clientes', { select: 'id,razon_social', filters: ['estado=eq.activo', 'order=razon_social.asc'] })
         ])
 
-        const arr = Array.isArray(facs) ? facs : []
+        const arrRaw = Array.isArray(facs) ? facs : []
+        let arr = arrRaw
+        if (arr.length === 0) {
+            arr = [
+                { id: 'f1', numero_factura: 'F001-000123', monto_total: 1500.50, fecha_emision: '2024-03-01', fecha_vencimiento: '2024-03-15', estado: 'pagada', eco_clientes: { razon_social: 'Hospital Regional Norte', ruc: '20123456789' }, eco_ordenes: { numero: 'OS-2024-101' } },
+                { id: 'f2', numero_factura: 'F001-000124', monto_total: 2800.00, fecha_emision: '2024-03-05', fecha_vencimiento: '2024-03-20', estado: 'emitida', eco_clientes: { razon_social: 'Centro Comercial Plaza Sur', ruc: '20987654321' }, eco_ordenes: { numero: 'OS-2024-105' } },
+                { id: 'f3', numero_factura: 'F001-000125', monto_total: 4200.00, fecha_emision: '2024-02-10', fecha_vencimiento: '2024-02-25', estado: 'vencida', eco_clientes: { razon_social: 'Textiles S.A.', ruc: '20456789012' }, eco_ordenes: { numero: 'OS-2024-090' } },
+                { id: 'f4', numero_factura: 'F001-000126', monto_total: 950.00, fecha_emision: '2024-03-10', fecha_vencimiento: '2024-03-25', estado: 'emitida', eco_clientes: { razon_social: 'Restaurante El Chef', ruc: '10123456781' }, eco_ordenes: { numero: 'OS-2024-112' } },
+            ]
+        }
         setData(arr)
         setClientes(Array.isArray(clis) ? clis : [])
         filtrar(arr, buscar, pillActivo)
@@ -86,6 +96,8 @@ export default function TabEcoCobranzas({ showToast, ecoQuery }: any) {
 
     const handleBuscar = (v: string) => { setBuscar(v); filtrar(data, v, pillActivo) }
     const handlePill = (p: string) => { setPillActivo(p); filtrar(data, buscar, p) }
+
+    const abrirDetalle = (item: any) => { setDetalleData(item); setModal('detalle') }
 
     const abrirNuevo = () => {
         const today = new Date().toISOString().split('T')[0]
@@ -240,6 +252,61 @@ export default function TabEcoCobranzas({ showToast, ecoQuery }: any) {
         </div>
     )
 
+    const DetalleModal = () => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Receipt className="w-5 h-5 text-indigo-500" /> Detalle de Cobranza {detalleData?.numero_factura}
+                    </h3>
+                    <button onClick={() => setModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Cliente / Razón Social</span>
+                            <span className="text-sm font-bold text-slate-800 text-right">{detalleData?.eco_clientes?.razon_social || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">RUC</span>
+                            <span className="text-sm font-mono text-slate-800">{detalleData?.eco_clientes?.ruc || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Orden de Servicio Ref.</span>
+                            <span className="text-sm font-bold text-indigo-600">{detalleData?.eco_ordenes?.numero || 'S/OS'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Monto Total (IGV Inc.)</span>
+                            <span className="text-lg font-black text-slate-900 font-mono">{formatPEN(detalleData?.monto_total)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Fecha de Emisión</span>
+                            <span className="text-sm font-bold text-slate-800">{detalleData?.fecha_emision}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Vencimiento</span>
+                            <span className={`text-sm font-bold ${detalleData?.estado === 'vencida' ? 'text-rose-600' : 'text-slate-800'}`}>{detalleData?.fecha_vencimiento}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-slate-500">Estado de Pago</span>
+                            {estadoBadge(detalleData?.estado)}
+                        </div>
+                    </div>
+                </div>
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                    <button onClick={() => setModal(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md transition-all">
+                        Cerrar Visor
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    )
+
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <AnimatePresence>
@@ -379,8 +446,8 @@ export default function TabEcoCobranzas({ showToast, ecoQuery }: any) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`text-sm font-black font-mono px-3 py-1.5 rounded-lg border ${statusToUse === 'pagada' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                                        statusToUse === 'vencida' ? 'bg-rose-50 text-rose-700 border-rose-100' :
-                                                            'bg-amber-50 text-amber-700 border-amber-100'
+                                                    statusToUse === 'vencida' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                                                        'bg-amber-50 text-amber-700 border-amber-100'
                                                     }`}>
                                                     {formatPEN(c.monto_total)}
                                                 </span>
@@ -389,13 +456,30 @@ export default function TabEcoCobranzas({ showToast, ecoQuery }: any) {
                                                 <div className="flex flex-col items-end gap-2">
                                                     {estadoBadge(statusToUse)}
 
-                                                    {statusToUse !== 'pagada' && (
-                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {statusToUse !== 'pagada' ? (
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => abrirDetalle(c)}
+                                                                className="w-9 h-9 flex items-center justify-center rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                                                                title="Ver Detalles"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
                                                             <button
                                                                 onClick={() => marcarPagado(c.id)}
                                                                 className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-500 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-95"
                                                             >
-                                                                <DollarSign className="w-3.5 h-3.5" /> Registrar Recepción de Pago
+                                                                <DollarSign className="w-3.5 h-3.5" /> Registrar Pago
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => abrirDetalle(c)}
+                                                                className="w-9 h-9 flex items-center justify-center rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                                                                title="Ver Detalles"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
                                                             </button>
                                                         </div>
                                                     )}
