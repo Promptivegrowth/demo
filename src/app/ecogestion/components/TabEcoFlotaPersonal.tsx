@@ -14,7 +14,8 @@ import {
     BadgeCheck,
     CreditCard,
     Cpu,
-    ShieldCheck
+    ShieldCheck,
+    Clock
 } from 'lucide-react'
 
 const ecoBadge = (estado: string) => {

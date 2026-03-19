@@ -15,7 +15,8 @@ import {
     Activity,
     Edit2,
     Trash2,
-    ChevronRight
+    ChevronRight,
+    Power
 } from 'lucide-react'
 
 // Array de colores predefinidos para las rutas en el mapa mock
