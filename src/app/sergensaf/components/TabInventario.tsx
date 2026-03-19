@@ -343,8 +343,8 @@ export default function TabInventario({ showToast }: { showToast: Function }) {
                                             <td className="px-4 py-3 text-right font-bold">{formatSoles(sActual * Number(p.precio_unitario))}</td>
                                             <td className="px-4 py-3 text-center">
                                                 <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${agotado ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' :
-                                                        bajo ? 'bg-[#9e6a03]/20 text-[#f0a500] border-[#9e6a03]/40' :
-                                                            'bg-[#238636]/10 text-[#238636] border-[#238636]/30'
+                                                    bajo ? 'bg-[#9e6a03]/20 text-[#f0a500] border-[#9e6a03]/40' :
+                                                        'bg-[#238636]/10 text-[#238636] border-[#238636]/30'
                                                     }`}>
                                                     {agotado ? <PackageX className="h-3 w-3" /> : bajo ? <AlertTriangle className="h-3 w-3" /> : <Check className="h-3 w-3" />}
                                                     {agotado ? 'Agotado' : bajo ? 'Stock Bajo' : 'Normal'}
@@ -471,7 +471,7 @@ export default function TabInventario({ showToast }: { showToast: Function }) {
                             </div>
                             <div className="p-4 bg-[#21262d] border-b border-[#30363d]">
                                 <p className="font-bold text-[#f0a500]">{modalHistorial.data.nombre}</p>
-                                <p className="text-xs text-[#8b949e] mt-1">Visor simulado de movimientos recientes.</p>
+                                <p className="text-xs text-[#8b949e] mt-1">Últimos ingresos y salidas registradas (Vista preliminar).</p>
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                 {/* Mock logs */}

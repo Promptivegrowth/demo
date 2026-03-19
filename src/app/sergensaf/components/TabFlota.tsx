@@ -15,6 +15,7 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
 
     // Modal
     const [modalForm, setModalForm] = useState<{ isOpen: boolean, data: any }>({ isOpen: false, data: null })
+    const [modalDetalle, setModalDetalle] = useState<{ isOpen: boolean, data: any }>({ isOpen: false, data: null })
 
     // Form State
     const [formData, setFormData] = useState({
@@ -234,6 +235,9 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                                                             supabase.from('saf_flota').update({ estado: 'mantenimiento' }).eq('id', f.id).then(() => { showToast('Vehículo en Mantenimiento', 'warning'); fetchData() })
                                                         }
                                                     }} className="p-2 text-[#8b949e] hover:text-[#f0a500] bg-black/20 hover:bg-[#f0a500]/10 border border-transparent hover:border-[#f0a500]/30 rounded-lg transition-all" title="Mandar a Mantenimiento"><Wrench className="h-4 w-4" /></button>
+
+                                                    <button onClick={() => setModalDetalle({ isOpen: true, data: f })} className="p-2 text-[#8b949e] hover:text-[#1f6feb] bg-black/20 hover:bg-[#1f6feb]/10 border border-transparent hover:border-[#1f6feb]/30 rounded-lg transition-all" title="Ver Detalles"><BadgeInfo className="h-4 w-4" /></button>
+
                                                     <button onClick={() => handleOpenForm(f)} className="p-2 text-[#8b949e] hover:text-white bg-black/20 hover:bg-white/10 border border-transparent hover:border-white/20 rounded-lg transition-all" title="Editar Vehículo"><PenTool className="h-4 w-4" /></button>
                                                     <button onClick={() => {
                                                         const conf = confirm(`¿Eliminar vehículo ${f.placa}?`)
@@ -325,6 +329,65 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                                 <button onClick={handleSave} className="flex-1 px-4 py-3 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg border-none transition-colors">
                                     {modalForm.data ? 'Guardar Cambios' : 'Registrar Vehículo'}
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL DETALLE VEHICULO */}
+            <AnimatePresence>
+                {modalDetalle.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+                            <div className="flex justify-between items-center p-5 border-b border-[#30363d] bg-[#0d1117]">
+                                <h3 className="text-xl font-rajdhani font-bold text-[#1f6feb] flex items-center gap-2">
+                                    <BadgeInfo className="h-5 w-5" /> Vehículo {modalDetalle.data.placa}
+                                </h3>
+                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="text-[#8b949e] hover:text-white"><X className="h-5 w-5" /></button>
+                            </div>
+
+                            <div className="p-6 space-y-5 bg-[#161b22]">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Chofer Principal</p>
+                                        <p className="text-base text-white font-medium mt-1">{modalDetalle.data.chofer_asignado || 'No Asignado'}</p>
+                                    </div>
+                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Vehículo</p>
+                                        <p className="text-base text-white font-medium mt-1 uppercase">{modalDetalle.data.marca} {modalDetalle.data.modelo} ({modalDetalle.data.anio})</p>
+                                    </div>
+                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Capacidad</p>
+                                        <p className="text-base text-[#f0a500] font-bold font-rajdhani mt-1">{modalDetalle.data.capacidad_m3} m³</p>
+                                    </div>
+                                    <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#30363d]">
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Estado</p>
+                                        <p className="text-base text-white font-medium mt-1 capitalize">{modalDetalle.data.estado.replace('_', ' ')}</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-[#21262d] p-4 rounded-xl border border-[#30363d] space-y-4">
+                                    <h4 className="text-xs font-bold text-[#8b949e] uppercase tracking-widest border-b border-[#30363d] pb-2">Estado de Documentación</h4>
+
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-[#e6edf3]">Vencimiento SOAT</span>
+                                        <span className={`px-2 py-1 rounded text-xs font-bold border ${isExpired(modalDetalle.data.vencimiento_soat) ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' : isWarning(modalDetalle.data.vencimiento_soat) ? 'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30' : 'bg-[#238636]/10 text-[#238636] border-[#238636]/30'}`}>
+                                            {isExpired(modalDetalle.data.vencimiento_soat) ? 'VENCIDO' : new Date(modalDetalle.data.vencimiento_soat).toLocaleDateString('es-PE')}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-[#e6edf3]">Revisión Técnica</span>
+                                        <span className={`px-2 py-1 rounded text-xs font-bold border ${isExpired(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' : isWarning(modalDetalle.data.vencimiento_rev_tecnica) ? 'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30' : 'bg-[#238636]/10 text-[#238636] border-[#238636]/30'}`}>
+                                            {isExpired(modalDetalle.data.vencimiento_rev_tecnica) ? 'VENCIDO' : new Date(modalDetalle.data.vencimiento_rev_tecnica).toLocaleDateString('es-PE')}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-5 border-t border-[#30363d] bg-[#0d1117] flex justify-end">
+                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="px-6 py-2.5 bg-[#21262d] hover:bg-[#30363d] text-white font-bold rounded-lg transition-colors border border-[#30363d]">Cerrar</button>
                             </div>
                         </motion.div>
                     </div>

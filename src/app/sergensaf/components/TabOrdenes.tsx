@@ -308,9 +308,9 @@ export default function TabOrdenes({ showToast }: { showToast: Function }) {
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${o.estado === 'despachado' ? 'bg-[#238636]/10 text-[#238636] border-[#238636]/30' :
-                                                        o.estado === 'anulado' ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' :
-                                                            o.estado === 'en_proceso' ? 'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30' :
-                                                                'bg-[#1f6feb]/10 text-[#1f6feb] border-[#1f6feb]/30'
+                                                    o.estado === 'anulado' ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' :
+                                                        o.estado === 'en_proceso' ? 'bg-[#f0a500]/10 text-[#f0a500] border-[#f0a500]/30' :
+                                                            'bg-[#1f6feb]/10 text-[#1f6feb] border-[#1f6feb]/30'
                                                     }`}>
                                                     {o.estado.replace('_', ' ')}
                                                 </span>
@@ -472,14 +472,79 @@ export default function TabOrdenes({ showToast }: { showToast: Function }) {
                 )}
             </AnimatePresence>
 
-            {/* DETALLE MODAL PLACEHOLDER */}
+            {/* DETALLE MODAL */}
             <AnimatePresence>
                 {modalDetalle.isOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#161b22] border border-[#30363d] rounded-2xl w-full max-w-2xl overflow-hidden p-6 text-center">
-                            <h3 className="text-2xl font-rajdhani text-[#f0a500] font-bold mb-4">Detalle en Modal</h3>
-                            <p className="text-white mb-6">Orden: {modalDetalle.data.numero} - Visor de detalle resumido o completo.</p>
-                            <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="px-6 py-2 bg-[#21262d] text-white rounded-lg">Cerrar</button>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#161b22] border border-[#30363d] rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl">
+                            <div className="flex justify-between items-center p-6 border-b border-[#30363d] bg-[#0d1117]">
+                                <h3 className="text-xl font-rajdhani font-bold text-[#f0a500] flex items-center gap-2">
+                                    <FileText className="h-5 w-5" /> Detalle de Orden: {modalDetalle.data.numero}
+                                </h3>
+                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="text-[#8b949e] hover:text-white"><X className="h-5 w-5" /></button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {/* Info General */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#21262d] p-4 rounded-xl border border-[#30363d]">
+                                    <div>
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Cliente</p>
+                                        <p className="text-sm text-white font-medium mt-1">{modalDetalle.data.saf_clientes?.razon_social}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Fecha y Estado</p>
+                                        <p className="text-sm text-white mt-1 capitalize">{formatFecha(modalDetalle.data.fecha)} • {modalDetalle.data.estado.replace('_', ' ')} </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Tipo de Pago</p>
+                                        <p className="text-sm text-white mt-1 capitalize">{modalDetalle.data.tipo_pago}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Observaciones</p>
+                                        <p className="text-sm text-white mt-1 italic">{modalDetalle.data.observaciones || 'Ninguna'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Items */}
+                                <div>
+                                    <h4 className="text-sm font-bold text-[#e6edf3] uppercase tracking-widest mb-3 border-b border-[#30363d] pb-2">Artículos Solicitados</h4>
+                                    <div className="bg-[#0b0f19] rounded-xl border border-[#30363d] overflow-hidden">
+                                        <table className="w-full text-left text-sm text-[#e6edf3]">
+                                            <thead className="bg-[#21262d] text-[#8b949e] text-[10px] uppercase">
+                                                <tr>
+                                                    <th className="px-4 py-3">Producto</th>
+                                                    <th className="px-4 py-3 text-center">Cantidad</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-[#30363d]">
+                                                {modalDetalle.data.saf_orden_items?.map((it: any, i: number) => (
+                                                    <tr key={i} className="hover:bg-white/5">
+                                                        <td className="px-4 py-3 font-medium">{it.saf_productos?.nombre || 'Producto Desconocido'}</td>
+                                                        <td className="px-4 py-3 text-center font-rajdhani font-bold text-[#f0a500] text-lg">{it.cantidad} <span className="text-xs text-[#8b949e] font-normal">m³</span></td>
+                                                    </tr>
+                                                ))}
+                                                {(!modalDetalle.data.saf_orden_items || modalDetalle.data.saf_orden_items.length === 0) && (
+                                                    <tr><td colSpan={2} className="px-4 py-4 text-center text-[#8b949e]">No hay items en esta orden.</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Importes */}
+                                <div className="flex justify-end">
+                                    <div className="w-full md:w-1/2 lg:w-1/3 bg-[#21262d] p-4 rounded-xl border border-[#30363d] space-y-2">
+                                        <div className="flex justify-between text-sm text-[#8b949e]"><span>Subtotal</span><span>{formatSoles(Number(modalDetalle.data.subtotal))}</span></div>
+                                        <div className="flex justify-between text-sm text-[#8b949e]"><span>IGV (18%)</span><span>{formatSoles(Number(modalDetalle.data.igv))}</span></div>
+                                        <div className="flex justify-between text-xl font-rajdhani font-bold text-[#f0a500] border-t border-[#30363d] pt-2 mt-2"><span>TOTAL</span><span>{formatSoles(Number(modalDetalle.data.total))}</span></div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div className="p-5 border-t border-[#30363d] bg-[#0d1117] flex justify-end">
+                                <button onClick={() => setModalDetalle({ isOpen: false, data: null })} className="px-6 py-2.5 bg-[#f0a500] hover:bg-[#e06c00] text-[#0b0f19] font-bold rounded-lg transition-colors">Cerrar Detalle</button>
+                            </div>
                         </motion.div>
                     </div>
                 )}
