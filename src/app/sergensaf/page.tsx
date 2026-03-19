@@ -84,10 +84,10 @@ export default function SergensafModule() {
     return (
         <div className="min-h-screen flex flex-col font-sans">
             {/* HEADER */}
-            <header className="h-16 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between px-6 sticky top-0 z-50">
-                <div className="flex items-center gap-4">
+            <header className="h-16 bg-[#0B0F19]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
+                <div className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer">
                     <div className="flex flex-col">
-                        <h1 className="text-2xl font-bold font-rajdhani text-[#f0a500] tracking-tight leading-none">SERGENSAF</h1>
+                        <h1 className="text-2xl font-bold font-rajdhani text-transparent bg-clip-text bg-gradient-to-r from-[#f0a500] to-[#ffcc5c] tracking-tight leading-none drop-shadow-sm">SERGENSAF</h1>
                         <span className="text-[10px] text-[#8b949e] uppercase tracking-widest font-medium">Proceso y Venta de Agregados</span>
                     </div>
                 </div>
@@ -145,7 +145,7 @@ export default function SergensafModule() {
             </header>
 
             {/* TABS NAVIGATION */}
-            <nav className="bg-[#161b22] border-b border-[#30363d] sticky top-16 z-40 overflow-x-auto no-scrollbar">
+            <nav className="bg-[#0B0F19]/60 backdrop-blur-md border-b border-white/5 sticky top-16 z-40 overflow-x-auto no-scrollbar shadow-sm">
                 <div className="flex px-4 min-w-max">
                     {TABS.map(tab => (
                         <button
@@ -172,7 +172,7 @@ export default function SergensafModule() {
             </nav>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 p-6 lg:p-8 bg-[#0d1117] overflow-y-auto relative">
+            <main className="flex-1 p-6 lg:p-8 overflow-y-auto relative">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}

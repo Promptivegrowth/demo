@@ -218,41 +218,45 @@ export default function TabCotizaciones({ showToast }: { showToast: Function }) 
 
             {/* CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-[#161b22] p-5 rounded-xl border border-[#30363d]">
-                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2">Cotizaciones del Mes</p>
-                    <p className="text-3xl font-rajdhani font-bold text-[#e6edf3]">{stats.cotsMes}</p>
+                <div className="bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#f0a500]/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-[#f0a500]/10"></div>
+                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2 font-semibold">Cotizaciones del Mes</p>
+                    <p className="text-4xl font-rajdhani font-bold text-white drop-shadow-md">{stats.cotsMes}</p>
                 </div>
-                <div className="bg-[#161b22] p-5 rounded-xl border border-[#30363d]">
-                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2">Monto Total Cotizado</p>
-                    <p className="text-3xl font-rajdhani font-bold text-[#238636]">{formatSoles(stats.montoMes)}</p>
+                <div className="bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#238636]/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-[#238636]/10"></div>
+                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2 font-semibold">Monto Total Cotizado</p>
+                    <p className="text-4xl font-rajdhani font-bold text-[#238636] drop-shadow-md">{formatSoles(stats.montoMes)}</p>
                 </div>
-                <div className="bg-[#161b22] p-5 rounded-xl border border-[#30363d]">
-                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2">Tasa de Aprobación</p>
-                    <p className="text-3xl font-rajdhani font-bold text-[#1f6feb]">{stats.tasaAprobacion}%</p>
+                <div className="bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#1f6feb]/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-[#1f6feb]/10"></div>
+                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2 font-semibold">Tasa de Aprobación</p>
+                    <p className="text-4xl font-rajdhani font-bold text-[#1f6feb] drop-shadow-md">{stats.tasaAprobacion}%</p>
                 </div>
-                <div className={`bg-[#161b22] p-5 rounded-xl border border-[#30363d] ${stats.porVencer > 0 ? 'border-[#f0a500] animate-pulse' : ''}`}>
-                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2">Por Vencer (3 días)</p>
-                    <p className={`text-3xl font-rajdhani font-bold ${stats.porVencer > 0 ? 'text-[#f0a500]' : 'text-[#e6edf3]'}`}>{stats.porVencer}</p>
+                <div className={`bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border shadow-lg relative overflow-hidden group ${stats.porVencer > 0 ? 'border-[#f0a500]/50 shadow-[#f0a500]/10 animate-pulse' : 'border-white/5'}`}>
+                    <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-10 -mt-10 transition-all ${stats.porVencer > 0 ? 'bg-[#f0a500]/20' : 'bg-white/5'}`}></div>
+                    <p className={`text-xs uppercase tracking-wider mb-2 font-semibold ${stats.porVencer > 0 ? 'text-[#f0a500]' : 'text-[#8b949e]'}`}>Por Vencer (3 días)</p>
+                    <p className={`text-4xl font-rajdhani font-bold drop-shadow-md ${stats.porVencer > 0 ? 'text-[#f0a500]' : 'text-[#e6edf3]'}`}>{stats.porVencer}</p>
                 </div>
             </div>
 
             {/* TABLE */}
-            <div className="bg-[#161b22] rounded-xl border border-[#30363d] overflow-hidden">
+            <div className="bg-[#0B0F19]/60 backdrop-blur-md rounded-2xl border border-white/5 shadow-2xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-[#e6edf3]">
-                        <thead className="bg-[#21262d] text-[#8b949e] uppercase text-[10px] tracking-wider">
+                        <thead className="bg-black/40 text-[#8b949e] uppercase text-[10px] tracking-wider border-b border-white/5">
                             <tr>
-                                <th className="px-4 py-3 font-medium">N° Cotización</th>
-                                <th className="px-4 py-3 font-medium">Cliente</th>
-                                <th className="px-4 py-3 font-medium">Fecha</th>
-                                <th className="px-4 py-3 font-medium">Vence</th>
-                                <th className="px-4 py-3 font-medium text-center">Items</th>
-                                <th className="px-4 py-3 font-medium text-right">Total</th>
-                                <th className="px-4 py-3 font-medium text-center">Estado</th>
-                                <th className="px-4 py-3 font-medium text-center">Acciones</th>
+                                <th className="px-6 py-4 font-semibold">N° Cotización</th>
+                                <th className="px-6 py-4 font-semibold">Cliente</th>
+                                <th className="px-6 py-4 font-semibold">Fecha</th>
+                                <th className="px-6 py-4 font-semibold">Vence</th>
+                                <th className="px-6 py-4 font-semibold text-center">Items</th>
+                                <th className="px-6 py-4 font-semibold text-right">Total</th>
+                                <th className="px-6 py-4 font-semibold text-center">Estado</th>
+                                <th className="px-6 py-4 font-semibold text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#30363d]">
+                        <tbody className="divide-y divide-white/5">
                             {loading ? (
                                 <tr><td colSpan={8} className="p-8 text-center"><div className="w-6 h-6 border-2 border-[#f0a500] border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
                             ) : filteredList.length === 0 ? (
@@ -261,17 +265,17 @@ export default function TabCotizaciones({ showToast }: { showToast: Function }) 
                                 filteredList.map(c => {
                                     const vencida = new Date(c.fecha_vencimiento) < now && c.estado === 'pendiente'
                                     return (
-                                        <tr key={c.id} className="hover:bg-[#21262d]/50 transition-colors group">
-                                            <td className="px-4 py-3 font-rajdhani font-bold text-[#f0a500]">{c.numero}</td>
-                                            <td className="px-4 py-3">{c.saf_clientes?.razon_social}</td>
-                                            <td className="px-4 py-3 text-[#8b949e]">{formatFecha(c.fecha)}</td>
-                                            <td className={`px-4 py-3 ${vencida ? 'text-[#da3633] font-bold flex items-center gap-1' : 'text-[#8b949e]'}`}>
+                                        <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
+                                            <td className="px-6 py-4 font-rajdhani font-bold text-[#f0a500] text-base">{c.numero}</td>
+                                            <td className="px-6 py-4 font-medium text-white">{c.saf_clientes?.razon_social}</td>
+                                            <td className="px-6 py-4 text-[#8b949e]">{formatFecha(c.fecha)}</td>
+                                            <td className={`px-6 py-4 ${vencida ? 'text-[#da3633] font-bold flex items-center gap-1' : 'text-[#8b949e]'}`}>
                                                 {vencida && <AlertTriangle className="h-3 w-3" />} {formatFecha(c.fecha_vencimiento)}
                                             </td>
-                                            <td className="px-4 py-3 text-center">{c.saf_cotizacion_items?.length || 0}</td>
-                                            <td className="px-4 py-3 text-right font-bold">{formatSoles(Number(c.total))}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${c.estado === 'aprobada' ? 'bg-[#238636]/10 text-[#238636] border-[#238636]/30' :
+                                            <td className="px-6 py-4 text-center font-bold">{c.saf_cotizacion_items?.length || 0}</td>
+                                            <td className="px-6 py-4 text-right font-bold text-[#238636]">{formatSoles(Number(c.total))}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full border shadow-sm ${c.estado === 'aprobada' ? 'bg-[#238636]/10 text-[#238636] border-[#238636]/30' :
                                                     c.estado === 'rechazada' ? 'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30' :
                                                         c.estado === 'vencida' || vencida ? 'bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30' :
                                                             'bg-[#1f6feb]/10 text-[#1f6feb] border-[#1f6feb]/30'
@@ -279,19 +283,19 @@ export default function TabCotizaciones({ showToast }: { showToast: Function }) 
                                                     {vencida && c.estado === 'pendiente' ? 'VENCIDA' : c.estado}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <button onClick={() => setModalPDF({ isOpen: true, data: c })} className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] bg-[#21262d] hover:bg-[#30363d] rounded" title="Ver PDF"><FileText className="h-4 w-4" /></button>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => setModalPDF({ isOpen: true, data: c })} className="p-2 text-[#8b949e] hover:text-[#e6edf3] bg-black/20 hover:bg-white/10 border border-transparent hover:border-white/20 rounded-lg transition-all" title="Ver PDF"><FileText className="h-4 w-4" /></button>
                                                     {c.estado === 'pendiente' && !vencida && (
                                                         <>
-                                                            <button onClick={() => handleAprobar(c.id, c.numero)} className="p-1.5 text-[#238636] hover:bg-[#238636]/20 bg-[#238636]/10 rounded" title="Aprobar"><Check className="h-4 w-4" /></button>
-                                                            <button onClick={() => setModalRechazo({ isOpen: true, data: c })} className="p-1.5 text-[#da3633] hover:bg-[#da3633]/20 bg-[#da3633]/10 rounded" title="Rechazar"><X className="h-4 w-4" /></button>
+                                                            <button onClick={() => handleAprobar(c.id, c.numero)} className="p-2 text-[#238636] hover:bg-[#238636]/20 bg-[#238636]/10 border border-transparent hover:border-[#238636]/30 rounded-lg transition-all" title="Aprobar Cotización"><Check className="h-4 w-4" /></button>
+                                                            <button onClick={() => setModalRechazo({ isOpen: true, data: c })} className="p-2 text-[#da3633] hover:bg-[#da3633]/20 bg-[#da3633]/10 border border-transparent hover:border-[#da3633]/30 rounded-lg transition-all" title="Rechazar Cotización"><X className="h-4 w-4" /></button>
                                                         </>
                                                     )}
                                                     {c.estado === 'aprobada' && (
-                                                        <button onClick={() => handleConvertirOrden(c)} className="p-1.5 text-[#f0a500] hover:bg-[#f0a500]/20 bg-[#f0a500]/10 rounded" title="Convertir a Orden"><ArrowRight className="h-4 w-4" /></button>
+                                                        <button onClick={() => handleConvertirOrden(c)} className="p-2 text-[#f0a500] hover:bg-[#f0a500]/20 bg-[#f0a500]/10 border border-transparent hover:border-[#f0a500]/30 rounded-lg transition-all" title="Generar Orden de Venta"><ArrowRight className="h-4 w-4" /></button>
                                                     )}
-                                                    <button onClick={() => handleDuplicar(c)} className="p-1.5 text-[#8b949e] hover:bg-[#30363d] rounded hidden md:block" title="Duplicar"><Copy className="h-4 w-4" /></button>
+                                                    <button onClick={() => handleDuplicar(c)} className="p-2 text-[#8b949e] hover:bg-white/10 hover:text-white border border-transparent hover:border-white/20 rounded-lg transition-all hidden md:block" title="Duplicar"><Copy className="h-4 w-4" /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -306,69 +310,69 @@ export default function TabCotizaciones({ showToast }: { showToast: Function }) 
             {/* MODAL NUEVA COTIZACION */}
             <AnimatePresence>
                 {modalNueva && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
-                            <div className="flex justify-between items-center p-5 border-b border-[#30363d] bg-[#161b22] sticky top-0 z-10">
-                                <h3 className="text-xl font-rajdhani font-bold text-[#f0a500]">Nueva Cotización</h3>
-                                <button onClick={() => setModalNueva(false)} className="text-[#8b949e] hover:text-white"><X className="h-5 w-5" /></button>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#0B0F19]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="flex justify-between items-center p-6 border-b border-white/5 bg-white/5 sticky top-0 z-10">
+                                <h3 className="text-xl font-rajdhani font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#f0a500] to-[#ffcc5c]">Nueva Cotización</h3>
+                                <button onClick={() => setModalNueva(false)} className="text-[#8b949e] hover:text-white transition-colors bg-white/5 p-2 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                <div className="bg-[#0d1117] p-4 rounded-xl border border-[#30363d] grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-black/20 p-5 rounded-xl border border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4 shadow-inner">
                                     <div>
                                         <label className="block text-xs font-semibold text-[#8b949e] uppercase mb-2">Seleccionar Cliente *</label>
-                                        <select value={nuevoClienteId} onChange={(e) => setNuevoClienteId(e.target.value)} className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-sm text-[#e6edf3] focus:border-[#f0a500] outline-none">
+                                        <select value={nuevoClienteId} onChange={(e) => setNuevoClienteId(e.target.value)} className="w-full bg-[#0d1117] border border-white/10 rounded-lg p-3 text-sm text-[#e6edf3] focus:border-[#f0a500] focus:ring-1 focus:ring-[#f0a500] transition-shadow outline-none shadow-sm">
                                             <option value="">Seleccione...</option>
                                             {clientes.map(cl => <option key={cl.id} value={cl.id}>{cl.razon_social} ({cl.ruc})</option>)}
                                         </select>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-semibold text-[#8b949e] uppercase mb-2">Validez (Días)</label>
-                                        <select value={nuevaValidez} onChange={(e) => setNuevaValidez(Number(e.target.value))} className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-sm text-[#e6edf3] outline-none">
+                                        <select value={nuevaValidez} onChange={(e) => setNuevaValidez(Number(e.target.value))} className="w-full bg-[#0d1117] border border-white/10 rounded-lg p-3 text-sm text-[#e6edf3] focus:border-[#f0a500] focus:ring-1 focus:ring-[#f0a500] outline-none shadow-sm">
                                             <option value={7}>7 días</option><option value={15}>15 días</option><option value={30}>30 días</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <div className="flex justify-between items-center mb-2">
+                                    <div className="flex justify-between items-center mb-3">
                                         <label className="block text-xs font-semibold text-[#8b949e] uppercase">Productos</label>
-                                        <button onClick={() => setNuevoItems([...nuevoItems, { id: Date.now(), producto_id: '', cantidad: 1, precio_unitario: 0, subtotal: 0 }])} className="text-xs text-[#f0a500] hover:text-[#e06c00] font-bold flex items-center gap-1"><Plus className="h-3 w-3" /> Agregar fila</button>
+                                        <button onClick={() => setNuevoItems([...nuevoItems, { id: Date.now(), producto_id: '', cantidad: 1, precio_unitario: 0, subtotal: 0 }])} className="text-xs px-3 py-1.5 bg-[#f0a500]/10 text-[#f0a500] hover:bg-[#f0a500]/20 font-bold flex items-center gap-1 rounded-md transition-colors"><Plus className="h-3 w-3" /> Agregar fila</button>
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         {nuevoItems.map((item, idx) => (
-                                            <div key={item.id} className="flex gap-2 items-center bg-[#21262d] p-2 rounded-lg border border-[#30363d]">
-                                                <span className="text-[#8b949e] text-xs w-4 text-center">{idx + 1}</span>
-                                                <select value={item.producto_id} onChange={(e) => actItem(item.id, 'producto_id', e.target.value)} className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1.5 text-xs text-white outline-none">
+                                            <div key={item.id} className="flex gap-3 items-center bg-black/30 p-3 rounded-xl border border-white/5 shadow-sm hover:border-white/10 transition-colors">
+                                                <span className="text-[#8b949e] text-xs font-bold w-4 text-center">{idx + 1}</span>
+                                                <select value={item.producto_id} onChange={(e) => actItem(item.id, 'producto_id', e.target.value)} className="flex-1 bg-[#0d1117] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[#f0a500] outline-none">
                                                     <option value="">Producto...</option>
                                                     {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} (Stock: {p.stock_actual} {p.unidad})</option>)}
                                                 </select>
-                                                <input type="number" min="0.1" step="0.1" value={item.cantidad} onChange={(e) => actItem(item.id, 'cantidad', e.target.value)} className="w-20 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1.5 text-xs text-center text-white" placeholder="Cant." />
-                                                <input type="number" min="0.1" step="0.1" value={item.precio_unitario} onChange={(e) => actItem(item.id, 'precio_unitario', e.target.value)} className="w-24 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1.5 text-xs text-right text-[#f0a500]" placeholder="S/." />
-                                                <div className="w-24 text-right pr-2 text-sm font-bold text-white">{formatSoles(item.subtotal)}</div>
-                                                <button onClick={() => setNuevoItems(nuevoItems.filter(x => x.id !== item.id))} className="p-1 hover:bg-[#da3633]/20 text-[#da3633] rounded"><X className="h-4 w-4" /></button>
+                                                <input type="number" min="0.1" step="0.1" value={item.cantidad} onChange={(e) => actItem(item.id, 'cantidad', e.target.value)} className="w-24 bg-[#0d1117] border border-white/10 rounded-lg px-3 py-2 text-sm text-center text-white focus:border-[#f0a500] outline-none" placeholder="Cant." />
+                                                <input type="number" min="0.1" step="0.1" value={item.precio_unitario} onChange={(e) => actItem(item.id, 'precio_unitario', e.target.value)} className="w-28 bg-[#0d1117] border border-white/10 rounded-lg px-3 py-2 text-sm text-right text-[#f0a500] font-bold focus:border-[#f0a500] outline-none" placeholder="S/." />
+                                                <div className="w-28 text-right pr-2 text-base font-bold text-[#e6edf3]">{formatSoles(item.subtotal)}</div>
+                                                <button onClick={() => setNuevoItems(nuevoItems.filter(x => x.id !== item.id))} className="p-2 hover:bg-[#da3633]/20 text-[#da3633] rounded-lg border border-transparent hover:border-[#da3633]/30 transition-colors bg-white/5"><X className="h-4 w-4" /></button>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
                                 <div className="flex mx-auto justify-end">
-                                    <div className="w-64 bg-[#0d1117] border border-[#30363d] rounded-xl p-4 space-y-2">
-                                        <div className="flex justify-between text-sm text-[#8b949e]"><span>Subtotal</span><span>{formatSoles(subtotalNuevo)}</span></div>
-                                        <div className="flex justify-between text-sm text-[#8b949e]"><span>IGV (18%)</span><span>{formatSoles(igvNuevo)}</span></div>
-                                        <div className="flex justify-between text-lg font-rajdhani font-bold text-[#f0a500] border-t border-[#30363d] pt-2 mt-2"><span>TOTAL</span><span>{formatSoles(totalNuevo)}</span></div>
+                                    <div className="w-72 bg-gradient-to-br from-[#0B0F19] to-[#0d1117] border border-white/10 rounded-2xl p-5 space-y-3 shadow-lg">
+                                        <div className="flex justify-between text-sm text-[#8b949e] font-semibold"><span>Subtotal</span><span className="text-[#e6edf3]">{formatSoles(subtotalNuevo)}</span></div>
+                                        <div className="flex justify-between text-sm text-[#8b949e] font-semibold"><span>IGV (18%)</span><span className="text-[#e6edf3]">{formatSoles(igvNuevo)}</span></div>
+                                        <div className="flex justify-between text-xl font-rajdhani font-black text-transparent bg-clip-text bg-gradient-to-r from-[#f0a500] to-[#ffcc5c] border-t border-white/10 pt-3 mt-3"><span>TOTAL</span><span>{formatSoles(totalNuevo)}</span></div>
                                     </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-xs font-semibold text-[#8b949e] uppercase mb-2">Observaciones</label>
-                                    <textarea value={nuevaObs} onChange={(e) => setNuevaObs(e.target.value)} rows={2} className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-sm text-[#e6edf3] outline-none" placeholder="Condiciones de pago, entrega, etc." />
+                                    <textarea value={nuevaObs} onChange={(e) => setNuevaObs(e.target.value)} rows={3} className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-sm text-[#e6edf3] focus:border-[#f0a500] focus:ring-1 focus:ring-[#f0a500] transition-shadow outline-none resize-none shadow-inner" placeholder="Condiciones de pago, entrega adicional, compromisos especiales..." />
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 p-5 border-t border-[#30363d] bg-[#161b22]">
-                                <button onClick={() => setModalNueva(false)} className="flex-1 px-4 py-2 bg-[#21262d] text-[#e6edf3] font-medium rounded-lg">Cancelar</button>
-                                <button onClick={handleCreateCotizacion} className="flex-1 px-4 py-2 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg border-none">Generar Cotización</button>
+                            <div className="flex gap-4 p-6 border-t border-white/5 bg-white/5">
+                                <button onClick={() => setModalNueva(false)} className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-[#e6edf3] font-bold rounded-xl transition-all shadow-sm">Cancelar</button>
+                                <button onClick={handleCreateCotizacion} className="flex-1 px-5 py-3 bg-gradient-to-r from-[#f0a500] to-[#e06c00] hover:from-[#e06c00] hover:to-[#c45a00] text-[#0d1117] font-black rounded-xl shadow-[0_0_20px_rgba(240,165,0,0.3)] transition-all">Generar Cotización Premium</button>
                             </div>
                         </motion.div>
                     </div>

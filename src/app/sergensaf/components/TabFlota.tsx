@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo
+    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -127,21 +127,25 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
 
             {/* CARDS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-[#161b22] p-5 rounded-xl border border-[#30363d]">
-                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2">Total Vehículos</p>
-                    <p className="text-3xl font-rajdhani font-bold text-[#e6edf3]">{stats.total}</p>
+                <div className="bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#f0a500]/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-[#f0a500]/10"></div>
+                    <p className="text-xs text-[#8b949e] uppercase tracking-wider mb-2 font-semibold">Total Vehículos</p>
+                    <p className="text-4xl font-rajdhani font-bold text-white drop-shadow-md">{stats.total}</p>
                 </div>
-                <div className={`bg-[#161b22] p-5 rounded-xl border ${stats.disponibles > 0 ? 'border-[#238636] bg-[#238636]/5' : 'border-[#30363d]'}`}>
-                    <p className="text-xs text-[#238636] uppercase font-bold tracking-wider mb-2 flex items-center gap-2"><CheckCircle className="h-3 w-3" /> Disponibles</p>
-                    <p className={`text-3xl font-rajdhani font-bold ${stats.disponibles > 0 ? 'text-[#238636]' : 'text-[#8b949e]'}`}>{stats.disponibles}</p>
+                <div className="bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#238636]/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-[#238636]/10"></div>
+                    <p className="text-xs text-[#238636] uppercase font-bold tracking-wider mb-2 flex items-center gap-2"><CheckCircle className="h-4 w-4" /> Disponibles</p>
+                    <p className={`text-4xl font-rajdhani font-bold drop-shadow-md ${stats.disponibles > 0 ? 'text-white' : 'text-[#8b949e]'}`}>{stats.disponibles}</p>
                 </div>
-                <div className={`bg-[#161b22] p-5 rounded-xl border ${stats.enRuta > 0 ? 'border-[#1f6feb] bg-[#1f6feb]/5' : 'border-[#30363d]'}`}>
-                    <p className="text-xs text-[#1f6feb] uppercase font-bold tracking-wider mb-2">En Ruta</p>
-                    <p className={`text-3xl font-rajdhani font-bold ${stats.enRuta > 0 ? 'text-[#1f6feb]' : 'text-[#8b949e]'}`}>{stats.enRuta}</p>
+                <div className="bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#1f6feb]/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-[#1f6feb]/10"></div>
+                    <p className="text-xs text-[#1f6feb] uppercase font-bold tracking-wider mb-2 flex items-center gap-2"><Truck className="h-4 w-4" /> En Ruta</p>
+                    <p className={`text-4xl font-rajdhani font-bold drop-shadow-md ${stats.enRuta > 0 ? 'text-white' : 'text-[#8b949e]'}`}>{stats.enRuta}</p>
                 </div>
-                <div className={`bg-[#161b22] p-5 rounded-xl border ${stats.enMantenimiento > 0 ? 'border-[#da3633] bg-[#da3633]/5' : 'border-[#30363d]'}`}>
-                    <p className="text-xs text-[#da3633] uppercase font-bold tracking-wider mb-2">En Mantenimiento</p>
-                    <p className={`text-3xl font-rajdhani font-bold ${stats.enMantenimiento > 0 ? 'text-[#da3633]' : 'text-[#8b949e]'}`}>{stats.enMantenimiento}</p>
+                <div className="bg-[#0B0F19]/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#da3633]/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-[#da3633]/10"></div>
+                    <p className="text-xs text-[#da3633] uppercase font-bold tracking-wider mb-2 flex items-center gap-2"><Wrench className="h-4 w-4" /> En Mantenimiento</p>
+                    <p className={`text-4xl font-rajdhani font-bold drop-shadow-md ${stats.enMantenimiento > 0 ? 'text-white' : 'text-[#8b949e]'}`}>{stats.enMantenimiento}</p>
                 </div>
             </div>
 
@@ -157,21 +161,21 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
             </div>
 
             {/* TABLE */}
-            <div className="bg-[#161b22] rounded-xl border border-[#30363d] overflow-hidden">
+            <div className="bg-[#0B0F19]/60 backdrop-blur-md rounded-2xl border border-white/5 shadow-2xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-[#e6edf3]">
-                        <thead className="bg-[#21262d] text-[#8b949e] uppercase text-[10px] tracking-wider">
+                        <thead className="bg-black/40 text-[#8b949e] uppercase text-[10px] tracking-wider border-b border-white/5">
                             <tr>
-                                <th className="px-4 py-3 font-medium">Placa / Vehículo</th>
-                                <th className="px-4 py-3 font-medium">Capacidad</th>
-                                <th className="px-4 py-3 font-medium">Chofer Asignado</th>
-                                <th className="px-4 py-3 font-medium text-center">SOAT</th>
-                                <th className="px-4 py-3 font-medium text-center">Rev. Técnica</th>
-                                <th className="px-4 py-3 font-medium text-center">Estado</th>
-                                <th className="px-4 py-3 font-medium text-center">Acciones</th>
+                                <th className="px-6 py-4 font-semibold">Placa / Vehículo</th>
+                                <th className="px-6 py-4 font-semibold">Capacidad</th>
+                                <th className="px-6 py-4 font-semibold">Chofer Asignado</th>
+                                <th className="px-6 py-4 font-semibold text-center">SOAT</th>
+                                <th className="px-6 py-4 font-semibold text-center">Rev. Técnica</th>
+                                <th className="px-6 py-4 font-semibold text-center">Estado</th>
+                                <th className="px-6 py-4 font-semibold text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#30363d]">
+                        <tbody className="divide-y divide-white/5">
                             {loading ? (
                                 <tr><td colSpan={7} className="p-8 text-center"><div className="w-6 h-6 border-2 border-[#f0a500] border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
                             ) : filteredList.length === 0 ? (
@@ -184,46 +188,60 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                                     const revWarn = isWarning(f.vencimiento_rev_tecnica) && !revVencida
 
                                     return (
-                                        <tr key={f.id} className="hover:bg-[#21262d]/50 transition-colors group">
-                                            <td className="px-4 py-3">
-                                                <span className="bg-[#30363d] text-[#e6edf3] px-2 py-0.5 rounded text-sm font-bold tracking-widest">{f.placa}</span>
-                                                <div className="text-xs text-[#8b949e] mt-1">{f.marca} {f.modelo} ({f.anio})</div>
+                                        <tr key={f.id} className="hover:bg-white/[0.02] transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <span className="bg-[#30363d] text-white px-2.5 py-1 rounded text-sm font-bold tracking-widest border border-white/10 shadow-sm">{f.placa}</span>
+                                                <div className="text-xs text-[#8b949e] mt-2">{f.marca} {f.modelo} ({f.anio})</div>
                                             </td>
-                                            <td className="px-4 py-3 font-bold text-[#e6edf3]">{f.capacidad_m3} <span className="text-[#8b949e] text-xs font-normal">m³</span></td>
-                                            <td className="px-4 py-3">{f.chofer_asignado || <span className="text-[#8b949e] italic">Sin asig.</span>}</td>
+                                            <td className="px-6 py-4 font-bold text-[#e6edf3]">{f.capacidad_m3} <span className="text-[#8b949e] text-xs font-normal">m³</span></td>
+                                            <td className="px-6 py-4">{f.chofer_asignado || <span className="text-[#8b949e] italic">Sin asig.</span>}</td>
 
                                             {/* SOAT DATE */}
-                                            <td className="px-4 py-3 text-center">
-                                                <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${soatVencido ? 'text-[#da3633] border-[#da3633]/30 bg-[#da3633]/10' :
-                                                        soatWarn ? 'text-[#f0a500] border-[#f0a500]/30 bg-[#f0a500]/10' :
-                                                            'text-[#8b949e] border-transparent'
+                                            <td className="px-6 py-4 text-center">
+                                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border shadow-sm ${soatVencido ? 'text-[#da3633] border-[#da3633]/30 bg-[#da3633]/10' :
+                                                    soatWarn ? 'text-[#f0a500] border-[#f0a500]/30 bg-[#f0a500]/10' :
+                                                        'text-[#8b949e] border-white/5 bg-black/20'
                                                     }`}>
                                                     {soatVencido ? <ShieldAlert className="h-3 w-3" /> : soatWarn ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3 text-[#238636]" />}
-                                                    {new Date(f.vencimiento_soat).toLocaleDateString('es-PE')}
+                                                    {soatVencido ? 'VENCIDO' : new Date(f.vencimiento_soat).toLocaleDateString('es-PE')}
                                                 </div>
                                             </td>
 
                                             {/* REV DATE */}
-                                            <td className="px-4 py-3 text-center">
-                                                <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${revVencida ? 'text-[#da3633] border-[#da3633]/30 bg-[#da3633]/10' :
-                                                        revWarn ? 'text-[#f0a500] border-[#f0a500]/30 bg-[#f0a500]/10' :
-                                                            'text-[#8b949e] border-transparent'
+                                            <td className="px-6 py-4 text-center">
+                                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border shadow-sm ${revVencida ? 'text-[#da3633] border-[#da3633]/30 bg-[#da3633]/10' :
+                                                    revWarn ? 'text-[#f0a500] border-[#f0a500]/30 bg-[#f0a500]/10' :
+                                                        'text-[#8b949e] border-white/5 bg-black/20'
                                                     }`}>
                                                     {revVencida ? <ShieldAlert className="h-3 w-3" /> : revWarn ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3 text-[#238636]" />}
-                                                    {new Date(f.vencimiento_rev_tecnica).toLocaleDateString('es-PE')}
+                                                    {revVencida ? 'VENCIDO' : new Date(f.vencimiento_rev_tecnica).toLocaleDateString('es-PE')}
                                                 </div>
                                             </td>
 
-                                            <td className="px-4 py-3 text-center">
-                                                <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${f.estado === 'disponible' ? 'bg-[#238636]/10 text-[#238636] border-[#238636]/30' :
-                                                        f.estado === 'en_ruta' ? 'bg-[#1f6feb]/10 text-[#1f6feb] border-[#1f6feb]/30' :
-                                                            'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30'
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full border shadow-sm ${f.estado === 'disponible' ? 'bg-[#238636]/10 text-[#238636] border-[#238636]/30' :
+                                                    f.estado === 'en_ruta' ? 'bg-[#1f6feb]/10 text-[#1f6feb] border-[#1f6feb]/30' :
+                                                        'bg-[#da3633]/10 text-[#da3633] border-[#da3633]/30'
                                                     }`}>
                                                     {f.estado.replace('_', ' ')}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button onClick={() => handleOpenForm(f)} className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] bg-[#21262d] hover:bg-[#30363d] rounded" title="Editar Vehículo"><PenTool className="h-4 w-4" /></button>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => {
+                                                        const conf = confirm(`¿Enviar vehículo ${f.placa} a MANTENIMIENTO?`)
+                                                        if (conf) {
+                                                            supabase.from('saf_flota').update({ estado: 'mantenimiento' }).eq('id', f.id).then(() => { showToast('Vehículo en Mantenimiento', 'warning'); fetchData() })
+                                                        }
+                                                    }} className="p-2 text-[#8b949e] hover:text-[#f0a500] bg-black/20 hover:bg-[#f0a500]/10 border border-transparent hover:border-[#f0a500]/30 rounded-lg transition-all" title="Mandar a Mantenimiento"><Wrench className="h-4 w-4" /></button>
+                                                    <button onClick={() => handleOpenForm(f)} className="p-2 text-[#8b949e] hover:text-white bg-black/20 hover:bg-white/10 border border-transparent hover:border-white/20 rounded-lg transition-all" title="Editar Vehículo"><PenTool className="h-4 w-4" /></button>
+                                                    <button onClick={() => {
+                                                        const conf = confirm(`¿Eliminar vehículo ${f.placa}?`)
+                                                        if (conf) {
+                                                            supabase.from('saf_flota').delete().eq('id', f.id).then(() => { showToast('Vehículo eliminado', 'success'); fetchData() })
+                                                        }
+                                                    }} className="p-2 text-[#8b949e] hover:text-[#da3633] bg-black/20 hover:bg-[#da3633]/10 border border-transparent hover:border-[#da3633]/30 rounded-lg transition-all" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
+                                                </div>
                                             </td>
                                         </tr>
                                     )

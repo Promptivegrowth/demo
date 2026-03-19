@@ -20,7 +20,7 @@ export default function SergensafLayout({
     children: React.ReactNode
 }) {
     return (
-        <div className={`${inter.variable} ${rajdhani.variable} min-h-screen bg-[#0d1117] text-[#e6edf3] font-sans selection:bg-[#f0a500] selection:text-[#0d1117]`}>
+        <div className={`${inter.variable} ${rajdhani.variable} min-h-screen bg-gradient-to-br from-[#05080f] via-[#0d1117] to-[#121820] text-[#e6edf3] font-sans selection:bg-[#f0a500] selection:text-[#0d1117]`}>
             {children}
         </div>
     )
