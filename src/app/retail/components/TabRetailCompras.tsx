@@ -3,26 +3,26 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    ClipboardList, Plus, Search, Truck,
-    Calendar, Package, Save, X, Trash2,
-    ArrowDownRight, Loader2
+    Plus, Search, ShoppingBag, Truck, Calendar,
+    ArrowUpRight, ChevronRight, Loader2, User,
+    Phone, Mail, MapPin, CheckCircle2, PackagePlus,
+    BarChart2, History, AlertCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { retQuery } from '@/lib/retQuery'
 
 export function TabRetailCompras() {
+    const [proveedores, setProveedores] = useState<any[]>([])
     const [productos, setProductos] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
-    const [processing, setProcessing] = useState(false)
-    const [search, setSearch] = useState('')
-
-    // Formulario de compra
+    const [selectedProv, setSelectedProv] = useState<any>(null)
     const [form, setForm] = useState({
+        proveedor_id: '',
         producto_id: '',
         cantidad: 0,
         precio_compra: 0,
-        motivo: 'Compra a Proveedor',
+        motivo: 'Abastecimiento de Almacén',
         referencia: ''
     })
 
@@ -32,200 +32,246 @@ export function TabRetailCompras() {
 
     async function loadData() {
         try {
-            const p = await retQuery.getProductos()
-            setProductos(p)
+            const [provs, prods] = await Promise.all([
+                retQuery.getProveedores(),
+                retQuery.getProductos()
+            ])
+            setProveedores(provs)
+            setProductos(prods)
             setLoading(false)
         } catch (error) {
-            toast.error('Error al cargar productos')
+            toast.error('Error al cargar proveedores')
         }
     }
 
-    const handleRegister = async () => {
-        if (!form.producto_id || form.cantidad <= 0) {
-            toast.warning('Ingresa producto y cantidad válida')
+    const handleRegisterCompra = async () => {
+        if (!form.proveedor_id || !form.producto_id || form.cantidad <= 0) {
+            toast.warning('Completa todos los campos obligatorios')
             return
         }
-        setProcessing(true)
         try {
             const prod = productos.find(p => p.id === form.producto_id)
             await retQuery.saveMovimiento({
                 producto_id: form.producto_id,
                 tipo: 'entrada',
                 cantidad: form.cantidad,
-                precio_unitario: form.precio_compra || prod.precio_compra,
-                total: (form.precio_compra || prod.precio_compra) * form.cantidad,
+                precio_unitario: form.precio_compra,
+                total: form.precio_compra * form.cantidad,
                 motivo: form.motivo,
-                referencia: form.referencia || `OC-${Date.now().toString().slice(-6)}`
+                referencia: form.referencia || 'OC-DIRECTA',
+                proveedor_id: form.proveedor_id
             })
-            toast.success('Ingreso de mercadería registrado')
+            toast.success('Entrada de mercadería registrada')
             setShowModal(false)
-            setForm({ producto_id: '', cantidad: 0, precio_compra: 0, motivo: 'Compra a Proveedor', referencia: '' })
             loadData()
         } catch (error) {
             toast.error('Error al registrar compra')
-        } finally {
-            setProcessing(false)
         }
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-8 pb-20">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h3 className="text-xl font-black text-slate-900">Abastecimiento / Compras</h3>
-                    <p className="text-sm text-slate-500">Registra ingresos de mercadería para reponer tu inventario.</p>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">Abastecimiento Estratégico</h3>
+                    <p className="text-sm text-slate-400 font-bold uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-emerald-500" /> Gestión de Proveedores y Órdenes de Compra
+                    </p>
                 </div>
                 <button
                     onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-[20px] text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20"
+                    className="flex items-center gap-3 px-8 py-4 bg-slate-950 text-white rounded-[24px] text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-2xl shadow-slate-950/20"
                 >
-                    <Plus className="w-5 h-5" /> Nueva Entrada
+                    <PackagePlus className="w-5 h-5" /> Nueva Entrada
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Proveedores Sugeridos / Links */}
-                <div className="bg-slate-900 rounded-[40px] p-8 text-white relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full translate-x-20 -translate-y-20 blur-3xl group-hover:bg-emerald-500/20 transition-all" />
-                    <div className="relative z-10">
-                        <h4 className="text-lg font-black mb-6 flex items-center gap-2">
-                            <Truck className="w-6 h-6 text-emerald-400" /> Proveedores Activos
-                        </h4>
-                        <div className="space-y-4">
-                            {[
-                                { name: 'Arca Continental Lindley', cat: 'Bebidas', status: 'Llega mañana' },
-                                { name: 'Alicorp S.A.A', cat: 'Abarrotes', status: 'Pedido en proceso' },
-                                { name: 'Gloria S.A', cat: 'Lácteos', status: 'Al día' },
-                            ].map((prov, i) => (
-                                <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors cursor-pointer group/item">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-black text-emerald-400 text-xs">
-                                            {prov.name[0]}
+            {loading ? (
+                <div className="flex items-center justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-emerald-500" /></div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Panel de Proveedores */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-sm">
+                            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                <h4 className="text-lg font-black text-slate-900">Directorio de Socios Comerciales</h4>
+                                <div className="p-2 bg-white rounded-xl border border-slate-200"><Search className="w-4 h-4 text-slate-400" /></div>
+                            </div>
+                            <div className="divide-y divide-slate-100">
+                                {proveedores.map((prov) => (
+                                    <div
+                                        key={prov.id}
+                                        onClick={() => setSelectedProv(prov)}
+                                        className={`p-6 hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-between group ${selectedProv?.id === prov.id ? 'bg-emerald-50/50 border-l-4 border-l-emerald-500' : ''}`}
+                                    >
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-14 h-14 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">
+                                                <Truck className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">{prov.categoria}</p>
+                                                <h5 className="text-base font-black text-slate-900">{prov.razon_social}</h5>
+                                                <p className="text-xs text-slate-400 font-bold">RUC: {prov.ruc}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-bold">{prov.name}</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">{prov.cat}</p>
+                                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Ficha del Proveedor */}
+                    <div className="space-y-6">
+                        <AnimatePresence mode="wait">
+                            {selectedProv ? (
+                                <motion.div
+                                    key={selectedProv.id}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="bg-slate-900 rounded-[48px] p-8 text-white relative overflow-hidden shadow-2xl"
+                                >
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-3xl" />
+                                    <div className="relative z-10 space-y-8">
+                                        <div className="text-center">
+                                            <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl mx-auto mb-4 flex items-center justify-center border border-white/10">
+                                                <User className="w-10 h-10 text-emerald-400" />
+                                            </div>
+                                            <h4 className="text-xl font-black tracking-tight">{selectedProv.razon_social}</h4>
+                                            <div className="mt-2 inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-500/30">Partner Verificado</div>
+                                        </div>
+
+                                        <div className="space-y-5">
+                                            <div className="flex items-center gap-4 group">
+                                                <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500/20 transition-all"><Phone className="w-4 h-4 text-slate-400 group-hover:text-emerald-400" /></div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase">Teléfono Directo</p>
+                                                    <p className="text-sm font-bold">{selectedProv.telefono}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 group">
+                                                <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500/20 transition-all"><Mail className="w-4 h-4 text-slate-400 group-hover:text-emerald-400" /></div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase">Correo Electrónico</p>
+                                                    <p className="text-sm font-bold truncate max-w-[180px]">{selectedProv.email}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 group">
+                                                <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500/20 transition-all"><MapPin className="w-4 h-4 text-slate-400 group-hover:text-emerald-400" /></div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase">Planta / Distribuidor</p>
+                                                    <p className="text-[11px] font-bold text-slate-300 leading-tight">{selectedProv.direccion}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-6 border-t border-white/10 space-y-4">
+                                            <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                                                <div className="flex items-center gap-3">
+                                                    <BarChart2 className="w-4 h-4 text-emerald-400" />
+                                                    <span className="text-[10px] font-black uppercase">Frecuencia Compras</span>
+                                                </div>
+                                                <span className="text-sm font-black">Alta</span>
+                                            </div>
+                                            <button className="w-full py-4 bg-emerald-500 text-slate-950 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/20">
+                                                Ver Historial de O.C.
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <span className="text-[8px] font-black uppercase px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
-                                            {prov.status}
-                                        </span>
-                                    </div>
+                                </motion.div>
+                            ) : (
+                                <div className="h-full min-h-[400px] border-2 border-dashed border-slate-200 rounded-[48px] flex flex-col items-center justify-center text-center p-10 bg-slate-50/30">
+                                    <div className="w-20 h-20 bg-white rounded-3xl border border-slate-100 flex items-center justify-center text-slate-200 mb-6 shadow-sm"><User className="w-10 h-10" /></div>
+                                    <h4 className="text-lg font-black text-slate-400 mb-2">Selecciona un Proveedor</h4>
+                                    <p className="text-sm text-slate-300 font-medium">Visualiza los detalles de contacto y rendimiento del socio comercial.</p>
                                 </div>
-                            ))}
-                        </div>
-                        <button className="w-full mt-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
-                            Gestionar Proveedores
-                        </button>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
+            )}
 
-                {/* Dashboard de Compras Breve */}
-                <div className="bg-white rounded-[40px] p-8 border border-slate-200">
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                        <ClipboardList className="w-5 h-5 text-emerald-500" /> Resumen de Reposición
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Stock Bajo</p>
-                            <p className="text-3xl font-black text-slate-900">{productos.filter(p => p.stock_actual <= p.stock_minimo).length}</p>
-                            <p className="text-[10px] text-red-500 font-bold mt-2 italic">Requiere Acción</p>
-                        </div>
-                        <div className="p-6 bg-emerald-50 rounded-[32px] border border-emerald-100/50">
-                            <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mb-1">Último Ingreso</p>
-                            <p className="text-3xl font-black text-emerald-700">Hace 2h</p>
-                            <p className="text-[10px] text-emerald-600 font-bold mt-2">Bebidas 24u</p>
-                        </div>
-                    </div>
-                    <div className="mt-6 p-4 bg-slate-100 rounded-2xl flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Calendar className="w-5 h-5 text-slate-400" />
-                            <p className="text-xs font-bold text-slate-600">Próximo cierre de mes</p>
-                        </div>
-                        <p className="text-sm font-black text-slate-900">En 12 días</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Modal de Nueva Entrada */}
+            {/* Modal Entrada de Mercadería */}
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                            className="relative bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden"
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                            className="relative bg-white w-full max-w-2xl rounded-[60px] shadow-[0_50px_100px_rgba(0,0,0,0.3)] overflow-hidden"
                         >
-                            <div className="bg-slate-900 text-white p-10">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-2xl font-black flex items-center gap-2">
-                                        <ArrowDownRight className="w-6 h-6 text-emerald-400" /> Nuevo Ingreso
-                                    </h3>
-                                    <button onClick={() => setShowModal(false)} className="p-3 hover:bg-white/10 rounded-2xl"><X className="w-6 h-6" /></button>
+                            <div className="bg-slate-900 p-12 text-white flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-4xl font-black tracking-tight mb-2">Registro de Ingreso</h3>
+                                    <p className="text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em]">Gestión de Abastecimiento Retail</p>
                                 </div>
-                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">Maestro de Mercaderías</p>
+                                <button onClick={() => setShowModal(false)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all"><X className="w-6 h-6 text-white" /></button>
                             </div>
 
-                            <div className="p-10 space-y-5">
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Seleccionar Producto</label>
-                                    <select
-                                        value={form.producto_id}
-                                        onChange={e => {
-                                            const p = productos.find(x => x.id === e.target.value)
-                                            setForm({ ...form, producto_id: e.target.value, precio_compra: p?.precio_compra || 0 })
-                                        }}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all"
-                                    >
-                                        <option value="">Selecciona un artículo...</option>
-                                        {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} (SKU: {p.sku})</option>)}
-                                    </select>
-                                </div>
+                            <div className="p-12 space-y-8">
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Seleccionar Socio Comercial</label>
+                                        <div className="relative">
+                                            <Truck className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                                            <select
+                                                value={form.proveedor_id}
+                                                onChange={e => setForm({ ...form, proveedor_id: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-[24px] py-5 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:border-emerald-500 transition-all appearance-none"
+                                            >
+                                                <option value="">-- Seleccionar Proveedor --</option>
+                                                {proveedores.map(p => <option key={p.id} value={p.id}>{p.razon_social} (RUC: {p.ruc})</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Producto a Ingresar</label>
+                                        <div className="relative">
+                                            <ShoppingBag className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                                            <select
+                                                value={form.producto_id}
+                                                onChange={e => setForm({ ...form, producto_id: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-[24px] py-5 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:border-emerald-500 transition-all appearance-none"
+                                            >
+                                                <option value="">-- Seleccionar Producto del Catálogo --</option>
+                                                {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} (Stock: {p.stock_actual})</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cantidad Ingresante</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Cantidad de Unidades</label>
                                         <input
-                                            type="number"
-                                            value={form.cantidad}
-                                            onChange={e => setForm({ ...form, cantidad: Number(e.target.value) })}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black focus:ring-4 focus:ring-emerald-500/10 outline-none"
-                                            placeholder="0.00"
+                                            type="number" value={form.cantidad} onChange={e => setForm({ ...form, cantidad: Number(e.target.value) })}
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-[24px] py-5 px-8 text-sm font-bold outline-none focus:bg-white focus:border-emerald-500 transition-all"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Costo Unitario (Comp)</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Costo Unitario (S/)</label>
                                         <input
-                                            type="number"
-                                            value={form.precio_compra}
-                                            onChange={e => setForm({ ...form, precio_compra: Number(e.target.value) })}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black focus:ring-4 focus:ring-emerald-500/10 outline-none"
-                                            placeholder="S/ 0.00"
+                                            type="number" value={form.precio_compra} onChange={e => setForm({ ...form, precio_compra: Number(e.target.value) })}
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-[24px] py-5 px-8 text-sm font-bold outline-none focus:bg-white focus:border-emerald-500 transition-all"
                                         />
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Referencia / Factura N°</label>
-                                    <input
-                                        type="text"
-                                        value={form.referencia}
-                                        onChange={e => setForm({ ...form, referencia: e.target.value })}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold outline-none"
-                                        placeholder="Ej: F001-000456"
-                                    />
+                                <div className="p-6 bg-emerald-50 rounded-[32px] border border-emerald-100/50 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm"><BarChart2 className="w-6 h-6" /></div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Inversión Estimada</p>
+                                            <p className="text-xl font-black text-emerald-950 tracking-tight">S/ {(form.cantidad * form.precio_compra).toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                    <CheckCircle2 className="w-8 h-8 text-emerald-300" />
                                 </div>
-                            </div>
 
-                            <div className="px-10 pb-10 flex gap-4">
-                                <button onClick={() => setShowModal(false)} className="flex-1 py-4 border-2 border-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-50 transition-all">Descartar</button>
                                 <button
-                                    onClick={handleRegister}
-                                    disabled={processing}
-                                    className="flex-[2] py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-[10px] uppercase tracking-widest rounded-3xl transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2"
+                                    onClick={handleRegisterCompra}
+                                    className="w-full py-6 bg-emerald-500 text-slate-950 rounded-[28px] font-black text-sm uppercase tracking-[0.3em] hover:bg-emerald-400 transition-all shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-4"
                                 >
-                                    {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4" /> Registrar Ingreso</>}
+                                    Confirmar Entrada <ArrowUpRight className="w-6 h-6" />
                                 </button>
                             </div>
                         </motion.div>
@@ -233,5 +279,25 @@ export function TabRetailCompras() {
                 )}
             </AnimatePresence>
         </div>
+    )
+}
+
+function X(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+        </svg>
     )
 }

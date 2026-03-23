@@ -66,7 +66,6 @@ export const retQuery = {
     },
 
     registarVenta: async (venta: any, items: any[]) => {
-        // Esta función debería ser una transacción en SQL real o una serie de llamados
         const { data: vData, error: vError } = await supabase.from('ret_ventas').insert(venta).select()
         if (vError) throw vError
 
@@ -76,7 +75,6 @@ export const retQuery = {
         const { error: iError } = await supabase.from('ret_ventas_items').insert(itemsWithId)
         if (iError) throw iError
 
-        // Actualizar stocks y kardex para cada item (esto idealmente es un RPC)
         for (const item of items) {
             await retQuery.saveMovimiento({
                 producto_id: item.producto_id,
@@ -90,5 +88,12 @@ export const retQuery = {
         }
 
         return vData[0]
+    },
+
+    // Proveedores
+    getProveedores: async () => {
+        const { data, error } = await supabase.from('ret_proveedores').select('*').order('razon_social')
+        if (error) throw error
+        return data
     }
 }
