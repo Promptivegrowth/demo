@@ -49,9 +49,10 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
             ])
             setProductos(p)
             setCategorias(c)
-            setLoading(false)
         } catch (error) {
             toast.error('Error al cargar datos del POS')
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -174,7 +175,7 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
     }
 
     return (
-        <div className="flex h-full gap-6 overflow-hidden bg-slate-50/30 p-2 rounded-[40px]">
+        <div className="flex flex-col lg:flex-row h-full gap-6 overflow-y-auto lg:overflow-hidden bg-slate-50/30 p-2 rounded-[40px]">
             {/* Catalog Section */}
             <div className="flex-1 flex flex-col min-w-0 bg-white rounded-[40px] border border-slate-200 shadow-sm p-8">
                 <div className="flex items-center justify-between mb-8">
@@ -270,8 +271,8 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                 )}
             </div>
 
-            {/* Cart Section */}
-            <div className="w-[440px] bg-slate-900 rounded-[50px] shadow-2xl flex flex-col overflow-hidden relative border border-white/5">
+            {/* Cart Section (Responsivo) */}
+            <div className="w-full lg:w-[440px] bg-slate-900 rounded-[50px] shadow-2xl flex flex-col overflow-hidden relative border border-white/5 h-[600px] lg:h-auto">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none" />
 
                 <div className="p-10 border-b border-white/5 flex items-center justify-between relative z-10 bg-white/5 backdrop-blur-md">
@@ -375,7 +376,11 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                         disabled={cart.length === 0 || processing}
                         className="w-full py-6 bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-white/20 disabled:cursor-not-allowed font-black text-sm uppercase tracking-[0.3em] rounded-[32px] transition-all flex items-center justify-center gap-4 shadow-2xl shadow-emerald-500/30 active:scale-[0.98]"
                     >
-                        {processing ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Finalizar Orden <ArrowRight className="w-6 h-6" /></>}
+                        {processing ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                            metodoPago === 'yape' || metodoPago === 'plin' ?
+                                <span className="flex items-center gap-3">Generar QR de Pago <QrCode className="w-5 h-5" /></span> :
+                                <span className="flex items-center gap-3">Finalizar Orden <ArrowRight className="w-6 h-6" /></span>
+                        )}
                     </button>
                 </div>
             </div>

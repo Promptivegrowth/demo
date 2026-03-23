@@ -18,9 +18,10 @@ export function TabRetailKardex({ onTabChange }: { onTabChange?: (t: string) => 
         try {
             const data = await retQuery.getKardex()
             setMovimientos(data)
-            setLoading(false)
         } catch (error) {
             console.error(error)
+        } finally {
+            setLoading(false)
         }
     }
 
