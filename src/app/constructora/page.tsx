@@ -20,6 +20,7 @@ import { TabValorizaciones } from './components/TabValorizaciones'
 import { TabCompras } from './components/TabCompras'
 import { TabAlmacen } from './components/TabAlmacen'
 import { TabPersonal } from './components/TabPersonal'
+import { TabAsistencia } from './components/TabAsistencia'
 import { TabCaja } from './components/TabCaja'
 import { TabIncidencias } from './components/TabIncidencias'
 
@@ -33,6 +34,7 @@ const tabs = [
     { id: 'compras', label: 'Compras & OC', icon: ShoppingCart },
     { id: 'almacen', label: 'Almacén', icon: Boxes },
     { id: 'personal', label: 'Personal & SCTR', icon: Users },
+    { id: 'asistencia', label: 'Asistencia Diaria', icon: Users },
     { id: 'caja', label: 'Caja & Finanzas', icon: Wallet },
     { id: 'incidencias', label: 'Incidencias', icon: AlertTriangle },
 ]
@@ -157,6 +159,7 @@ export default function ConstructoraPage() {
                                 {activeTab === 'compras' && <TabCompras />}
                                 {activeTab === 'almacen' && <TabAlmacen />}
                                 {activeTab === 'personal' && <TabPersonal />}
+                                {activeTab === 'asistencia' && <TabAsistencia />}
                                 {activeTab === 'caja' && <TabCaja />}
                                 {activeTab === 'incidencias' && <TabIncidencias />}
                             </motion.div>

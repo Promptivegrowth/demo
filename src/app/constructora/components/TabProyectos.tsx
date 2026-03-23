@@ -3,395 +3,368 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Plus, Search, Filter, MoreVertical, HardHat,
-    Calendar, MapPin, User, DollarSign, ChevronRight,
-    FileText, TrendingUp, Layers, CheckCircle2, Clock,
-    ArrowRight, Download, Upload, Copy, Trash2
+    Building2, Plus, Search, Grid, List, X,
+    Calendar, DollarSign, TrendingUp, Save,
+    Edit3, Trash2, Eye, MapPin, Users, Clock,
+    CheckCircle2, AlertCircle, Loader2
 } from 'lucide-react'
-import { conQuery } from '@/lib/conQuery'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+
+const TIPOS = ['vivienda', 'edificio', 'obra_civil', 'remodelacion', 'acabados', 'infraestructura']
+const ESTADOS = ['planificacion', 'en_ejecucion', 'suspendido', 'concluido', 'liquidado']
+
+const EMPTY_FORM = {
+    codigo: '', nombre: '', tipo: 'vivienda', descripcion: '',
+    fecha_inicio: '', fecha_fin_estimada: '', presupuesto_base: '',
+    monto_contrato: '', avance_fisico: 0, estado: 'planificacion',
+    distrito: '', departamento: 'Lima', cliente_id: ''
+}
+
+const colorEstado: Record<string, string> = {
+    planificacion: 'bg-slate-100 text-slate-500',
+    en_ejecucion: 'bg-blue-100 text-blue-600',
+    suspendido: 'bg-amber-100 text-amber-600',
+    concluido: 'bg-emerald-100 text-emerald-600',
+    liquidado: 'bg-purple-100 text-purple-600',
+}
 
 export function TabProyectos() {
     const [proyectos, setProyectos] = useState<any[]>([])
+    const [clientes, setClientes] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [filter, setFilter] = useState('todos')
     const [searchTerm, setSearchTerm] = useState('')
-    const [view, setView] = useState<'grid' | 'list'>('grid')
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+    const [filterEstado, setFilterEstado] = useState('')
+    const [showModal, setShowModal] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [form, setForm] = useState<any>({ ...EMPTY_FORM })
+    const [saving, setSaving] = useState(false)
     const [selectedProy, setSelectedProy] = useState<any>(null)
-    const [showNewModal, setShowNewModal] = useState(false)
 
-    useEffect(() => {
-        loadProyectos()
-    }, [])
+    useEffect(() => { load() }, [])
 
-    async function loadProyectos() {
+    async function load() {
         setLoading(true)
-        const { data, error } = await conQuery.getProyectos()
-        if (!error && data) setProyectos(data)
+        const [{ data: p }, { data: c }] = await Promise.all([
+            supabase.from('con_proyectos').select('*, con_clientes(razon_social)').order('created_at', { ascending: false }),
+            supabase.from('con_clientes').select('id, razon_social').order('razon_social')
+        ])
+        if (p) setProyectos(p)
+        if (c) setClientes(c)
         setLoading(false)
     }
 
-    const filtered = proyectos.filter(p => {
-        const matchesSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesFilter = filter === 'todos' || p.estado === filter
-        return matchesSearch && matchesFilter
-    })
+    const filtered = proyectos.filter(p =>
+        (p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.codigo?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (filterEstado ? p.estado === filterEstado : true)
+    )
 
-    const StatusBadge = ({ status }: { status: string }) => {
-        const config: any = {
-            en_ejecucion: { bg: 'bg-blue-100', text: 'text-blue-600', label: 'En Ejecución' },
-            aprobado: { bg: 'bg-emerald-100', text: 'text-emerald-600', label: 'Aprobado' },
-            en_presupuesto: { bg: 'bg-amber-100', text: 'text-amber-600', label: 'Presupuesto' },
-            completado: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Completado' },
-        }
-        const s = config[status] || { bg: 'bg-slate-100', text: 'text-slate-500', label: status }
-        return <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${s.bg} ${s.text}`}>{s.label}</span>
+    function openNew() {
+        setForm({ ...EMPTY_FORM })
+        setEditingId(null)
+        setShowModal(true)
     }
+
+    function openEdit(p: any) {
+        setForm({
+            codigo: p.codigo || '', nombre: p.nombre || '', tipo: p.tipo || 'vivienda',
+            descripcion: p.descripcion || '', fecha_inicio: p.fecha_inicio || '',
+            fecha_fin_estimada: p.fecha_fin_estimada || '',
+            presupuesto_base: p.presupuesto_base || '', monto_contrato: p.monto_contrato || '',
+            avance_fisico: p.avance_fisico || 0, estado: p.estado || 'planificacion',
+            distrito: p.distrito || '', departamento: p.departamento || 'Lima',
+            cliente_id: p.cliente_id || ''
+        })
+        setEditingId(p.id)
+        setShowModal(true)
+        setSelectedProy(null)
+    }
+
+    async function handleSave() {
+        if (!form.nombre.trim()) { toast.error('El nombre del proyecto es obligatorio'); return }
+        setSaving(true)
+        const payload = {
+            ...form,
+            presupuesto_base: parseFloat(form.presupuesto_base) || null,
+            monto_contrato: parseFloat(form.monto_contrato) || null,
+            avance_fisico: parseFloat(form.avance_fisico) || 0,
+            cliente_id: form.cliente_id || null
+        }
+        let error: any
+        if (editingId) {
+            const res = await supabase.from('con_proyectos').update(payload).eq('id', editingId)
+            error = res.error
+        } else {
+            const res = await supabase.from('con_proyectos').insert([payload])
+            error = res.error
+        }
+        setSaving(false)
+        if (error) { toast.error('Error: ' + error.message) } else {
+            toast.success(editingId ? 'Proyecto actualizado' : 'Proyecto creado')
+            setShowModal(false); load()
+        }
+    }
+
+    async function handleDelete(id: string) {
+        const { error } = await supabase.from('con_proyectos').delete().eq('id', id)
+        if (error) { toast.error(error.message) } else {
+            toast.success('Proyecto eliminado')
+            setSelectedProy(null); load()
+        }
+    }
+
+    const F = ({ label, name, type = 'text', options }: any) => (
+        <div>
+            <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{label}</label>
+            {options ? (
+                <select value={form[name]} onChange={e => setForm((f: any) => ({ ...f, [name]: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 bg-white capitalize">
+                    <option value="">-- Seleccionar --</option>
+                    {options.map((o: any) => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
+                </select>
+            ) : type === 'textarea' ? (
+                <textarea value={form[name]} onChange={e => setForm((f: any) => ({ ...f, [name]: e.target.value }))} rows={3}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 resize-none" />
+            ) : (
+                <input type={type} value={form[name]} onChange={e => setForm((f: any) => ({ ...f, [name]: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+            )}
+        </div>
+    )
 
     return (
         <div className="space-y-6">
-            {/* Top Actions */}
+            {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Buscar proyecto..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm w-full md:w-80 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                        />
+                <div className="flex items-center gap-3 flex-1">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input type="text" placeholder="Buscar proyecto..." value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm w-full outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" />
                     </div>
-                    <select
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                        className="hidden md:block bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
-                    >
-                        <option value="todos">Todos los estados</option>
-                        <option value="en_ejecucion">En Ejecución</option>
-                        <option value="aprobado">Aprobado</option>
-                        <option value="completado">Completado</option>
+                    <select value={filterEstado} onChange={e => setFilterEstado(e.target.value)}
+                        className="bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none capitalize shadow-sm">
+                        <option value="">Todos los estados</option>
+                        {ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
                     </select>
                 </div>
-
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
-                        className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 shadow-sm transition-all"
-                    >
-                        {view === 'grid' ? <Layers className="w-5 h-5" /> : <TrendingUp className="w-5 h-5" />}
-                    </button>
-                    <button
-                        onClick={() => setShowNewModal(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg active:scale-95"
-                    >
+                    <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}><Grid className="w-4 h-4" /></button>
+                    <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}><List className="w-4 h-4" /></button>
+                    <button onClick={openNew}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
                         <Plus className="w-4 h-4" /> Nuevo Proyecto
                     </button>
                 </div>
             </div>
 
-            {/* Grid View */}
+            {/* Content */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => <div key={i} className="h-64 bg-slate-200 animate-pulse rounded-3xl" />)}
+                <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+                    {[1, 2, 3].map(i => <div key={i} className="h-52 bg-slate-200 animate-pulse rounded-3xl" />)}
                 </div>
-            ) : filtered.length > 0 ? (
-                <div className={view === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-                    {filtered.map((proy) => (
-                        <motion.div
-                            key={proy.id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            whileHover={{ y: -5 }}
-                            onClick={() => setSelectedProy(proy)}
-                            className="bg-white rounded-3xl border border-slate-200 p-6 cursor-pointer hover:shadow-2xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden"
-                        >
-                            {/* Card Header */}
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="bg-slate-50 p-3 rounded-2xl group-hover:bg-blue-50 transition-colors">
-                                    <HardHat className="w-6 h-6 text-slate-400 group-hover:text-blue-500" />
+            ) : filtered.length === 0 ? (
+                <div className="text-center py-20 text-slate-400">
+                    <Building2 className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                    <p className="font-bold text-lg">Sin proyectos registrados</p>
+                    <button onClick={openNew} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">Crear primer proyecto</button>
+                </div>
+            ) : viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filtered.map(p => (
+                        <motion.div key={p.id} layout whileHover={{ y: -4 }}
+                            className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm hover:shadow-xl transition-all group cursor-pointer"
+                            onClick={() => setSelectedProy(p)}>
+                            <div className="flex justify-between items-start mb-5">
+                                <div>
+                                    <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest">{p.codigo || 'SIN CÓDIGO'}</p>
+                                    <h4 className="text-base font-bold text-slate-900 mt-0.5 line-clamp-2">{p.nombre}</h4>
+                                    <p className="text-xs text-slate-400 mt-0.5">{p.con_clientes?.razon_social || 'Sin cliente'}</p>
                                 </div>
-                                <StatusBadge status={proy.estado} />
+                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase shrink-0 ml-2 ${colorEstado[p.estado] || 'bg-slate-100 text-slate-500'}`}>{p.estado?.replace('_', ' ')}</span>
                             </div>
 
-                            {/* Info */}
-                            <div className="space-y-1 mb-6">
-                                <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">{proy.codigo}</p>
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight h-12 line-clamp-2">{proy.nombre}</h4>
-                                <div className="flex items-center gap-2 text-slate-400 text-xs">
-                                    <MapPin className="w-3 h-3" />
-                                    <span className="truncate">{proy.distrito}, {proy.departamento}</span>
-                                </div>
-                            </div>
-
-                            {/* Progress */}
-                            <div className="space-y-2 mb-6">
-                                <div className="flex justify-between items-center text-xs font-bold">
-                                    <span className="text-slate-500">Avance Obra</span>
-                                    <span className="text-slate-900">{proy.avance_porcentaje}%</span>
+                            {/* Progress Bar */}
+                            <div className="mb-5">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5">
+                                    <span>Avance físico</span><span>{p.avance_fisico || 0}%</span>
                                 </div>
                                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${proy.avance_porcentaje}%` }}
-                                        className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.3)]"
-                                    />
+                                    <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all"
+                                        style={{ width: `${p.avance_fisico || 0}%` }} />
                                 </div>
                             </div>
 
-                            {/* Footer */}
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-400 font-bold uppercase">Presupuesto</span>
-                                    <span className="text-sm font-bold text-slate-900">S/ {proy.monto_contrato?.toLocaleString()}</span>
+                            <div className="grid grid-cols-2 gap-3 text-xs text-slate-500">
+                                <div className="flex items-center gap-2">
+                                    <DollarSign className="w-3 h-3 text-emerald-400" />
+                                    <span className="font-bold text-slate-800">S/ {(p.monto_contrato || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="flex -space-x-2">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold">JD</div>
-                                    ))}
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="w-3 h-3 text-blue-400" />
+                                    <span>{p.distrito || p.departamento || 'Lima'}</span>
                                 </div>
+                                {p.fecha_inicio && (
+                                    <div className="flex items-center gap-2 col-span-2">
+                                        <Calendar className="w-3 h-3 text-slate-300" />
+                                        <span>Inicio: {new Date(p.fecha_inicio).toLocaleDateString('es-PE')}</span>
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                    <HardHat className="w-16 h-16 text-slate-200 mb-4" />
-                    <p className="text-slate-500 font-medium tracking-tight">No se encontraron proyectos</p>
+                <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                            <tr>
+                                {['Código', 'Proyecto', 'Cliente', 'Presupuesto', 'Avance', 'Estado', ''].map(h => (
+                                    <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filtered.map(p => (
+                                <tr key={p.id} className="hover:bg-blue-50/30 transition-all cursor-pointer group" onClick={() => setSelectedProy(p)}>
+                                    <td className="px-6 py-4 text-xs font-black text-blue-500">{p.codigo || '—'}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-slate-800">{p.nombre}</td>
+                                    <td className="px-6 py-4 text-xs text-slate-500">{p.con_clientes?.razon_social || '—'}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">S/ {(p.monto_contrato || 0).toLocaleString()}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1.5 w-16 bg-slate-100 rounded-full">
+                                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${p.avance_fisico || 0}%` }} />
+                                            </div>
+                                            <span className="text-xs font-bold text-slate-600">{p.avance_fisico || 0}%</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${colorEstado[p.estado] || ''}`}>{p.estado?.replace('_', ' ')}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <button onClick={e => { e.stopPropagation(); openEdit(p) }}
+                                            className="p-2 opacity-0 group-hover:opacity-100 hover:bg-blue-100 rounded-lg text-blue-500 transition-all">
+                                            <Edit3 className="w-4 h-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
-            {/* Modal: Detalle de Proyecto */}
+            {/* Modal Crear/Editar */}
             <AnimatePresence>
-                {selectedProy && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setSelectedProy(null)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative bg-white w-full max-w-5xl h-[90vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
-                        >
-                            {/* Modal Header */}
-                            <div className="p-8 bg-slate-900 text-white shrink-0">
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <span className="px-3 py-1 bg-blue-500 rounded-full text-[10px] font-black uppercase">{selectedProy.codigo}</span>
-                                            <StatusBadge status={selectedProy.estado} />
-                                        </div>
-                                        <h3 className="text-2xl font-bold tracking-tight">{selectedProy.nombre}</h3>
-                                        <p className="text-slate-400 text-sm flex items-center gap-2">
-                                            <MapPin className="w-4 h-4" /> {selectedProy.ubicacion}, {selectedProy.distrito}
-                                        </p>
+                {showModal && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative bg-white w-full max-w-2xl max-h-[92vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
+                            <div className="flex justify-between items-center px-8 py-6 border-b border-slate-100">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900">{editingId ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h3>
+                                    <p className="text-xs text-slate-400 mt-0.5">Completa la información del proyecto de construcción</p>
+                                </div>
+                                <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-5 h-5 text-slate-400" /></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-8 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <F label="Código (ej: PROY-0001)" name="codigo" />
+                                    <F label="Estado" name="estado" options={ESTADOS.map(e => ({ value: e, label: e.replace('_', ' ') }))} />
+                                    <div className="col-span-2"><F label="Nombre del Proyecto *" name="nombre" /></div>
+                                    <div className="col-span-2"><F label="Descripción" name="descripcion" type="textarea" /></div>
+                                    <F label="Tipo de Obra" name="tipo" options={TIPOS.map(t => ({ value: t, label: t.replace('_', ' ') }))} />
+                                    <F label="Cliente" name="cliente_id" options={clientes.map(c => ({ value: c.id, label: c.razon_social }))} />
+                                    <F label="Fecha de Inicio" name="fecha_inicio" type="date" />
+                                    <F label="Fecha Fin Estimada" name="fecha_fin_estimada" type="date" />
+                                    <F label="Presupuesto Base (S/)" name="presupuesto_base" type="number" />
+                                    <F label="Monto de Contrato (S/)" name="monto_contrato" type="number" />
+                                    <div className="col-span-2">
+                                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Avance Físico: {form.avance_fisico}%</label>
+                                        <input type="range" min={0} max={100} value={form.avance_fisico}
+                                            onChange={e => setForm((f: any) => ({ ...f, avance_fisico: Number(e.target.value) }))}
+                                            className="w-full accent-blue-600" />
                                     </div>
-                                    <button onClick={() => setSelectedProy(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/60 hover:text-white">
-                                        <X className="w-6 h-6" />
-                                    </button>
+                                    <F label="Distrito" name="distrito" />
+                                    <F label="Departamento" name="departamento" options={['Lima', 'Arequipa', 'Cusco', 'La Libertad', 'Piura', 'Lambayeque', 'Junín', 'Callao', 'Ica'].map(d => ({ value: d, label: d }))} />
                                 </div>
                             </div>
-
-                            {/* Sub-tabs */}
-                            <div className="flex border-b border-slate-200 px-8 bg-slate-50 shrink-0 overflow-x-auto no-scrollbar">
-                                {['Información', 'Partidas & Presupuesto', 'Valorizaciones', 'Documentos', 'Personal'].map((tab) => (
-                                    <button key={tab} className={`px-4 py-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${tab === 'Información' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'
-                                        }`}>
-                                        {tab}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Modal Content */}
-                            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {/* Left Col: Main Stats */}
-                                    <div className="lg:col-span-2 space-y-8">
-                                        <section>
-                                            <h5 className="text-slate-900 font-bold mb-4 flex items-center gap-2">
-                                                <TrendingUp className="w-4 h-4 text-blue-500" /> Resumen Económico
-                                            </h5>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Prespuesto Base</p>
-                                                    <p className="text-lg font-black text-slate-900">S/ {selectedProy.presupuesto_base?.toLocaleString()}</p>
-                                                </div>
-                                                <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100">
-                                                    <p className="text-[10px] text-blue-500 font-bold uppercase mb-1">Monto Contrato</p>
-                                                    <p className="text-lg font-black text-blue-600">S/ {selectedProy.monto_contrato?.toLocaleString()}</p>
-                                                </div>
-                                                <div className="p-5 bg-emerald-50 rounded-3xl border border-emerald-100">
-                                                    <p className="text-[10px] text-emerald-500 font-bold uppercase mb-1">Utilidad Bruta Est.</p>
-                                                    <p className="text-lg font-black text-emerald-600">S/ {(selectedProy.monto_contrato - selectedProy.presupuesto_base).toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                        </section>
-
-                                        <section>
-                                            <h5 className="text-slate-900 font-bold mb-4">Descripción del Proyecto</h5>
-                                            <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-3xl border border-slate-100 italic">
-                                                "{selectedProy.descripcion || 'Sin descripción detallada disponible.'}"
-                                            </p>
-                                        </section>
-
-                                        <section>
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h5 className="text-slate-900 font-bold">Partidas Créticas</h5>
-                                                <button className="text-blue-500 text-xs font-bold uppercase transition-transform active:scale-95">Ver Todas</button>
-                                            </div>
-                                            <div className="space-y-3">
-                                                {[1, 2, 3].map(i => (
-                                                    <div key={i} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-slate-300 transition-all cursor-pointer">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-400">{i}</div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-slate-800">Cimentación y Zapatas</p>
-                                                                <p className="text-[10px] text-slate-400 font-medium">Estructuras — 420.00 m3</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-sm font-black text-slate-900">85%</p>
-                                                            <p className="text-[10px] text-emerald-500 font-bold uppercase">En Proceso</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </section>
-                                    </div>
-
-                                    {/* Right Col: Personnel & Timeline */}
-                                    <div className="space-y-8">
-                                        <section className="bg-slate-900 rounded-[32px] p-6 text-white overflow-hidden relative">
-                                            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/20 blur-3xl -mr-8 -mt-8 rounded-full" />
-                                            <h5 className="font-bold mb-6 flex items-center gap-2 relative z-10 text-slate-300">
-                                                <Calendar className="w-4 h-4" /> Timeline de Obra
-                                            </h5>
-                                            <div className="space-y-6 relative z-10">
-                                                <div className="flex gap-4">
-                                                    <div className="flex flex-col items-center">
-                                                        <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                                        <div className="w-0.5 h-12 bg-slate-700" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-bold text-white uppercase tracking-widest mb-1">Inicio de Obra</p>
-                                                        <p className="text-[11px] text-slate-400 leading-tight">{selectedProy.fecha_inicio}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-4">
-                                                    <div className="flex flex-col items-center">
-                                                        <div className="w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                                        <div className="w-0.5 h-12 bg-slate-700" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-bold text-white uppercase tracking-widest mb-1">Hito: Estructura</p>
-                                                        <p className="text-[11px] text-slate-400 leading-tight">Programado: Mayo 2025</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-4 opacity-40">
-                                                    <div className="flex flex-col items-center">
-                                                        <div className="w-3 h-3 bg-slate-500 rounded-full" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-bold text-white uppercase tracking-widest mb-1">Entrega Final</p>
-                                                        <p className="text-[11px] text-slate-400 leading-tight">{selectedProy.fecha_fin_estimada}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </section>
-
-                                        <section className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm">
-                                            <h5 className="text-slate-900 font-black text-sm uppercase tracking-wider mb-6">Staff Responsable</h5>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer">
-                                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-xs">RF</div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-slate-900">{selectedProy.ingeniero_residente || 'Por asignar'}</p>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Residente de Obra</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer opacity-80">
-                                                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center font-bold text-amber-600 text-xs">CQ</div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-slate-900">Carmen Quispe</p>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Gestión Administrativa</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </section>
-
-                                        <div className="flex gap-2">
-                                            <button className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
-                                                <Download className="w-4 h-4" /> Reporte PDF
-                                            </button>
-                                            <button className="p-4 bg-blue-100 text-blue-600 rounded-2xl hover:bg-blue-200 transition-all">
-                                                <ArrowRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div className="px-8 py-5 border-t border-slate-100 flex justify-end gap-3">
+                                <button onClick={() => setShowModal(false)} className="px-6 py-2.5 border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
+                                <button disabled={saving} onClick={handleSave}
+                                    className="flex items-center gap-2 px-8 py-2.5 bg-blue-600 text-white rounded-2xl text-sm font-bold shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50">
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    {saving ? 'Guardando...' : (editingId ? 'Actualizar' : 'Crear Proyecto')}
+                                </button>
                             </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-            {/* Modal: Nuevo Proyecto (Mock Excel Import) */}
+            {/* Modal Detalle */}
             <AnimatePresence>
-                {showNewModal && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowNewModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Nuevo Proyecto</h3>
-                                    <p className="text-sm text-slate-500">Configura una nueva obra en el sistema</p>
+                {selectedProy && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setSelectedProy(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden">
+                            <div className="bg-slate-900 text-white p-8">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest mb-1">{selectedProy.codigo} · {selectedProy.tipo?.replace('_', ' ')}</p>
+                                        <h3 className="text-xl font-black">{selectedProy.nombre}</h3>
+                                        <p className="text-slate-400 text-sm mt-1">{selectedProy.con_clientes?.razon_social || 'Sin cliente'}</p>
+                                    </div>
+                                    <button onClick={() => setSelectedProy(null)} className="p-2 hover:bg-white/10 rounded-xl"><X className="w-5 h-5" /></button>
                                 </div>
-                                <button onClick={() => setShowNewModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
+                                <div className="mt-6">
+                                    <div className="flex justify-between text-xs text-slate-400 mb-2">
+                                        <span>Avance Físico</span><span className="font-black text-white">{selectedProy.avance_fisico || 0}%</span>
+                                    </div>
+                                    <div className="h-2 bg-white/10 rounded-full">
+                                        <div className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full" style={{ width: `${selectedProy.avance_fisico || 0}%` }} />
+                                    </div>
+                                </div>
                             </div>
-
-                            <div className="space-y-6">
-                                <section className="p-8 border-2 border-dashed border-slate-200 rounded-[32px] flex flex-col items-center justify-center gap-4 bg-slate-50 hover:bg-blue-50 hover:border-blue-400 transition-all cursor-pointer group">
-                                    <div className="p-4 bg-white rounded-2xl shadow-sm text-blue-500 group-hover:scale-110 transition-transform">
-                                        <Upload className="w-8 h-8" />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="font-bold text-slate-800">Importar Presupuesto (Excel/S10)</p>
-                                        <p className="text-xs text-slate-400">Arrastra archivos .xlsx o .csv con las partidas de obra</p>
-                                    </div>
-                                </section>
-
+                            <div className="p-8 space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Código Proyecto</label>
-                                        <input type="text" placeholder="PROY-XXXX" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-bold" />
+                                    {[
+                                        { label: 'Presupuesto', val: `S/ ${(selectedProy.presupuesto_base || 0).toLocaleString()}` },
+                                        { label: 'Monto Contrato', val: `S/ ${(selectedProy.monto_contrato || 0).toLocaleString()}` },
+                                        { label: 'Inicio', val: selectedProy.fecha_inicio ? new Date(selectedProy.fecha_inicio).toLocaleDateString('es-PE') : '—' },
+                                        { label: 'Fin Estimado', val: selectedProy.fecha_fin_estimada ? new Date(selectedProy.fecha_fin_estimada).toLocaleDateString('es-PE') : '—' },
+                                        { label: 'Ubicación', val: [selectedProy.distrito, selectedProy.departamento].filter(Boolean).join(', ') || '—' },
+                                        { label: 'Estado', val: selectedProy.estado?.replace('_', ' ') || '—' },
+                                    ].map(item => (
+                                        <div key={item.label} className="bg-slate-50 p-4 rounded-2xl">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
+                                            <p className="text-sm font-bold text-slate-800 mt-1 capitalize">{item.val}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                {selectedProy.descripcion && (
+                                    <div className="bg-slate-50 p-4 rounded-2xl">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Descripción</p>
+                                        <p className="text-sm text-slate-700">{selectedProy.descripcion}</p>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Nombre Corto</label>
-                                        <input type="text" placeholder="Ej: Residencial Los Olivos" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all" />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Cliente</label>
-                                    <select className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
-                                        <option>Seleccionar cliente...</option>
-                                        <option>Inmobiliaria Pinos</option>
-                                        <option>Andina SAC</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex gap-4 pt-4">
-                                    <button onClick={() => setShowNewModal(false)} className="flex-1 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition-all">Cancelar</button>
-                                    <button onClick={() => { toast.success('Proyecto creado correctamente'); setShowNewModal(false); }} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95">Crear Proyecto</button>
-                                </div>
+                                )}
+                            </div>
+                            <div className="px-8 pb-8 flex gap-3">
+                                <button onClick={() => openEdit(selectedProy)} className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 transition-all">
+                                    <Edit3 className="w-4 h-4" /> Editar Proyecto
+                                </button>
+                                <button onClick={() => handleDelete(selectedProy.id)}
+                                    className="flex items-center gap-2 px-5 py-3 border-2 border-red-200 text-red-500 rounded-2xl font-bold text-sm hover:bg-red-50 transition-all">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </motion.div>
                     </div>
@@ -400,6 +373,3 @@ export function TabProyectos() {
         </div>
     )
 }
-
-function X({ className }: any) { return <XIcon className={className || "w-5 h-5"} /> }
-import { X as XIcon } from 'lucide-react'
