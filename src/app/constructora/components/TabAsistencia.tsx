@@ -48,9 +48,22 @@ export function TabAsistencia() {
         toast.success('Asistencia actualizada')
     }
 
-    async function handleHoraExtra(aid: string, horas: number) {
-        await supabase.from('con_asistencia').update({ horas_extras: horas }).eq('id', aid)
-        load()
+    async function handleHoraExtra(pid: string, horas: number) {
+        setSaving(true)
+        const existing = asistencias.find(a => a.personal_id === pid)
+        if (existing) {
+            await supabase.from('con_asistencia').update({ horas_extras: horas }).eq('id', existing.id)
+        } else {
+            await supabase.from('con_asistencia').insert([{
+                personal_id: pid,
+                fecha: date,
+                estado: 'asistio',
+                horas_extras: horas,
+                hora_ingreso: '08:00'
+            }])
+        }
+        await load()
+        setSaving(false)
     }
 
     const stats = {
@@ -145,9 +158,8 @@ export function TabAsistencia() {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <input type="number" min="0" max="8" value={asis?.horas_extras || 0}
-                                                        onChange={e => handleHoraExtra(asis?.id, parseInt(e.target.value))}
-                                                        disabled={!asis}
-                                                        className="w-12 px-2 py-1 text-xs font-bold border border-slate-200 rounded-lg text-center outline-none disabled:opacity-30" />
+                                                        onChange={e => handleHoraExtra(p.id, parseInt(e.target.value))}
+                                                        className="w-12 px-2 py-1 text-xs font-bold border border-slate-200 rounded-lg text-center outline-none focus:ring-2 focus:ring-slate-900/10" />
                                                     <span className="text-[10px] font-bold text-slate-400">HRS</span>
                                                 </div>
                                             </td>

@@ -18,6 +18,7 @@ export function TabCaja() {
     const [loading, setLoading] = useState(true)
     const [activeFinTab, setActiveFinTab] = useState<'efectivo' | 'cobrar' | 'pagar'>('efectivo')
     const [showNewMov, setShowNewMov] = useState(false)
+    const [selectedMov, setSelectedMov] = useState<any>(null)
 
     useEffect(() => {
         async function load() {
@@ -126,21 +127,21 @@ export function TabCaja() {
                                 {loading ? (
                                     [1, 2, 3].map(i => <tr key={i} className="h-20 animate-pulse bg-slate-50/20"><td colSpan={5} /></tr>)
                                 ) : movimientos.map((mov) => (
-                                    <tr key={mov.id} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
+                                    <tr key={mov.id} onClick={() => setSelectedMov(mov)} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
                                         <td className="py-6 px-4">
                                             <p className="text-sm font-black text-slate-900 leading-none mb-1">{mov.fecha}</p>
                                             <p className="text-[10px] text-slate-400 font-bold uppercase">ID: {mov.id.slice(0, 8)}</p>
                                         </td>
                                         <td className="py-6 px-4">
-                                            <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{mov.descripcion}</p>
-                                            <p className="text-[10px] text-slate-400 font-medium italic">Referencia: {mov.referencia || 'N/A'}</p>
+                                            <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{mov.referencia || 'Sin Concepto'}</p>
+                                            <p className="text-[10px] text-slate-400 font-medium italic">Cat: {mov.categoria || 'N/A'}</p>
                                         </td>
                                         <td className="py-6 px-4">
-                                            <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg font-black uppercase">{mov.tipo_movimiento === 'ingreso' ? 'Operativo' : 'Gasto Obra'}</span>
+                                            <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg font-black uppercase">{mov.tipo === 'ingreso' ? 'Operativo' : 'Gasto Obra'}</span>
                                         </td>
                                         <td className="py-6 px-4 text-right">
-                                            <p className={`text-base font-black italic ${mov.tipo_movimiento === 'ingreso' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                {mov.tipo_movimiento === 'ingreso' ? '+' : '-'} S/ {mov.monto?.toLocaleString()}
+                                            <p className={`text-base font-black italic ${mov.tipo === 'ingreso' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {mov.tipo === 'ingreso' ? '+' : '-'} S/ {mov.monto?.toLocaleString()}
                                             </p>
                                         </td>
                                         <td className="py-6 px-4 text-center">
@@ -259,6 +260,64 @@ export function TabCaja() {
                                         Guardar <CheckCircle2 className="w-4 h-4" />
                                     </button>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Detalles de Movimiento */}
+            <AnimatePresence>
+                {selectedMov && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setSelectedMov(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
+                            <div className="bg-slate-900 p-8 text-white relative overflow-hidden">
+                                <div className={`absolute top-0 right-0 w-32 h-32 ${selectedMov.tipo === 'ingreso' ? 'bg-emerald-500' : 'bg-rose-500'} opacity-20 blur-3xl -mr-16 -mt-16 rounded-full`} />
+                                <div className="relative z-10 flex justify-between items-center">
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Detalle de Transacción</p>
+                                        <h3 className="text-2xl font-black italic">S/ {selectedMov.monto?.toLocaleString()}</h3>
+                                    </div>
+                                    <button onClick={() => setSelectedMov(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X className="w-5 h-5 text-white/50" /></button>
+                                </div>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tipo</p>
+                                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight ${selectedMov.tipo === 'ingreso' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                            {selectedMov.tipo}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Fecha</p>
+                                        <p className="text-xs font-bold text-slate-900">{selectedMov.fecha}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Concepto / Referencia</p>
+                                        <p className="text-sm font-bold text-slate-800 uppercase leading-tight">{selectedMov.referencia || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Categoría</p>
+                                        <p className="text-xs font-bold text-slate-700">{selectedMov.categoria}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Método de Pago</p>
+                                        <p className="text-xs font-bold text-slate-700 capitalize">{selectedMov.metodo_pago || 'Desconocido'}</p>
+                                    </div>
+                                </div>
+                                {selectedMov.notas && (
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Notas Adicionales</p>
+                                        <p className="text-xs text-slate-600 italic">"{selectedMov.notas}"</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="px-8 py-6 border-t bg-slate-50/50 flex justify-end">
+                                <button onClick={() => setSelectedMov(null)} className="px-8 py-2.5 bg-slate-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest">Cerrar Detalle</button>
                             </div>
                         </motion.div>
                     </div>

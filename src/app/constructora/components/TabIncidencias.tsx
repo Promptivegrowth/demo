@@ -26,6 +26,7 @@ export function TabIncidencias() {
     const [activeTab, setActiveTab] = useState<'registro' | 'cierre'>('registro')
     const [searchTerm, setSearchTerm] = useState('')
     const [showModal, setShowModal] = useState(false)
+    const [selectedIncidencia, setSelectedIncidencia] = useState<any>(null)
     const [saving, setSaving] = useState(false)
     const [form, setForm] = useState({
         tipo: 'Seguridad', descripcion: '', prioridad: 'media',
@@ -135,13 +136,13 @@ export function TabIncidencias() {
                                 <div className="col-span-3 text-center py-20 text-slate-400 font-bold">Sin incidencias registradas</div>
                             ) : filtered.map(inc => (
                                 <motion.div key={inc.id} whileHover={{ y: -5 }} className="bg-white p-7 rounded-[40px] border border-slate-200 shadow-sm hover:shadow-xl transition-all relative group">
-                                    <div className="flex justify-between items-start mb-6">
+                                    <div onClick={() => setSelectedIncidencia(inc)} className="flex justify-between items-start mb-6 cursor-pointer hover:opacity-80 transition-opacity">
                                         <div className={`p-3 rounded-2xl ${inc.tipo === 'Seguridad' ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-500'}`}>
                                             {inc.tipo === 'Seguridad' ? <ShieldAlert className="w-6 h-6" /> : <Info className="w-6 h-6" />}
                                         </div>
                                         <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${priorityColor[inc.prioridad]}`}>{inc.prioridad}</span>
                                     </div>
-                                    <div className="space-y-2 mb-6">
+                                    <div onClick={() => setSelectedIncidencia(inc)} className="space-y-2 mb-6 cursor-pointer hover:opacity-80 transition-opacity">
                                         <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase">
                                             <span>{inc.fecha}</span>
                                             <span className="text-blue-500">{inc.con_proyectos?.codigo || 'General'}</span>
@@ -280,6 +281,62 @@ export function TabIncidencias() {
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                     Registrar Incidencia
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Detalles de Incidencia */}
+            <AnimatePresence>
+                {selectedIncidencia && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setSelectedIncidencia(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative bg-white w-full max-w-lg rounded-[32px] shadow-2xl flex flex-col overflow-hidden">
+                            <div className="flex justify-between items-center px-8 py-6 border-b">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-xl ${selectedIncidencia.tipo === 'Seguridad' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                                        {selectedIncidencia.tipo === 'Seguridad' ? <ShieldAlert className="w-5 h-5" /> : <Info className="w-5 h-5" />}
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-900">Detalle de Incidencia</h3>
+                                </div>
+                                <button onClick={() => setSelectedIncidencia(null)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-5 h-5 text-slate-400" /></button>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest border-b pb-4">
+                                    <span>{selectedIncidencia.fecha}</span>
+                                    <span className="text-blue-500">{selectedIncidencia.con_proyectos?.nombre}</span>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Descripción</p>
+                                    <p className="text-lg font-bold text-slate-800 leading-relaxed italic">"{selectedIncidencia.descripcion}"</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 pt-4">
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Prioridad</p>
+                                        <p className={`text-xs font-black uppercase ${priorityColor[selectedIncidencia.prioridad].split(' ')[1]}`}>{selectedIncidencia.prioridad}</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Estado</p>
+                                        <p className="text-xs font-black uppercase text-slate-900">{selectedIncidencia.estado}</p>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Informado por</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[8px] font-black">
+                                            {selectedIncidencia.con_personal?.nombres?.[0]}{selectedIncidencia.con_personal?.apellidos?.[0]}
+                                        </div>
+                                        <p className="text-xs font-bold text-slate-700">
+                                            {selectedIncidencia.con_personal ? `${selectedIncidencia.con_personal.nombres} ${selectedIncidencia.con_personal.apellidos}` : 'Anónimo'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-8 py-5 border-t bg-slate-50/50 flex justify-end">
+                                <button onClick={() => setSelectedIncidencia(null)} className="px-8 py-2.5 bg-slate-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg">Entendido</button>
                             </div>
                         </motion.div>
                     </div>
