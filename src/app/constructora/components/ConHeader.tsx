@@ -1,6 +1,7 @@
 'use client'
 
 import { Search, Bell, Menu, X, Settings2, HelpCircle, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface ConHeaderProps {
     activeTabLabel: string
@@ -43,14 +44,23 @@ export function ConHeader({ activeTabLabel, isSidebarOpen, toggleSidebar }: ConH
                 </div>
 
                 <div className="flex items-center gap-1">
-                    <button className="p-2.5 hover:bg-slate-100 rounded-xl transition-all relative text-slate-500 hover:text-slate-900">
+                    <button
+                        onClick={() => toast.info('No tienes notificaciones pendientes', { description: 'Todo está al día en la obra.' })}
+                        className="p-2.5 hover:bg-slate-100 rounded-xl transition-all relative text-slate-500 hover:text-slate-900"
+                    >
                         <Bell className="w-5 h-5" />
                         <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                     </button>
-                    <button className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-slate-900">
+                    <button
+                        onClick={() => toast.info('Configuración del Módulo', { description: 'Aquí podrás ajustar los parámetros generales próximamente.' })}
+                        className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-slate-900"
+                    >
                         <Settings2 className="w-5 h-5" />
                     </button>
-                    <button className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-slate-900">
+                    <button
+                        onClick={() => toast('Centro de Ayuda', { description: 'Contacta con soporte técnico para asistencia inmediata.' })}
+                        className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-slate-900"
+                    >
                         <HelpCircle className="w-5 h-5" />
                     </button>
                 </div>

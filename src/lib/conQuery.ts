@@ -37,8 +37,8 @@ export const conQuery = {
     getMovimientosAlmacen: () => supabase.from('con_movimientos_almacen').select('*, con_almacen(nombre, proyecto_id)').order('fecha', { ascending: false }),
 
     // Personal
-    getPersonal: () => supabase.from('con_personal').select('*').order('nombre'),
-    getAsistencia: (fecha: string) => supabase.from('con_asistencia').select('*, con_personal(nombre)').eq('fecha', fecha),
+    getPersonal: () => supabase.from('con_personal').select('*').order('nombres'),
+    getAsistencia: (fecha: string) => supabase.from('con_asistencia').select('*, con_personal(nombres, apellidos)').eq('fecha', fecha),
 
     // Finanzas
     getCajaPrincipal: (proyectoId?: string) => {
