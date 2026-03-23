@@ -46,9 +46,9 @@ export const conQuery = {
         if (proyectoId) q = q.eq('proyecto_id', proyectoId)
         return q
     },
-    getMovimientosCaja: (cajaId?: string) => {
-        let q = supabase.from('con_movimientos_caja').select('*')
-        if (cajaId) q = q.eq('caja_id', cajaId)
+    getMovimientosCaja: (proyectoId?: string) => {
+        let q = supabase.from('con_caja').select('*')
+        if (proyectoId) q = q.eq('proyecto_id', proyectoId)
         return q.order('fecha', { ascending: false })
     },
 
