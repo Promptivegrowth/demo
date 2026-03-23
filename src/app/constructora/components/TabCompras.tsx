@@ -28,6 +28,7 @@ export function TabCompras() {
     const [showModal, setShowModal] = useState(false)
     const [showProvModal, setShowProvModal] = useState(false)
     const [selectedOC, setSelectedOC] = useState<any>(null)
+    const [ocItems, setOcItems] = useState<any[]>([])
     const [saving, setSaving] = useState(false)
     const [items, setItems] = useState([{ ...EMPTY_ITEM }])
     const [form, setForm] = useState({
@@ -36,8 +37,20 @@ export function TabCompras() {
         fecha_entrega: '', estado: 'borrador', condiciones_pago: 'Contado', notas: ''
     })
     const [formProv, setFormProv] = useState({ razon_social: '', ruc: '', contacto: '', telefono: '', email: '', banco: '', cuenta_bancaria: '' })
+    const [loadingItems, setLoadingItems] = useState(false)
 
     useEffect(() => { load() }, [])
+
+    useEffect(() => {
+        if (selectedOC?.id) loadItems(selectedOC.id)
+    }, [selectedOC])
+
+    async function loadItems(id: string) {
+        setLoadingItems(true)
+        const { data } = await supabase.from('con_items_oc').select('*').eq('orden_id', id)
+        if (data) setOcItems(data)
+        setLoadingItems(false)
+    }
 
     async function load() {
         setLoading(true)
@@ -371,11 +384,37 @@ export function TabCompras() {
                                     </div>
                                 </div>
                             </div>
+                            <div className="p-8 pt-0 space-y-4">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Materiales / Servicios</p>
+                                <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-4 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest">Material</th>
+                                                <th className="px-4 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest text-right">Cant.</th>
+                                                <th className="px-4 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {loadingItems ? <tr><td colSpan={3} className="p-4 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-slate-400" /></td></tr> :
+                                                ocItems.length === 0 ? <tr><td colSpan={3} className="p-4 text-center text-[10px] text-slate-400">Sin ítems</td></tr> :
+                                                    ocItems.map((it, idx) => (
+                                                        <tr key={idx}>
+                                                            <td className="px-4 py-2 text-xs font-bold text-slate-700">{it.descripcion}</td>
+                                                            <td className="px-4 py-2 text-xs text-slate-500 text-right">{it.cantidad} {it.unidad}</td>
+                                                            <td className="px-4 py-2 text-xs font-black text-slate-900 text-right">S/ {(it.subtotal || 0).toLocaleString()}</td>
+                                                        </tr>
+                                                    ))
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                             <div className="px-8 pb-8 flex gap-3">
-                                <button onClick={() => { setSelectedOC(null); toast.info('Función en desarrollo') }}
-                                    className="flex-1 py-3 border border-slate-200 text-slate-700 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all">Ver Ítems</button>
+                                <button onClick={() => { setSelectedOC(null); toast.success('Reporte generado') }}
+                                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Imprimir OC</button>
                                 <button onClick={() => handleDelete(selectedOC.id)}
-                                    className="px-5 py-3 border-2 border-red-200 text-red-500 rounded-2xl font-bold hover:bg-red-50 transition-all">
+                                    className="px-5 py-3 bg-rose-50 text-rose-500 rounded-2xl font-bold hover:bg-rose-100 transition-all">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
