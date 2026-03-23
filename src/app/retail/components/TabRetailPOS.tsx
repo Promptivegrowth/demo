@@ -402,13 +402,21 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                                 />
                             </div>
 
-                            <button
-                                onClick={handleAbrirCaja}
-                                disabled={openingCaja}
-                                className="w-full py-6 bg-slate-900 text-white rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all active:scale-[0.98]"
-                            >
-                                {openingCaja ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Unlock className="w-5 h-5" /> Abrir Caja Ahora</>}
-                            </button>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={handleAbrirCaja}
+                                    disabled={openingCaja}
+                                    className="w-full py-6 bg-emerald-500 text-slate-950 rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 hover:bg-emerald-400 transition-all active:scale-[0.98]"
+                                >
+                                    {openingCaja ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Unlock className="w-5 h-5" /> Abrir Caja Oficial</>}
+                                </button>
+                                <button
+                                    onClick={() => setSesion({ id: 'demo-session', usuario: 'Demo User', estado: 'abierta' })}
+                                    className="w-full py-4 bg-slate-900/5 hover:bg-slate-900/10 text-slate-500 rounded-[28px] font-bold text-[10px] uppercase tracking-widest transition-all"
+                                >
+                                    Omitir (Modo Demo / Emergencia)
+                                </button>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

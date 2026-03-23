@@ -114,11 +114,11 @@ export default function RetailPage() {
                                 className="h-full"
                             >
                                 {activeTab === 'dashboard' && <TabRetailDashboard onTabChange={setActiveTab} />}
-                                {activeTab === 'pos' && <TabRetailPOS />}
+                                {activeTab === 'pos' && <TabRetailPOS onTabChange={setActiveTab} />}
                                 {activeTab === 'inventario' && <TabRetailInventario onTabChange={setActiveTab} />}
-                                {activeTab === 'kardex' && <TabRetailKardex />}
-                                {activeTab === 'compras' && <TabRetailCompras />}
-                                {activeTab === 'ventas' && <TabRetailVentas />}
+                                {activeTab === 'kardex' && <TabRetailKardex onTabChange={setActiveTab} />}
+                                {activeTab === 'compras' && <TabRetailCompras onTabChange={setActiveTab} />}
+                                {activeTab === 'ventas' && <TabRetailVentas onTabChange={setActiveTab} />}
                             </motion.div>
                         </AnimatePresence>
                     </main>
