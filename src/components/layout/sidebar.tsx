@@ -60,6 +60,10 @@ const ecogestionNavItems = [
     { label: '♻ EcoGestión', icon: Wrench, href: '/ecogestion', operativeAccess: true },
 ]
 
+const constructoraNavItems = [
+    { label: '🏗 Constructora Pro', icon: Building2, href: '/constructora', operativeAccess: true },
+]
+
 const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/', operativeAccess: true },
     { label: 'CRM & Ventas', icon: Users, href: '/crm', operativeAccess: true },
@@ -354,6 +358,52 @@ export function Sidebar() {
                                         <motion.div
                                             layoutId="sidebar-eco-active"
                                             className="absolute inset-0 -m-1 rounded-lg bg-[#00c96e]/10"
+                                            transition={{ type: 'spring', duration: 0.4 }}
+                                        />
+                                    )}
+                                    <item.icon className="h-[18px] w-[18px] relative z-10" />
+                                </div>
+                                {(!sidebarCollapsed || mobileSidebarOpen) && (
+                                    <motion.span
+                                        initial={{ opacity: 1 }}
+                                        animate={{ opacity: 1 }}
+                                        className="truncate"
+                                    >
+                                        {item.label}
+                                    </motion.span>
+                                )}
+                            </div>
+                        </Link>
+                    )
+                })}
+
+                {/* Sector Constructora Divider & Header */}
+                <div className="pt-4 pb-2 px-4 flex items-center gap-2">
+                    <div className="h-px flex-1 bg-border/60" />
+                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sector Construcción</span>
+                    )}
+                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                        <span className="text-[10px] bg-slate-900 text-white px-1.5 py-0.5 rounded font-black">NUEVO</span>
+                    )}
+                    <div className="h-px flex-1 bg-border/60" />
+                </div>
+
+                {/* Constructora Navigation */}
+                {constructoraNavItems.map((item) => {
+                    const active = pathname === item.href || pathname.startsWith(item.href)
+                    return (
+                        <Link key={item.href} href={item.href} onClick={() => setMobileSidebarOpen(false)}>
+                            <div className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${active
+                                ? 'bg-slate-900/10 text-slate-900'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                }`}>
+                                <div className={`relative flex items-center justify-center shrink-0 ${active ? 'text-slate-900' : 'text-muted-foreground group-hover:text-foreground'
+                                    }`}>
+                                    {active && (
+                                        <motion.div
+                                            layoutId="sidebar-con-active"
+                                            className="absolute inset-0 -m-1 rounded-lg bg-slate-900/10"
                                             transition={{ type: 'spring', duration: 0.4 }}
                                         />
                                     )}

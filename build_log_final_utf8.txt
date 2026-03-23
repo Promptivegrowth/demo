@@ -1,0 +1,65 @@
+﻿Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 10.0s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/48) ...
+  Generating static pages using 15 workers (12/48) 
+  Generating static pages using 15 workers (24/48) 
+  Generating static pages using 15 workers (36/48) 
+Γ£ô Generating static pages using 15 workers (48/48) in 722.3ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ Γùï /admin
+Γö£ Γùï /analytics
+Γö£ Γùï /audit
+Γö£ Γùï /automotriz
+Γö£ Γùï /automotriz/apartados
+Γö£ Γùï /automotriz/caja
+Γö£ Γùï /automotriz/catalogo
+Γö£ Γùï /automotriz/clientes
+Γö£ Γùï /automotriz/compras
+Γö£ Γùï /automotriz/cotizaciones
+Γö£ Γùï /automotriz/devoluciones
+Γö£ Γùï /automotriz/garantias
+Γö£ Γùï /automotriz/inventario
+Γö£ Γùï /automotriz/pos
+Γö£ Γùï /automotriz/reportes
+Γö£ Γùï /calendar
+Γö£ Γùï /constructora
+Γö£ Γùï /crm
+Γö£ Γùï /documents
+Γö£ Γùï /ecogestion
+Γö£ Γùï /finance
+Γö£ Γùï /hr
+Γö£ Γùï /inventory
+Γö£ Γùï /login
+Γö£ Γùï /manufactura
+Γö£ Γùï /manufactura/contabilidad
+Γö£ Γùï /manufactura/crm
+Γö£ Γùï /manufactura/inventario
+Γö£ Γùï /manufactura/logistica
+Γö£ Γùï /manufactura/produccion
+Γö£ Γùï /manufactura/servidor
+Γö£ Γùï /manufactura/ventas
+Γö£ Γùï /operations
+Γö£ Γùï /sergensaf
+Γö£ Γùï /settings
+Γö£ Γùï /textil
+Γö£ Γùï /textil/analitica
+Γö£ Γùï /textil/calidad
+Γö£ Γùï /textil/costos
+Γö£ Γùï /textil/fichas
+Γö£ Γùï /textil/ordenes
+Γö£ Γùï /textil/planeacion
+Γö£ Γùï /textil/trazabilidad
+Γöö Γùï /tracking
+
+
+Γùï  (Static)  prerendered as static content
+
