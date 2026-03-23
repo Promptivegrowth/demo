@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { History, ArrowUpRight, ArrowDownRight, RefreshCcw, Filter, Search, Loader2 } from 'lucide-react'
 import { retQuery } from '@/lib/retQuery'
 
-export function TabRetailKardex() {
+export function TabRetailKardex({ onTabChange }: { onTabChange?: (t: string) => void }) {
     const [movimientos, setMovimientos] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')

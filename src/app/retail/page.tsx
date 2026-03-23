@@ -113,9 +113,9 @@ export default function RetailPage() {
                                 transition={{ duration: 0.15 }}
                                 className="h-full"
                             >
-                                {activeTab === 'dashboard' && <TabRetailDashboard />}
+                                {activeTab === 'dashboard' && <TabRetailDashboard onTabChange={setActiveTab} />}
                                 {activeTab === 'pos' && <TabRetailPOS />}
-                                {activeTab === 'inventario' && <TabRetailInventario />}
+                                {activeTab === 'inventario' && <TabRetailInventario onTabChange={setActiveTab} />}
                                 {activeTab === 'kardex' && <TabRetailKardex />}
                                 {activeTab === 'compras' && <TabRetailCompras />}
                                 {activeTab === 'ventas' && <TabRetailVentas />}

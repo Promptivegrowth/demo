@@ -6,7 +6,7 @@ import { FileBarChart, Search, Eye, Download, X, Printer, CheckCircle2, Loader2,
 import { toast } from 'sonner'
 import { retQuery } from '@/lib/retQuery'
 
-export function TabRetailVentas() {
+export function TabRetailVentas({ onTabChange }: { onTabChange?: (t: string) => void }) {
     const [ventas, setVentas] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')

@@ -29,10 +29,11 @@ export const retQuery = {
     },
 
     // Kardex
-    getKardex: async () => {
+    getKardex: async (limit: number = 20) => {
         const { data, error } = await supabase.from('ret_kardex')
             .select('*, ret_productos(nombre, sku)')
             .order('created_at', { ascending: false })
+            .limit(limit)
         if (error) throw error
         return data
     },
@@ -60,7 +61,9 @@ export const retQuery = {
     },
 
     getVentaDetalle: async (ventaId: string) => {
-        const { data, error } = await supabase.from('ret_ventas_items').select('*').eq('venta_id', ventaId)
+        const { data, error } = await supabase.from('ret_ventas_items')
+            .select('*, ret_productos(nombre, sku)')
+            .eq('venta_id', ventaId)
         if (error) throw error
         return data
     },
@@ -93,6 +96,44 @@ export const retQuery = {
     // Proveedores
     getProveedores: async () => {
         const { data, error } = await supabase.from('ret_proveedores').select('*').order('razon_social')
+        if (error) throw error
+        return data
+    },
+
+    // Gestión de Caja (Sesiones)
+    getSesionActiva: async () => {
+        const { data, error } = await supabase.from('ret_sesiones_caja')
+            .select('*')
+            .eq('estado', 'abierta')
+            .maybeSingle()
+        if (error) throw error
+        return data
+    },
+
+    abrirCaja: async (sesion: { usuario: string, saldo_inicial: number }) => {
+        const { data, error } = await supabase.from('ret_sesiones_caja').insert({
+            ...sesion,
+            estado: 'abierta',
+            fecha_apertura: new Date().toISOString()
+        }).select()
+        if (error) throw error
+        return data[0]
+    },
+
+    cerrarCaja: async (id: string, saldo_final: number) => {
+        const { data, error } = await supabase.from('ret_sesiones_caja').update({
+            estado: 'cerrada',
+            fecha_cierre: new Date().toISOString(),
+            saldo_final
+        }).eq('id', id).select()
+        if (error) throw error
+        return data[0]
+    },
+
+    getMovimientos: async () => {
+        const { data, error } = await supabase.from('ret_kardex')
+            .select('*, ret_productos(nombre, unidad)')
+            .order('fecha', { ascending: false })
         if (error) throw error
         return data
     }

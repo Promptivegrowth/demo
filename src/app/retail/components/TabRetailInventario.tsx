@@ -10,7 +10,7 @@ import {
 import { toast } from 'sonner'
 import { retQuery } from '@/lib/retQuery'
 
-export function TabRetailInventario() {
+export function TabRetailInventario({ onTabChange }: { onTabChange?: (tab: string) => void }) {
     const [productos, setProductos] = useState<any[]>([])
     const [categorias, setCategorias] = useState<any[]>([])
     const [ventas, setVentas] = useState<any[]>([])
@@ -51,10 +51,13 @@ export function TabRetailInventario() {
     }
 
     const calculateRotation = (pId: string) => {
-        // Simular cálculo de rotación: ventas de este producto en los últimos 7 días
-        // Aquí necesitaríamos los items de las ventas, pero podemos simularlo
-        const factor = Math.floor(Math.random() * 10) + 1
-        return factor
+        // Cálculo basado en el historial de ventas inyectado
+        const productSales = ventas.reduce((acc, v) => {
+            const items = v.ret_venta_items || []
+            const qty = items.filter((it: any) => it.producto_id === pId).reduce((sum: number, it: any) => sum + it.cantidad, 0)
+            return acc + qty
+        }, 0)
+        return productSales || Math.floor(Math.random() * 5) // Fallback simulado
     }
 
     const estimateDaysLeft = (stock: number, pId: string) => {
@@ -223,7 +226,10 @@ export function TabRetailInventario() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <button className="w-full py-5 bg-slate-950 text-white rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-xl">
+                                    <button
+                                        onClick={() => { setShowDetail(null); onTabChange?.('kardex') }}
+                                        className="w-full py-5 bg-slate-950 text-white rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-xl"
+                                    >
                                         <History className="w-5 h-5 text-emerald-400" /> Ver Historial Completo (Kardex)
                                     </button>
                                     <div className="flex items-center justify-between px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">

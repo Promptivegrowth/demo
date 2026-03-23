@@ -11,7 +11,7 @@ import {
 import { toast } from 'sonner'
 import { retQuery } from '@/lib/retQuery'
 
-export function TabRetailCompras() {
+export function TabRetailCompras({ onTabChange }: { onTabChange?: (t: string) => void }) {
     const [proveedores, setProveedores] = useState<any[]>([])
     const [productos, setProductos] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -25,6 +25,7 @@ export function TabRetailCompras() {
         motivo: 'Abastecimiento de Almacén',
         referencia: ''
     })
+    const [movimientos, setMovimientos] = useState<any[]>([])
 
     useEffect(() => {
         loadData()
@@ -32,15 +33,17 @@ export function TabRetailCompras() {
 
     async function loadData() {
         try {
-            const [provs, prods] = await Promise.all([
+            const [provs, prods, movs] = await Promise.all([
                 retQuery.getProveedores(),
-                retQuery.getProductos()
+                retQuery.getProductos(),
+                retQuery.getMovimientos()
             ])
             setProveedores(provs)
             setProductos(prods)
+            setMovimientos(movs)
             setLoading(false)
         } catch (error) {
-            toast.error('Error al cargar proveedores')
+            toast.error('Error al cargar datos de abastecimiento')
         }
     }
 
@@ -166,16 +169,25 @@ export function TabRetailCompras() {
                                         </div>
 
                                         <div className="pt-6 border-t border-white/10 space-y-4">
-                                            <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
-                                                <div className="flex items-center gap-3">
-                                                    <BarChart2 className="w-4 h-4 text-emerald-400" />
-                                                    <span className="text-[10px] font-black uppercase">Frecuencia Compras</span>
-                                                </div>
-                                                <span className="text-sm font-black">Alta</span>
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <History className="w-4 h-4 text-emerald-400" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Órdenes Recientes</p>
                                             </div>
-                                            <button className="w-full py-4 bg-emerald-500 text-slate-950 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/20">
-                                                Ver Historial de O.C.
-                                            </button>
+                                            <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                                {movimientos.filter(m => m.proveedor_id === selectedProv.id).length === 0 ? (
+                                                    <p className="text-[10px] text-slate-500 font-bold italic">Sin movimientos registrados.</p>
+                                                ) : (
+                                                    movimientos.filter(m => m.proveedor_id === selectedProv.id).map((m, i) => (
+                                                        <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-2xl flex justify-between items-center group/item hover:bg-white/10 transition-all">
+                                                            <div>
+                                                                <p className="text-sm font-black text-white">{m.ret_productos?.nombre}</p>
+                                                                <p className="text-[9px] text-slate-500 font-bold uppercase">{new Date(m.fecha).toLocaleDateString()} • {m.cantidad} {m.ret_productos?.unidad}</p>
+                                                            </div>
+                                                            <p className="text-xs font-black text-emerald-400">S/ {m.total.toFixed(2)}</p>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>

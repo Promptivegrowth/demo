@@ -13,7 +13,7 @@ import {
 } from 'recharts'
 import { retQuery } from '@/lib/retQuery'
 
-export function TabRetailDashboard() {
+export function TabRetailDashboard({ onTabChange }: { onTabChange?: (t: string) => void }) {
     const [stats, setStats] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
@@ -152,7 +152,10 @@ export function TabRetailDashboard() {
                                     <p className="text-xs font-black uppercase tracking-widest">Carga Óptima</p>
                                 </div>
                             )}
-                            <button className="w-full mt-6 py-5 bg-white text-slate-950 rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center justify-center gap-3">
+                            <button
+                                onClick={() => onTabChange?.('compras')}
+                                className="w-full mt-6 py-5 bg-white text-slate-950 rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center justify-center gap-3"
+                            >
                                 Generar Orden Sugerida <ArrowUpRight className="w-4 h-4" />
                             </button>
                         </div>

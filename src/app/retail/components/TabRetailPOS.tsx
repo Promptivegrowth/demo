@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Search, ShoppingCart, Trash2, Plus, Minus,
     CreditCard, Banknote, CheckCircle2, Package,
-    Filter, X, Loader2, Zap, ArrowRight
+    Filter, X, Loader2, Zap, ArrowRight, QrCode,
+    Smartphone, Scan, Lock, Unlock, User
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { retQuery } from '@/lib/retQuery'
 
-export function TabRetailPOS() {
+export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => void }) {
     const [productos, setProductos] = useState<any[]>([])
     const [categorias, setCategorias] = useState<any[]>([])
     const [selectedCat, setSelectedCat] = useState('all')
@@ -19,10 +20,26 @@ export function TabRetailPOS() {
     const [loading, setLoading] = useState(true)
     const [processing, setProcessing] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
+    const [sesion, setSesion] = useState<any>(null)
+    const [openingCaja, setOpeningCaja] = useState(false)
+    const [saldoInicial, setSaldoInicial] = useState('0')
+    const [metodoPago, setMetodoPago] = useState('efectivo')
+    const [showQR, setShowQR] = useState(false)
+    const [barcodeInput, setBarcodeInput] = useState('')
 
     useEffect(() => {
         loadData()
+        checkSesion()
     }, [])
+
+    async function checkSesion() {
+        try {
+            const s = await retQuery.getSesionActiva()
+            setSesion(s)
+        } catch (error) {
+            console.error('Error al chequear sesión')
+        }
+    }
 
     async function loadData() {
         try {
@@ -85,16 +102,27 @@ export function TabRetailPOS() {
 
     const handleFinalize = async () => {
         if (cart.length === 0) return
+        if (metodoPago === 'yape' || metodoPago === 'plin') {
+            setShowQR(true)
+            return
+        }
+        await processSale()
+    }
+
+    const processSale = async () => {
         setProcessing(true)
         try {
-            const numVenta = `B001-${Math.floor(Date.now() / 1000)}`
+            const numVenta = `BE01-${Math.floor(Date.now() / 1000)}`
             const venta = {
                 numero: numVenta,
+                serie: 'BE01',
                 subtotal,
                 igv,
                 total,
-                metodo_pago: 'efectivo',
-                estado: 'pagado'
+                metodo_pago: metodoPago,
+                estado: 'pagado',
+                vendedor: sesion?.usuario || 'Cajero Alpha',
+                caja_id: sesion?.id
             }
             const items = cart.map(it => ({
                 producto_id: it.id,
@@ -107,11 +135,41 @@ export function TabRetailPOS() {
             await retQuery.registarVenta(venta, items)
             setCart([])
             setShowSuccess(true)
-            loadData() // Recargar stocks
+            setShowQR(false)
+            loadData()
         } catch (error) {
             toast.error('Error al procesar la venta')
         } finally {
             setProcessing(false)
+        }
+    }
+
+    const handleBarcode = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            const prod = productos.find(p => p.sku === barcodeInput)
+            if (prod) {
+                addToCart(prod)
+                setBarcodeInput('')
+                toast.success('Producto escaneado', { description: prod.nombre })
+            } else {
+                setBarcodeInput('')
+            }
+        }
+    }
+
+    const handleAbrirCaja = async () => {
+        setOpeningCaja(true)
+        try {
+            const s = await retQuery.abrirCaja({
+                usuario: 'Cajero Alpha', // Simulado
+                saldo_inicial: Number(saldoInicial)
+            })
+            setSesion(s)
+            toast.success('Caja iniciada', { description: 'Turno abierto correctamente' })
+        } catch (error) {
+            toast.error('Error al abrir caja')
+        } finally {
+            setOpeningCaja(false)
         }
     }
 
@@ -133,12 +191,14 @@ export function TabRetailPOS() {
 
                 <div className="flex items-center gap-4 mb-8">
                     <div className="flex-1 relative group">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                        <Scan className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
                         <input
                             type="text"
-                            placeholder="Escanea el código o busca el producto..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Escanea con la pistola de códigos o busca..."
+                            value={barcodeInput}
+                            onChange={e => setBarcodeInput(e.target.value)}
+                            onKeyDown={handleBarcode}
+                            autoFocus
                             className="w-full bg-slate-50 border border-slate-100 rounded-[28px] py-5 pl-14 pr-6 text-base font-bold focus:ring-8 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500 outline-none transition-all shadow-inner"
                         />
                     </div>
@@ -283,24 +343,116 @@ export function TabRetailPOS() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <button className="flex items-center justify-center gap-3 py-5 bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-3xl transition-all border border-white/5">
-                            <Banknote className="w-5 h-5 text-emerald-400" /> Efectivo
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <button
+                            onClick={() => setMetodoPago('efectivo')}
+                            className={`flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all font-black text-[9px] uppercase tracking-widest ${metodoPago === 'efectivo' ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}`}
+                        >
+                            <Banknote className="w-4 h-4" /> Efectivo
                         </button>
-                        <button className="flex items-center justify-center gap-3 py-5 bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-3xl transition-all border border-white/5">
-                            <CreditCard className="w-5 h-5 text-blue-400" /> Tarjeta
+                        <button
+                            onClick={() => setMetodoPago('tarjeta')}
+                            className={`flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all font-black text-[9px] uppercase tracking-widest ${metodoPago === 'tarjeta' ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}`}
+                        >
+                            <CreditCard className="w-4 h-4" /> Tarjeta
+                        </button>
+                        <button
+                            onClick={() => setMetodoPago('yape')}
+                            className={`flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all font-black text-[9px] uppercase tracking-widest ${metodoPago === 'yape' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-600/20' : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}`}
+                        >
+                            <Smartphone className="w-4 h-4" /> Yape
+                        </button>
+                        <button
+                            onClick={() => setMetodoPago('plin')}
+                            className={`flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all font-black text-[9px] uppercase tracking-widest ${metodoPago === 'plin' ? 'bg-teal-500 text-white border-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}`}
+                        >
+                            <Smartphone className="w-4 h-4" /> Plin
                         </button>
                     </div>
 
                     <button
                         onClick={handleFinalize}
                         disabled={cart.length === 0 || processing}
-                        className="w-full mt-6 py-6 bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-white/20 disabled:cursor-not-allowed font-black text-sm uppercase tracking-[0.3em] rounded-[32px] transition-all flex items-center justify-center gap-4 shadow-2xl shadow-emerald-500/30 active:scale-[0.98]"
+                        className="w-full py-6 bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-white/20 disabled:cursor-not-allowed font-black text-sm uppercase tracking-[0.3em] rounded-[32px] transition-all flex items-center justify-center gap-4 shadow-2xl shadow-emerald-500/30 active:scale-[0.98]"
                     >
                         {processing ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Finalizar Orden <ArrowRight className="w-6 h-6" /></>}
                     </button>
                 </div>
             </div>
+
+            {/* Iniciar Caja Overlay */}
+            <AnimatePresence>
+                {!sesion && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-xl">
+                        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white w-full max-w-lg rounded-[60px] p-12 shadow-[0_50px_100px_rgba(0,0,0,0.3)] border border-slate-100 relative overflow-hidden text-center">
+                            <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500" />
+                            <div className="w-24 h-24 bg-emerald-50 rounded-[40px] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                                <Lock className="w-10 h-10 text-emerald-600" />
+                            </div>
+                            <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Punto de Venta Bloqueado</h3>
+                            <p className="text-slate-500 text-sm font-medium mb-10 decoration-slate-200">Debe iniciar un turno de caja para procesar transacciones.</p>
+
+                            <div className="bg-slate-50 p-8 rounded-[40px] border border-slate-100 mb-8 text-left">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Saldo Inicial (S/)</label>
+                                <input
+                                    type="number"
+                                    value={saldoInicial}
+                                    onChange={e => setSaldoInicial(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 text-2xl font-black focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleAbrirCaja}
+                                disabled={openingCaja}
+                                className="w-full py-6 bg-slate-900 text-white rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all active:scale-[0.98]"
+                            >
+                                {openingCaja ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Unlock className="w-5 h-5" /> Abrir Caja Ahora</>}
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* QR Payment Animation Élite */}
+            <AnimatePresence>
+                {showQR && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-2xl">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white w-full max-w-sm rounded-[60px] p-12 text-center relative overflow-hidden"
+                        >
+                            <button onClick={() => setShowQR(false)} className="absolute top-8 right-8 p-3 hover:bg-slate-100 rounded-2xl transition-all"><X className="w-6 h-6 text-slate-400" /></button>
+
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl ${metodoPago === 'yape' ? 'bg-purple-600' : 'bg-teal-500'}`}>
+                                <QrCode className="w-10 h-10 text-white" />
+                            </div>
+
+                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">Pago con {metodoPago}</h3>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-10">Escanea el código para finalizar</p>
+
+                            <div className="relative w-full aspect-square bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200 flex items-center justify-center group overflow-hidden mb-10">
+                                <motion.div
+                                    animate={{ y: [0, 200, 0] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="absolute top-0 left-0 w-full h-1 bg-emerald-500/50 shadow-[0_0_20px_#10b981]"
+                                />
+                                <div className="w-48 h-48 bg-slate-200 rounded-3xl animate-pulse" />
+                                <QrCode className="absolute w-32 h-32 text-slate-300 opacity-20" />
+                            </div>
+
+                            <button
+                                onClick={processSale}
+                                className="w-full py-5 bg-emerald-500 text-slate-950 font-black text-xs uppercase tracking-[0.2em] rounded-3xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
+                            >
+                                Confirmar Recepción
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Success Modal Élite */}
             <AnimatePresence>
