@@ -72,10 +72,13 @@ export function TabRetailKardex({ onTabChange }: { onTabChange?: (t: string) => 
                                     <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Sin movimientos registrados</td></tr>
                                 ) : (
                                     filtered.map((m) => (
-                                        <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-slate-600">{new Date(m.created_at).toLocaleDateString()} <span className="text-[10px] text-slate-400 font-normal">{new Date(m.created_at).toLocaleTimeString()}</span></td>
+                                        <tr key={m.id} className="hover:bg-slate-50/80 transition-colors group">
                                             <td className="px-6 py-4">
-                                                <p className="font-black text-slate-900 leading-none">{m.ret_productos?.nombre}</p>
+                                                <p className="font-bold text-slate-600 leading-tight">{new Date(m.created_at).toLocaleDateString()}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="font-black text-slate-900 leading-none group-hover:text-emerald-600 transition-colors">{m.ret_productos?.nombre}</p>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{m.ret_productos?.sku}</p>
                                             </td>
                                             <td className="px-6 py-4">
@@ -85,10 +88,15 @@ export function TabRetailKardex({ onTabChange }: { onTabChange?: (t: string) => 
                                                 </div>
                                             </td>
                                             <td className={`px-6 py-4 text-right font-black ${m.tipo === 'entrada' ? 'text-emerald-600' : 'text-slate-900'}`}>{m.tipo === 'entrada' ? '+' : '-'}{m.cantidad}</td>
-                                            <td className="px-6 py-4 text-right font-black text-slate-900">S/ {(m.total || 0).toFixed(2)}</td>
                                             <td className="px-6 py-4">
-                                                <p className="text-xs font-bold text-slate-600">{m.motivo || 'Manual'}</p>
-                                                <p className="text-[9px] text-slate-400 truncate max-w-[120px]">{m.referencia || 'N/A'}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${m.ret_proveedores?.razon_social ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[150px]">{m.ret_proveedores?.razon_social || 'Venta / Ajuste'}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="text-xs font-bold text-slate-600 truncate max-w-[100px]">{m.motivo || 'Operación POS'}</p>
+                                                <p className="text-[9px] text-slate-400 font-bold">Ref: {m.referencia || 'N/A'}</p>
                                             </td>
                                         </tr>
                                     ))

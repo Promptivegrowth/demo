@@ -31,7 +31,7 @@ export const retQuery = {
     // Kardex
     getKardex: async (limit: number = 20) => {
         const { data, error } = await supabase.from('ret_kardex')
-            .select('*, ret_productos(nombre, sku)')
+            .select('*, ret_productos(nombre, sku), ret_proveedores(razon_social)')
             .order('created_at', { ascending: false })
             .limit(limit)
         if (error) throw error
