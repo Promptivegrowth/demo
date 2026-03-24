@@ -272,7 +272,7 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
             </div>
 
             {/* Cart Section (Responsivo) */}
-            <div className="w-full lg:w-[440px] bg-slate-900 rounded-[50px] shadow-2xl flex flex-col overflow-hidden relative border border-white/5 h-[700px] lg:h-[calc(100vh-140px)] sticky top-24">
+            <div className="w-full lg:w-[440px] bg-slate-900 rounded-[50px] shadow-2xl flex flex-col overflow-hidden relative border border-white/5 h-[650px] lg:h-[calc(100vh-120px)] sticky top-24">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none" />
 
                 <div className="p-10 border-b border-white/5 flex items-center justify-between relative z-10 bg-white/5 backdrop-blur-md">
@@ -285,7 +285,7 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                     <span className="w-12 h-12 bg-emerald-500 text-slate-950 rounded-2xl flex items-center justify-center text-lg font-black shadow-xl shadow-emerald-500/30">{cart.length}</span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto min-h-[300px] p-6 space-y-4 custom-scrollbar relative z-10">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar relative z-10">
                     <AnimatePresence mode="popLayout">
                         {cart.length === 0 ? (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col items-center justify-center text-white/20 gap-6">
@@ -327,20 +327,20 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                     </AnimatePresence>
                 </div>
 
-                <div className="p-10 bg-white/5 rounded-t-[60px] border-t border-white/10 backdrop-blur-2xl relative z-10">
-                    <div className="space-y-4 mb-8">
+                <div className="p-6 bg-white/5 rounded-t-[40px] border-t border-white/10 backdrop-blur-2xl relative z-10">
+                    <div className="space-y-2 mb-4">
                         <div className="flex justify-between text-white/40">
-                            <span className="text-xs font-black uppercase tracking-[0.2em]">Subtotal</span>
-                            <span className="text-white font-black text-lg">S/ {subtotal.toFixed(2)}</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Subtotal</span>
+                            <span className="text-white font-black text-base">S/ {subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-white/40">
-                            <span className="text-xs font-black uppercase tracking-[0.2em]">Cargos IGV (18%)</span>
-                            <span className="text-white font-black text-lg">S/ {igv.toFixed(2)}</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Cargos IGV (18%)</span>
+                            <span className="text-white font-black text-base">S/ {igv.toFixed(2)}</span>
                         </div>
-                        <div className="h-px bg-white/10 my-4" />
+                        <div className="h-px bg-white/10 my-2" />
                         <div className="flex justify-between text-emerald-500 items-baseline">
-                            <span className="text-lg font-black uppercase tracking-[0.3em]">Total Neto</span>
-                            <span className="text-5xl font-black tracking-tighter shadow-emerald-500/20 drop-shadow-2xl">S/ {total.toFixed(2)}</span>
+                            <span className="text-xs font-black uppercase tracking-[0.3em]">Total Neto</span>
+                            <span className="text-4xl font-black tracking-tighter shadow-emerald-500/20 drop-shadow-2xl">S/ {total.toFixed(2)}</span>
                         </div>
                     </div>
 
