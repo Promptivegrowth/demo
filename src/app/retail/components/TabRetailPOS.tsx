@@ -285,7 +285,7 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                     <span className="w-12 h-12 bg-emerald-500 text-slate-950 rounded-2xl flex items-center justify-center text-lg font-black shadow-xl shadow-emerald-500/30">{cart.length}</span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar relative z-10">
+                <div className="flex-1 overflow-y-auto min-h-[400px] lg:min-h-0 p-6 space-y-4 custom-scrollbar relative z-10">
                     <AnimatePresence mode="popLayout">
                         {cart.length === 0 ? (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col items-center justify-center text-white/20 gap-6">
@@ -340,7 +340,7 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                         <div className="h-px bg-white/10 my-4" />
                         <div className="flex justify-between text-emerald-500 items-baseline">
                             <span className="text-lg font-black uppercase tracking-[0.3em]">Total Neto</span>
-                            <span className="text-5xl font-black tracking-tighter shadow-emerald-500/20 drop-shadow-2xl">S/ {total.toLocaleString()}</span>
+                            <span className="text-5xl font-black tracking-tighter shadow-emerald-500/20 drop-shadow-2xl">S/ {total.toFixed(2)}</span>
                         </div>
                     </div>
 

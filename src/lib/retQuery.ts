@@ -132,8 +132,8 @@ export const retQuery = {
 
     getMovimientos: async () => {
         const { data, error } = await supabase.from('ret_kardex')
-            .select('*, ret_productos(nombre, unidad)')
-            .order('fecha', { ascending: false })
+            .select('*, ret_productos(nombre, sku), ret_proveedores(razon_social)')
+            .order('created_at', { ascending: false })
         if (error) throw error
         return data
     }
