@@ -272,7 +272,7 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
             </div>
 
             {/* Cart Section (Responsivo) */}
-            <div className="w-full lg:w-[440px] bg-slate-900 rounded-[50px] shadow-2xl flex flex-col overflow-hidden relative border border-white/5 h-[650px] lg:h-[calc(100vh-120px)] sticky top-24">
+            <div className="w-full lg:w-[440px] bg-slate-900 rounded-[50px] shadow-2xl flex flex-col relative border border-white/5 h-[700px] lg:h-[calc(100vh-120px)] sticky top-24 overflow-y-auto custom-scrollbar">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none" />
 
                 <div className="p-10 border-b border-white/5 flex items-center justify-between relative z-10 bg-white/5 backdrop-blur-md">
@@ -285,7 +285,7 @@ export function TabRetailPOS({ onTabChange }: { onTabChange?: (t: string) => voi
                     <span className="w-12 h-12 bg-emerald-500 text-slate-950 rounded-2xl flex items-center justify-center text-lg font-black shadow-xl shadow-emerald-500/30">{cart.length}</span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar relative z-10">
+                <div className="p-6 space-y-4 relative z-10 flex-1">
                     <AnimatePresence mode="popLayout">
                         {cart.length === 0 ? (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col items-center justify-center text-white/20 gap-6">
