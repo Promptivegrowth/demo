@@ -20,6 +20,8 @@ import { TabAgriAgentes } from '@/app/agricola/components/TabAgriAgentes'
 import { TabAgriCompras } from '@/app/agricola/components/TabAgriCompras'
 import { TabAgriInventario } from '@/app/agricola/components/TabAgriInventario'
 import { TabAgriInteligencia } from '@/app/agricola/components/TabAgriInteligencia'
+import { TabAgriCRM } from '@/app/agricola/components/TabAgriCRM'
+import { TabAgriFacturacion } from '@/app/agricola/components/TabAgriFacturacion'
 
 const tabs = [
     { id: 'hub', label: 'Hub Agrícola', icon: Home, color: '#16a34a' },
@@ -30,6 +32,8 @@ const tabs = [
     { id: 'compras', label: 'Compras Proveedores', icon: ClipboardList, color: '#16a34a' },
     { id: 'inventario', label: 'Stock & Lotes', icon: Boxes, color: '#16a34a' },
     { id: 'analytics', label: 'Inteligencia Agrícola', icon: BarChart3, color: '#16a34a' },
+    { id: 'crm', label: 'CRM Inteligente', icon: Users, color: '#16a34a' },
+    { id: 'facturacion', label: 'Facturación', icon: Receipt, color: '#ca8a04' },
 ]
 
 export default function AgricolaPage() {
@@ -129,6 +133,8 @@ export default function AgricolaPage() {
                                 {activeTab === 'compras' && <TabAgriCompras />}
                                 {activeTab === 'inventario' && <TabAgriInventario />}
                                 {activeTab === 'analytics' && <TabAgriInteligencia />}
+                                {activeTab === 'crm' && <TabAgriCRM />}
+                                {activeTab === 'facturacion' && <TabAgriFacturacion />}
                             </motion.div>
                         </AnimatePresence>
                     </main>

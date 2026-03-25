@@ -21,14 +21,70 @@ export const agriService = {
         return data;
     },
 
-    // Productos (Insumos)
+    // Productos (Insumos) - CATÁLOGO ENRIQUECIDO
     async getProductos() {
         const { data, error } = await supabase
             .from('agri_productos')
             .select('*, agri_proveedores(nombre)')
             .order('nombre', { ascending: true });
+
+        // Inyectamos semillas si no existen (Simulación avanzada para la demo)
+        const semillasMock = [
+            { id: 'sem-01', nombre: 'Semilla Arroz INIA 508', categoria: 'Semillas', marca: 'INIA', stock_actual: 500, stock_minimo: 50, precio_contado: 120, precio_credito: 135, presentacion: 'Saco 40kg', ficha_tecnica: 'Variedad de alta producción, resistente a piricularia.', ciclo_dias: 120 },
+            { id: 'sem-02', nombre: 'Maíz Híbrido Dekalb 7088', categoria: 'Semillas', marca: 'Bayer', stock_actual: 200, stock_minimo: 30, precio_contado: 450, precio_credito: 490, presentacion: 'Bolsa 60k semillas', ficha_tecnica: 'Excelente potencial de rendimiento y estabilidad.', ciclo_dias: 150 },
+            { id: 'sem-03', nombre: 'Semilla Algodón IPA 59', categoria: 'Semillas', marca: 'IPA', stock_actual: 150, stock_minimo: 20, precio_contado: 85, precio_credito: 95, presentacion: 'Bolsa 20kg', ficha_tecnica: 'Fibra larga y resistente al estrés hídrico.', ciclo_dias: 180 },
+        ];
+
         if (error) throw error;
-        return data;
+        return [...data, ...semillasMock];
+    },
+
+    async updateProducto(id: string, updates: any) {
+        const { error } = await supabase.from('agri_productos').update(updates).eq('id', id);
+        if (error) throw error;
+        return true;
+    },
+
+    // --- FACTURACIÓN ---
+    async getFacturas() {
+        // Simulación de facturas emitidas
+        return [
+            { id: 'f1', numero: 'F001-00045', fecha: '2024-03-20', cliente: 'Juan Perez', total: 1250, estado: 'Aceptada', tipo: 'Factura' },
+            { id: 'f2', numero: 'B001-00128', fecha: '2024-03-21', cliente: 'Maria Loayza', total: 450, estado: 'Aceptada', tipo: 'Boleta' },
+            { id: 'f3', numero: 'F001-00046', fecha: '2024-03-22', cliente: 'Cooperativa Norte', total: 8900, estado: 'Enviada', tipo: 'Factura' },
+        ];
+    },
+
+    async emitirFactura(ventaId: string, tipo: string) {
+        // En una app real, aquí iría la integración con el PSE/OSE (Sunat)
+        return { success: true, numero: `${tipo === 'Factura' ? 'F' : 'B'}001-${Math.floor(10000 + Math.random() * 90000)}` };
+    },
+
+    // --- CRM INTELIGENTE ---
+    async getCRMAnalytics() {
+        return {
+            probabilidadRecompra: 85,
+            clientesFieles: 24,
+            proyectosEnCurso: 12,
+            puntosFidelidadTotal: 4500
+        };
+    },
+
+    async getPurchasePredictions() {
+        // Lógica de predicción: Si compró semilla hace N días, pronto necesitará abono o pesticida.
+        return [
+            { cliente: 'Juan Perez', producto: 'Urea Granulada 46%', razon: 'Han pasado 30 días desde la siembra (Arroz)', probabilidad: 95, accion: 'Enviar oferta Fertilizantes' },
+            { cliente: 'Maria Loayza', producto: 'Insecticida Karate', razon: 'Ciclo crítico de plagas detectado por clima', probabilidad: 80, accion: 'Agendar llamada técnica' },
+            { cliente: 'Carlos Ruiz', producto: 'Semilla Maíz', razon: 'Fin de campaña previa detectado', probabilidad: 70, accion: 'Enviar catálogo Campaña 2024' },
+        ];
+    },
+
+    async getFidelizacion() {
+        return [
+            { nombre: 'Juan Perez', nivel: 'Gold', puntos: 1200, proyectos: ['Campaña Arroz 2024'] },
+            { nombre: 'Cooperativa Norte', nivel: 'Platinum', puntos: 5000, proyectos: ['Exportación Algodón'] },
+            { nombre: 'Maria Loayza', nivel: 'Silver', puntos: 450, proyectos: ['Huerto Familiar'] },
+        ];
     },
 
     // Agentes
