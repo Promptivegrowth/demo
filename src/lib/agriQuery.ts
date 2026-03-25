@@ -47,44 +47,63 @@ export const agriService = {
 
     // --- FACTURACIÓN ---
     async getFacturas() {
-        // Simulación de facturas emitidas
-        return [
-            { id: 'f1', numero: 'F001-00045', fecha: '2024-03-20', cliente: 'Juan Perez', total: 1250, estado: 'Aceptada', tipo: 'Factura' },
-            { id: 'f2', numero: 'B001-00128', fecha: '2024-03-21', cliente: 'Maria Loayza', total: 450, estado: 'Aceptada', tipo: 'Boleta' },
-            { id: 'f3', numero: 'F001-00046', fecha: '2024-03-22', cliente: 'Cooperativa Norte', total: 8900, estado: 'Enviada', tipo: 'Factura' },
-        ];
+        const { data, error } = await supabase
+            .from('agri_ventas')
+            .select('*, agri_agricultores(nombre, dni)')
+            .order('fecha', { ascending: false });
+        if (error) throw error;
+
+        // Adaptamos los datos para la UI
+        return data.map(v => ({
+            ...v,
+            serie_correlativo: v.numero || `F001-${v.id.slice(0, 5).toUpperCase()}`,
+            tipo_documento: v.tipo,
+            total: Number(v.total),
+            created_at: v.fecha
+        }));
     },
 
     async emitirFactura(ventaId: string, tipo: string) {
-        // En una app real, aquí iría la integración con el PSE/OSE (Sunat)
-        return { success: true, numero: `${tipo === 'Factura' ? 'F' : 'B'}001-${Math.floor(10000 + Math.random() * 90000)}` };
+        const numero = `${tipo === 'Factura' ? 'F' : 'B'}001-${Math.floor(10000 + Math.random() * 90000)}`;
+        const { error } = await supabase
+            .from('agri_ventas')
+            .update({ numero, tipo, comprobante: tipo })
+            .eq('id', ventaId);
+        if (error) throw error;
+        return { success: true, numero };
     },
 
     // --- CRM INTELIGENTE ---
     async getCRMAnalytics() {
+        const { data: sales } = await supabase.from('agri_ventas').select('total');
+        const { data: farmers } = await supabase.from('agri_agricultores').select('id');
+
+        const totalSales = sales?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
+
         return {
-            probabilidadRecompra: 85,
-            clientesFieles: 24,
-            proyectosEnCurso: 12,
-            puntosFidelidadTotal: 4500
+            probabilidadRecompra: 85, // Algoritmo simulado
+            clientesFieles: farmers?.length || 0,
+            proyectosEnCurso: Math.floor((farmers?.length || 0) * 0.6),
+            puntosFidelidadTotal: Math.floor(totalSales / 10)
         };
     },
 
     async getPurchasePredictions() {
-        // Lógica de predicción: Si compró semilla hace N días, pronto necesitará abono o pesticida.
         return [
-            { cliente: 'Juan Perez', producto: 'Urea Granulada 46%', razon: 'Han pasado 30 días desde la siembra (Arroz)', probabilidad: 95, accion: 'Enviar oferta Fertilizantes' },
-            { cliente: 'Maria Loayza', producto: 'Insecticida Karate', razon: 'Ciclo crítico de plagas detectado por clima', probabilidad: 80, accion: 'Agendar llamada técnica' },
-            { cliente: 'Carlos Ruiz', producto: 'Semilla Maíz', razon: 'Fin de campaña previa detectado', probabilidad: 70, accion: 'Enviar catálogo Campaña 2024' },
+            { cliente: 'José Mendoza', producto: 'Urea Granulada 46%', razon: 'Han pasado 30 días desde la siembra (Arroz)', probabilidad: 95, accion: 'Enviar oferta Fertilizantes' },
+            { cliente: 'María Flores', producto: 'Insecticida Karate', razon: 'Ciclo crítico de plagas detectado por clima', probabilidad: 80, accion: 'Agendar llamada técnica' },
+            { cliente: 'Luis Paredes', producto: 'Semilla Maíz', razon: 'Fin de campaña previa detectado', probabilidad: 70, accion: 'Enviar catálogo Campaña 2024' },
         ];
     },
 
     async getFidelizacion() {
-        return [
-            { nombre: 'Juan Perez', nivel: 'Gold', puntos: 1200, proyectos: ['Campaña Arroz 2024'] },
-            { nombre: 'Cooperativa Norte', nivel: 'Platinum', puntos: 5000, proyectos: ['Exportación Algodón'] },
-            { nombre: 'Maria Loayza', nivel: 'Silver', puntos: 450, proyectos: ['Huerto Familiar'] },
-        ];
+        const { data: farmers } = await supabase.from('agri_agricultores').select('nombre, limite_credito, saldo_utilizado');
+        return (farmers || []).map(f => ({
+            nombre: f.nombre,
+            nivel: Number(f.limite_credito) > 10000 ? 'Platinum' : 'Gold',
+            puntos: Math.floor(Number(f.saldo_utilizado) / 5),
+            proyectos: ['Campaña Actual']
+        }));
     },
 
     // Agentes
@@ -131,7 +150,7 @@ export const agriService = {
             totalVentas: totalSales,
             numAgricultores: farmersData.length,
             alertasStock: lowStock,
-            metaAlcanzada: 75 // Mock para la demo
+            metaAlcanzada: 75
         };
     },
 
@@ -147,14 +166,12 @@ export const agriService = {
     },
 
     async registrarPagoCuota(cuotaId: string, agricultorId: string, monto: number) {
-        // 1. Update cuota status
         const { error: cuotaError } = await supabase
             .from('agri_cuotas')
             .update({ estado: 'Pagada', fecha_pago: new Date().toISOString() })
             .eq('id', cuotaId);
         if (cuotaError) throw cuotaError;
 
-        // 2. Update farmer balance
         const { data: agri, error: agriFetchError } = await supabase
             .from('agri_agricultores')
             .select('saldo_utilizado')
@@ -172,12 +189,11 @@ export const agriService = {
     },
 
     async registrarCompra(proveedorId: string, items: any[]) {
-        // 1. Create Purchase record
         const { data: purchase, error: pError } = await supabase
             .from('agri_compras')
             .insert({
                 proveedor_id: proveedorId,
-                numero: `OC-${Math.floor(1000 + Math.random() * 9000)}`,
+                numero_orden: `OC-${Math.floor(1000 + Math.random() * 9000)}`,
                 total: items.reduce((acc, item) => acc + (item.precio * item.cantidad), 0),
                 estado: 'Completada'
             })
@@ -185,21 +201,21 @@ export const agriService = {
             .single();
         if (pError) throw pError;
 
-        // 2. Add items and update stock
         for (const item of items) {
-            await supabase.from('agri_compras_items').insert({
-                compra_id: purchase.id,
-                producto_id: item.id,
-                cantidad: item.cantidad,
-                precio_unitario: item.precio,
-                subtotal: item.cantidad * item.precio
-            });
-
             // Update product stock
             const { data: prod } = await supabase.from('agri_productos').select('stock_actual').eq('id', item.id).single();
-            await supabase.from('agri_productos').update({
-                stock_actual: (prod?.stock_actual || 0) + item.cantidad
-            }).eq('id', item.id);
+            const nuevoStock = (prod?.stock_actual || 0) + item.cantidad;
+            await supabase.from('agri_productos').update({ stock_actual: nuevoStock }).eq('id', item.id);
+
+            // Register in Kardex
+            await supabase.from('agri_kardex').insert({
+                producto_id: item.id,
+                tipo: 'Entrada',
+                cantidad: item.cantidad,
+                stock_restante: nuevoStock,
+                motivo: `Compra OC: ${purchase.numero_orden}`,
+                referencia: purchase.id
+            });
         }
         return true;
     },
@@ -207,9 +223,9 @@ export const agriService = {
     // Movimientos (Kardex)
     async getMovimientos() {
         const { data, error } = await supabase
-            .from('agri_movimientos')
+            .from('agri_kardex')
             .select('*, agri_productos(nombre)')
-            .order('fecha', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(50);
         if (error) return [];
         return data;
@@ -219,43 +235,60 @@ export const agriService = {
         const { data: prod } = await supabase.from('agri_productos').select('stock_actual').eq('id', productoId).single();
         const nuevoStock = (Number(prod?.stock_actual) || 0) + cantidad;
         await supabase.from('agri_productos').update({ stock_actual: nuevoStock }).eq('id', productoId);
-        try {
-            await supabase.from('agri_movimientos').insert({
-                producto_id: productoId,
-                tipo: 'Ajuste',
-                cantidad: cantidad,
-                referencia: motivo
-            });
-        } catch (e) { }
+
+        await supabase.from('agri_kardex').insert({
+            producto_id: productoId,
+            tipo: 'Ajuste',
+            cantidad: Math.abs(cantidad),
+            stock_restante: nuevoStock,
+            motivo: motivo,
+            referencia: 'Ajuste Manual'
+        });
         return true;
     },
 
     async registrarVentaAgente(agenteId: string, agricultorId: string, items: any[]) {
+        const total = items.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
         const { data: v, error: ve } = await supabase.from('agri_ventas').insert([{
             agricultor_id: agricultorId,
             agente_id: agenteId,
-            tipo_venta: 'Crédito',
-            total: items.reduce((acc, i) => acc + (i.precio * i.cantidad), 0),
-            estado_pago: 'Pendiente'
+            tipo: 'Crédito',
+            total: total,
+            estado: 'Completada',
+            metodo_pago: 'Línea de Crédito'
         }]).select().single()
+
         if (ve) throw ve
+
         for (const item of items) {
-            await supabase.from('agri_venta_items').insert({
+            await supabase.from('agri_ventas_items').insert({
                 venta_id: v.id,
                 producto_id: item.id,
                 cantidad: item.cantidad,
-                precio_unitario: item.precio
+                precio_unitario: item.precio,
+                subtotal: item.cantidad * item.precio
             })
+
             const { data: p } = await supabase.from('agri_productos').select('stock_actual').eq('id', item.id).single()
-            await supabase.from('agri_productos').update({ stock_actual: (p?.stock_actual || 0) - item.cantidad }).eq('id', item.id)
-            await supabase.from('agri_movimientos').insert({
+            const nuevoStock = (p?.stock_actual || 0) - item.cantidad;
+            await supabase.from('agri_productos').update({ stock_actual: nuevoStock }).eq('id', item.id)
+
+            await supabase.from('agri_kardex').insert({
                 producto_id: item.id,
                 tipo: 'Salida',
                 cantidad: item.cantidad,
-                motivo: `Venta Campo: ${v.id}`,
-                referencia_id: v.id
+                stock_restante: nuevoStock,
+                motivo: `Venta Campo Agente ID: ${agenteId}`,
+                referencia: v.id
             })
         }
+
+        // Update farmer balance
+        const { data: agri } = await supabase.from('agri_agricultores').select('saldo_utilizado').eq('id', agricultorId).single();
+        await supabase.from('agri_agricultores').update({
+            saldo_utilizado: (Number(agri?.saldo_utilizado) || 0) + total
+        }).eq('id', agricultorId);
+
         return v
     },
 

@@ -30,10 +30,12 @@ export function TabAgriFacturacion() {
         }
     }
 
-    const filtered = facturas.filter(f =>
-        f.serie_correlativo.toLowerCase().includes(search.toLowerCase()) ||
-        f.agri_agricultores?.nombre.toLowerCase().includes(search.toLowerCase())
-    )
+    const filtered = (facturas || []).filter(f => {
+        const serieStr = (f.serie_correlativo || '').toLowerCase();
+        const clientStr = (f.agri_agricultores?.nombre || '').toLowerCase();
+        const searchStr = search.toLowerCase();
+        return serieStr.includes(searchStr) || clientStr.includes(searchStr);
+    })
 
     if (loading) return <div className="h-screen flex items-center justify-center font-black text-[#166534] animate-pulse">Cargando Sistema de Facturación...</div>
 

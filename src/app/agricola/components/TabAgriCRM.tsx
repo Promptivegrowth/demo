@@ -21,8 +21,12 @@ export function TabAgriCRM() {
 
     async function loadData() {
         try {
-            const data = await agriService.getCRMAnalytics()
-            setAnalytics(data)
+            const [stats, preds, fidel] = await Promise.all([
+                agriService.getCRMAnalytics(),
+                agriService.getPurchasePredictions(),
+                agriService.getFidelizacion()
+            ])
+            setAnalytics({ ...stats, predicciones: preds, fidelizacion: fidel })
         } catch (err) {
             toast.error('Error al cargar datos de CRM')
         } finally {
@@ -37,10 +41,10 @@ export function TabAgriCRM() {
             {/* CRM Header - Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { label: 'Agricultores Oro', val: analytics?.fidelizacion?.total_oro || 0, icon: Star, color: 'text-amber-500', bg: 'bg-amber-50' },
-                    { label: 'Retención Mensual', val: '88%', icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Predicciones Mes', val: analytics?.predicciones?.length || 0, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-                    { label: 'Ofertas Activas', val: 5, icon: Bell, color: 'text-purple-600', bg: 'bg-purple-50' }
+                    { label: 'Agricultores Fieles', val: analytics?.clientesFieles || 0, icon: Star, color: 'text-amber-500', bg: 'bg-amber-50' },
+                    { label: 'Prob. Recompra', val: `${analytics?.probabilidadRecompra}%`, icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Predicciones Activas', val: analytics?.predicciones?.length || 0, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Proyectos Monitoreo', val: analytics?.proyectosEnCurso || 0, icon: Bell, color: 'text-purple-600', bg: 'bg-purple-50' }
                 ].map((s, i) => (
                     <div key={i} className={`${s.bg} p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center gap-6 group`}>
                         <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
@@ -85,7 +89,7 @@ export function TabAgriCRM() {
                                     </div>
 
                                     <h5 className="font-black text-slate-800 uppercase text-sm mb-1">{p.cliente}</h5>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Requiere: {p.producto_sugerido}</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 mr-1">Requiere: <span className="text-slate-600">{p.producto}</span></p>
 
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-end text-[10px] font-black text-slate-400 uppercase">
@@ -150,7 +154,7 @@ export function TabAgriCRM() {
                         <h4 className="text-xl font-black tracking-tighter mb-6 uppercase">Club del Agricultor</h4>
 
                         <div className="space-y-8">
-                            {analytics?.fidelizacion?.top_clientes?.map((c: any, i: number) => (
+                            {analytics?.fidelizacion?.slice(0, 3).map((c: any, i: number) => (
                                 <div key={i} className="flex items-center gap-4">
                                     <div className="relative">
                                         <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center font-black text-green-400">
@@ -160,7 +164,7 @@ export function TabAgriCRM() {
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-xs font-black uppercase truncate">{c.nombre}</p>
-                                        <p className="text-[9px] font-black text-green-400/60 uppercase tracking-widest">{c.total_compras.toLocaleString()} pts fidelización</p>
+                                        <p className="text-[9px] font-black text-green-400/60 uppercase tracking-widest">{c.puntos.toLocaleString()} pts fidelización</p>
                                     </div>
                                     <ArrowRight className="w-4 h-4 text-green-400/40" />
                                 </div>

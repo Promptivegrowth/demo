@@ -207,7 +207,7 @@ export function TabAgriAgentes() {
                                                     </div>
                                                     <div className="flex-1">
                                                         <p className="text-xs font-bold text-slate-800">{a.nombre}</p>
-                                                        <p className="text-[10px] text-slate-400 font-medium tracking-tighter">Deuda: S/ {a.saldo_utilizado.toLocaleString()} • {a.ubicacion || 'Sector Norte'}</p>
+                                                        <p className="text-[10px] text-slate-400 font-medium tracking-tighter">Deuda: S/ {Number(a.saldo_utilizado).toLocaleString()} • {a.zona || 'Sector Norte'}</p>
                                                     </div>
                                                     <div className="text-right">
                                                         <span className="text-[9px] font-black uppercase text-amber-600">Pendiente</span>
@@ -258,13 +258,13 @@ export function TabAgriAgentes() {
                                     >
                                         <option value="">Buscar en zona...</option>
                                         {agricultores.map(a => (
-                                            <option key={a.id} value={a.id}>{a.nombre} (S/ {(a.linea_credito - a.saldo_utilizado).toLocaleString()} Disp)</option>
+                                            <option key={a.id} value={a.id}>{a.nombre} (S/ {(Number(a.limite_credito) - Number(a.saldo_utilizado)).toLocaleString()} Disp)</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="bg-[#ca8a04]/5 p-4 rounded-2xl border border-dashed border-[#ca8a04]/30 flex flex-col justify-center">
                                     <p className="text-[10px] font-black text-[#ca8a04] uppercase">Línea de Crédito Disponible</p>
-                                    <p className="text-xl font-black text-slate-800">S/ {selAgri ? (selAgri.linea_credito - selAgri.saldo_utilizado).toLocaleString() : '0.00'}</p>
+                                    <p className="text-xl font-black text-slate-800">S/ {selAgri ? (Number(selAgri.limite_credito) - Number(selAgri.saldo_utilizado)).toLocaleString() : '0.00'}</p>
                                 </div>
                             </div>
                         </div>
@@ -279,7 +279,9 @@ export function TabAgriAgentes() {
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-[11px] font-black text-slate-800 tracking-tight">{p.nombre}</p>
-                                            <p className="text-[9px] font-bold text-slate-400">Stock: {p.stock_actual} {p.presentacion}</p>
+                                            <p className="text-[9px] font-bold text-slate-500">
+                                                Stock: <span className={p.stock_actual <= p.stock_minimo ? 'text-red-500 font-black' : 'text-green-600 font-black'}>{p.stock_actual}</span> {p.presentacion}
+                                            </p>
                                         </div>
                                         <button
                                             onClick={() => addToCart(p)}
