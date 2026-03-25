@@ -19,7 +19,7 @@ import { TabAgriCreditos } from '@/app/agricola/components/TabAgriCreditos'
 import { TabAgriAgentes } from '@/app/agricola/components/TabAgriAgentes'
 import { TabAgriCompras } from '@/app/agricola/components/TabAgriCompras'
 import { TabAgriInventario } from '@/app/agricola/components/TabAgriInventario'
-import { TabAgriAnalytics } from '@/app/agricola/components/TabAgriAnalytics'
+import { TabAgriInteligencia } from '@/app/agricola/components/TabAgriInteligencia'
 
 const tabs = [
     { id: 'hub', label: 'Hub Agrícola', icon: Home, color: '#16a34a' },
@@ -128,7 +128,7 @@ export default function AgricolaPage() {
                                 {activeTab === 'agentes' && <TabAgriAgentes />}
                                 {activeTab === 'compras' && <TabAgriCompras />}
                                 {activeTab === 'inventario' && <TabAgriInventario />}
-                                {activeTab === 'analytics' && <TabAgriAnalytics />}
+                                {activeTab === 'analytics' && <TabAgriInteligencia />}
                             </motion.div>
                         </AnimatePresence>
                     </main>

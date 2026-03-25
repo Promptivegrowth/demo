@@ -146,5 +146,78 @@ export const agriService = {
             }).eq('id', item.id);
         }
         return true;
+    },
+
+    // Movimientos (Kardex)
+    async getMovimientos() {
+        const { data, error } = await supabase
+            .from('agri_movimientos')
+            .select('*, agri_productos(nombre)')
+            .order('fecha', { ascending: false })
+            .limit(50);
+        if (error) return [];
+        return data;
+    },
+
+    async registrarAjuste(productoId: string, cantidad: number, motivo: string) {
+        const { data: prod } = await supabase.from('agri_productos').select('stock_actual').eq('id', productoId).single();
+        const nuevoStock = (Number(prod?.stock_actual) || 0) + cantidad;
+        await supabase.from('agri_productos').update({ stock_actual: nuevoStock }).eq('id', productoId);
+        try {
+            await supabase.from('agri_movimientos').insert({
+                producto_id: productoId,
+                tipo: 'Ajuste',
+                cantidad: cantidad,
+                referencia: motivo
+            });
+        } catch (e) { }
+        return true;
+    },
+
+    async registrarVentaAgente(agenteId: string, agricultorId: string, items: any[]) {
+        const { data: v, error: ve } = await supabase.from('agri_ventas').insert([{
+            agricultor_id: agricultorId,
+            agente_id: agenteId,
+            tipo_venta: 'Crédito',
+            total: items.reduce((acc, i) => acc + (i.precio * i.cantidad), 0),
+            estado_pago: 'Pendiente'
+        }]).select().single()
+        if (ve) throw ve
+        for (const item of items) {
+            await supabase.from('agri_venta_items').insert({
+                venta_id: v.id,
+                producto_id: item.id,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio
+            })
+            const { data: p } = await supabase.from('agri_productos').select('stock_actual').eq('id', item.id).single()
+            await supabase.from('agri_productos').update({ stock_actual: (p?.stock_actual || 0) - item.cantidad }).eq('id', item.id)
+            await supabase.from('agri_movimientos').insert({
+                producto_id: item.id,
+                tipo: 'Salida',
+                cantidad: item.cantidad,
+                motivo: `Venta Campo: ${v.id}`,
+                referencia_id: v.id
+            })
+        }
+        return v
+    },
+
+    // --- AGRICULTURA INTELIGENTE ---
+    async getParcelas(agricultorId?: string) {
+        // Simulación de datos de parcelas con salud de suelo
+        return [
+            { id: 'p1', nombre: 'Lote Norte - Arroz', area: '15 Ha', salud_suelo: 85, ph: 6.5, n: 45, p: 22, k: 34, estado: 'Óptimo' },
+            { id: 'p2', nombre: 'Sector Este - Maíz', area: '10 Ha', salud_suelo: 62, ph: 5.8, n: 30, p: 15, k: 20, estado: 'Requiere Nitrógeno' },
+            { id: 'p3', nombre: 'Pampa Sur - Semilleros', area: '5 Ha', salud_suelo: 45, ph: 7.2, n: 12, p: 8, k: 15, estado: 'Crítico: Alerta de Plagas' }
+        ]
+    },
+
+    async getAlertasInteligentes() {
+        return [
+            { id: 1, tipo: 'Clima', titulo: 'Alerta de Lluvias Intensas', desc: 'Previsión de 40mm para el fin de semana. Posponer fertilización en Lote Norte.', severity: 'High' },
+            { id: 2, tipo: 'Plaga', titulo: 'Detección de Gusano Cogollero', desc: 'Casos reportados en parcelas vecinas (radio 2km). Iniciar monitoreo preventivo.', severity: 'Medium' },
+            { id: 3, tipo: 'Nutrición', titulo: 'Deficiencia de Potasio Detectada', desc: 'Análisis satelital muestra estrés hídrico y falta de K en Sector Este.', severity: 'Low' }
+        ]
     }
 }
