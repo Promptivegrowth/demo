@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { agriService } from '@/lib/agriQuery'
 import { toast } from 'sonner'
+import { Portal } from '@/components/shared/Portal'
 
 export function TabAgriFacturacion() {
     const [facturas, setFacturas] = useState<any[]>([])
@@ -228,126 +229,132 @@ export function TabAgriFacturacion() {
 
             {/* Modal Nueva Factura */}
             {showNewModal && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={() => setShowNewModal(false)} />
-                    <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} className="bg-white rounded-[3rem] p-10 max-w-5xl w-full z-10 shadow-2xl relative grid grid-cols-1 md:grid-cols-12 gap-10">
+                <Portal>
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={() => setShowNewModal(false)} />
+                        <motion.div
+                            initial={{ scale: 0.9, y: 30 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="bg-white rounded-[3rem] p-10 max-w-5xl w-full z-10 shadow-2xl relative grid grid-cols-1 md:grid-cols-12 gap-10 max-h-[90vh] overflow-y-auto"
+                        >
 
-                        <div className="md:col-span-12 flex items-center justify-between border-b border-slate-100 pb-8">
-                            <div>
-                                <h3 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none mb-1">Nueva Emisión Electrónica</h3>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Configuración de Comprobante de Pago</p>
-                            </div>
-                            <button onClick={() => setShowNewModal(false)} className="text-slate-300 hover:text-slate-600 font-bold uppercase text-[10px] tracking-widest">Cerrar</button>
-                        </div>
-
-                        {/* Left: Client & Doc Type */}
-                        <div className="md:col-span-4 space-y-8">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Seleccionar Agricultor</label>
-                                <select
-                                    value={selectedAgriId}
-                                    onChange={(e) => setSelectedAgriId(e.target.value)}
-                                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] font-bold text-xs outline-none focus:ring-4 ring-green-500/10 transition-all"
-                                >
-                                    <option value="">Buscar agricultor...</option>
-                                    {agricultores.map(a => (
-                                        <option key={a.id} value={a.id}>{a.nombre} - {a.dni_ruc}</option>
-                                    ))}
-                                </select>
+                            <div className="md:col-span-12 flex items-center justify-between border-b border-slate-100 pb-8">
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none mb-1">Nueva Emisión Electrónica</h3>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Configuración de Comprobante de Pago</p>
+                                </div>
+                                <button onClick={() => setShowNewModal(false)} className="text-slate-300 hover:text-slate-600 font-bold uppercase text-[10px] tracking-widest">Cerrar</button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Left: Client & Doc Type */}
+                            <div className="md:col-span-4 space-y-8">
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Documento</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Seleccionar Agricultor</label>
                                     <select
-                                        value={tipoDoc}
-                                        onChange={(e) => setTipoDoc(e.target.value)}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-[10px] outline-none"
+                                        value={selectedAgriId}
+                                        onChange={(e) => setSelectedAgriId(e.target.value)}
+                                        className="w-full p-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] font-bold text-xs outline-none focus:ring-4 ring-green-500/10 transition-all"
                                     >
-                                        <option value="Factura">Factura</option>
-                                        <option value="Boleta">Boleta</option>
+                                        <option value="">Buscar agricultor...</option>
+                                        {agricultores.map(a => (
+                                            <option key={a.id} value={a.id}>{a.nombre} - {a.dni_ruc}</option>
+                                        ))}
                                     </select>
                                 </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pago</label>
-                                    <select
-                                        value={metodoPago}
-                                        onChange={(e) => setMetodoPago(e.target.value)}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-[10px] outline-none"
-                                    >
-                                        <option value="Contado">Contado</option>
-                                        <option value="Línea de Crédito">Línea de Crédito</option>
-                                    </select>
-                                </div>
-                            </div>
 
-                            <div className="bg-[#166534] p-8 rounded-[2.5rem] text-white">
-                                <p className="text-[9px] font-black uppercase text-green-300 mb-2 tracking-widest">Total a Pagar</p>
-                                <p className="text-4xl font-black tracking-tighter tabular-nums">S/ {totalVenta.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
-                                <p className="text-[9px] font-medium text-green-200 mt-4 italic opacity-70">El IGV (18%) se calculará automáticamente en la representación impresa.</p>
-                            </div>
-
-                            <button
-                                onClick={handleCreateFactura}
-                                disabled={saving}
-                                className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-slate-950/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                            >
-                                {saving ? 'Emitiendo...' : 'Confirmar y Emitir'}
-                            </button>
-                        </div>
-
-                        {/* Right: Product Selector & Items */}
-                        <div className="md:col-span-8 space-y-8 border-l border-slate-100 pl-8">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Agregar Insumos / Semillas</label>
-                                <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {productos.map(p => (
-                                        <button
-                                            key={p.id}
-                                            onClick={() => addItem(p)}
-                                            className="p-4 bg-white border border-slate-100 rounded-2xl flex flex-col items-start hover:border-green-500 transition-all text-left shadow-sm group"
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Documento</label>
+                                        <select
+                                            value={tipoDoc}
+                                            onChange={(e) => setTipoDoc(e.target.value)}
+                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-[10px] outline-none"
                                         >
-                                            <p className="text-[10px] font-black text-slate-800 uppercase leading-tight mb-1">{p.nombre}</p>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{p.presentacion} • Stock: {p.stock_actual}</p>
-                                            <p className="text-xs font-black text-[#166534] mt-2 group-hover:scale-105 transition-transform">S/ {p.precio_contado}</p>
-                                        </button>
-                                    ))}
+                                            <option value="Factura">Factura</option>
+                                            <option value="Boleta">Boleta</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pago</label>
+                                        <select
+                                            value={metodoPago}
+                                            onChange={(e) => setMetodoPago(e.target.value)}
+                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-[10px] outline-none"
+                                        >
+                                            <option value="Contado">Contado</option>
+                                            <option value="Línea de Crédito">Línea de Crédito</option>
+                                        </select>
+                                    </div>
                                 </div>
+
+                                <div className="bg-[#166534] p-8 rounded-[2.5rem] text-white">
+                                    <p className="text-[9px] font-black uppercase text-green-300 mb-2 tracking-widest">Total a Pagar</p>
+                                    <p className="text-4xl font-black tracking-tighter tabular-nums">S/ {totalVenta.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                                    <p className="text-[9px] font-medium text-green-200 mt-4 italic opacity-70">El IGV (18%) se calculará automáticamente en la representación impresa.</p>
+                                </div>
+
+                                <button
+                                    onClick={handleCreateFactura}
+                                    disabled={saving}
+                                    className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-slate-950/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                                >
+                                    {saving ? 'Emitiendo...' : 'Confirmar y Emitir'}
+                                </button>
                             </div>
 
-                            <div className="flex-1 space-y-4">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Detalle del Comprobante</h4>
-                                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {selectedItems.map(item => (
-                                        <div key={item.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center font-black text-xs text-slate-400 border border-slate-100">
-                                                    {item.cantidad}
+                            {/* Right: Product Selector & Items */}
+                            <div className="md:col-span-8 space-y-8 border-l border-slate-100 pl-8">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Agregar Insumos / Semillas</label>
+                                    <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {productos.map(p => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => addItem(p)}
+                                                className="p-4 bg-white border border-slate-100 rounded-2xl flex flex-col items-start hover:border-green-500 transition-all text-left shadow-sm group"
+                                            >
+                                                <p className="text-[10px] font-black text-slate-800 uppercase leading-tight mb-1">{p.nombre}</p>
+                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{p.presentacion} • Stock: {p.stock_actual}</p>
+                                                <p className="text-xs font-black text-[#166534] mt-2 group-hover:scale-105 transition-transform">S/ {p.precio_contado}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 space-y-4">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Detalle del Comprobante</h4>
+                                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {selectedItems.map(item => (
+                                            <div key={item.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center font-black text-xs text-slate-400 border border-slate-100">
+                                                        {item.cantidad}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-800 uppercase">{item.nombre}</p>
+                                                        <p className="text-[9px] font-black text-[#166534] uppercase tracking-widest">S/ {item.precio_unitario} c/u</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-slate-800 uppercase">{item.nombre}</p>
-                                                    <p className="text-[9px] font-black text-[#166534] uppercase tracking-widest">S/ {item.precio_unitario} c/u</p>
+                                                <div className="flex items-center gap-6">
+                                                    <p className="text-sm font-black text-slate-800 tabular-nums">S/ {item.subtotal.toLocaleString()}</p>
+                                                    <button onClick={() => removeItem(item.id)} className="text-red-300 hover:text-red-500 transition-all">
+                                                        <AlertCircle className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-6">
-                                                <p className="text-sm font-black text-slate-800 tabular-nums">S/ {item.subtotal.toLocaleString()}</p>
-                                                <button onClick={() => removeItem(item.id)} className="text-red-300 hover:text-red-500 transition-all">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                </button>
+                                        ))}
+                                        {selectedItems.length === 0 && (
+                                            <div className="py-12 border-2 border-dashed border-slate-100 rounded-[2rem] flex flex-col items-center justify-center opacity-30">
+                                                <Plus className="w-8 h-8 mb-2" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest">Agregue items para pre-visualizar</p>
                                             </div>
-                                        </div>
-                                    ))}
-                                    {selectedItems.length === 0 && (
-                                        <div className="py-12 border-2 border-dashed border-slate-100 rounded-[2rem] flex flex-col items-center justify-center opacity-30">
-                                            <Plus className="w-8 h-8 mb-2" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Agregue items para pre-visualizar</p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
-                </div>
+                        </motion.div>
+                    </div>
+                </Portal>
             )}
         </div>
     )

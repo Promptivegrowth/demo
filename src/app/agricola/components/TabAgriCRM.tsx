@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { agriService } from '@/lib/agriQuery'
 import { toast } from 'sonner'
+import { Portal } from '@/components/shared/Portal'
 
 export function TabAgriCRM() {
     const [analytics, setAnalytics] = useState<any>(null)
@@ -236,88 +237,90 @@ export function TabAgriCRM() {
 
             {/* Modal Auditoría de Cliente */}
             {showAuditModal && selectedClient && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={() => setShowAuditModal(false)} />
-                    <motion.div
-                        initial={{ scale: 0.9, y: 30 }}
-                        animate={{ scale: 1, y: 0 }}
-                        className="bg-white rounded-[3rem] p-10 max-w-4xl w-full z-10 shadow-2xl relative"
-                    >
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-8 mb-8">
-                            <div className="flex items-center gap-6">
-                                <div className="w-20 h-20 rounded-[2rem] bg-slate-50 border border-slate-200 flex items-center justify-center font-black text-3xl text-slate-300">
-                                    {selectedClient.client[0]}
-                                </div>
-                                <div>
-                                    <h3 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none mb-2">{selectedClient.client}</h3>
-                                    <div className="flex gap-3">
-                                        <span className="px-3 py-1 bg-[#166534] text-white rounded-full text-[9px] font-black uppercase tracking-widest">Premium Grower</span>
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest">ID: {Math.floor(Math.random() * 9000) + 1000}</span>
+                <Portal>
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={() => setShowAuditModal(false)} />
+                        <motion.div
+                            initial={{ scale: 0.9, y: 30 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="bg-white rounded-[3rem] p-10 max-w-4xl w-full z-10 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+                        >
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-8 mb-8">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-20 h-20 rounded-[2rem] bg-slate-50 border border-slate-200 flex items-center justify-center font-black text-3xl text-slate-300">
+                                        {selectedClient.client[0]}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none mb-2">{selectedClient.client}</h3>
+                                        <div className="flex gap-3">
+                                            <span className="px-3 py-1 bg-[#166534] text-white rounded-full text-[9px] font-black uppercase tracking-widest">Premium Grower</span>
+                                            <span className="px-3 py-1 bg-slate-100 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest">ID: {Math.floor(Math.random() * 9000) + 1000}</span>
+                                        </div>
                                     </div>
                                 </div>
+                                <button onClick={() => setShowAuditModal(false)} className="text-slate-300 hover:text-slate-600 font-bold uppercase text-[10px] tracking-widest">Cerrar</button>
                             </div>
-                            <button onClick={() => setShowAuditModal(false)} className="text-slate-300 hover:text-slate-600 font-bold uppercase text-[10px] tracking-widest">Cerrar</button>
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="md:col-span-2 space-y-8">
-                                <div>
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Ficha Técnica y Predicciones</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Gasto Promedio Mensual</p>
-                                            <p className="text-xl font-black text-slate-800">S/ 4,500.00</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="md:col-span-2 space-y-8">
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Ficha Técnica y Predicciones</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Gasto Promedio Mensual</p>
+                                                <p className="text-xl font-black text-slate-800">S/ 4,500.00</p>
+                                            </div>
+                                            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Insumo más Comprado</p>
+                                                <p className="text-xl font-black text-slate-800">Urea Premium</p>
+                                            </div>
                                         </div>
-                                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Insumo más Comprado</p>
-                                            <p className="text-xl font-black text-slate-800">Urea Premium</p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Análisis de Ciclo de Compra</h4>
+                                        <div className="p-8 bg-green-50 rounded-[2.5rem] border border-green-100 relative overflow-hidden">
+                                            <TrendingUp className="absolute -bottom-4 -right-4 w-24 h-24 text-green-200 opacity-30" />
+                                            <p className="text-xs font-medium text-green-800 leading-relaxed mb-6">
+                                                El cliente suele comprar fertilizantes cada **22 días**. Según su última compra (hace 18 días), es altamente probable que necesite re-stock de **Sustrato Orgánico** este fin de semana.
+                                            </p>
+                                            <button
+                                                onClick={() => openWhatsApp(selectedClient.client, "Sustrato Orgánico")}
+                                                className="px-6 py-3 bg-[#166534] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all"
+                                            >
+                                                Lanzar Oferta de Re-stock
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Análisis de Ciclo de Compra</h4>
-                                    <div className="p-8 bg-green-50 rounded-[2.5rem] border border-green-100 relative overflow-hidden">
-                                        <TrendingUp className="absolute -bottom-4 -right-4 w-24 h-24 text-green-200 opacity-30" />
-                                        <p className="text-xs font-medium text-green-800 leading-relaxed mb-6">
-                                            El cliente suele comprar fertilizantes cada **22 días**. Según su última compra (hace 18 días), es altamente probable que necesite re-stock de **Sustrato Orgánico** este fin de semana.
-                                        </p>
-                                        <button
-                                            onClick={() => openWhatsApp(selectedClient.client, "Sustrato Orgánico")}
-                                            className="px-6 py-3 bg-[#166534] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all"
-                                        >
-                                            Lanzar Oferta de Re-stock
+                                <div className="space-y-6">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Canales de Contacto</h4>
+                                    <div className="space-y-3">
+                                        <button className="w-full p-5 bg-white border border-slate-200 rounded-[1.5rem] flex items-center justify-between hover:border-[#166534] transition-all group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                                                    <MessageSquare className="w-5 h-5" />
+                                                </div>
+                                                <p className="text-[10px] font-black uppercase text-slate-600">WhatsApp</p>
+                                            </div>
+                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-green-500" />
+                                        </button>
+                                        <button className="w-full p-5 bg-white border border-slate-200 rounded-[1.5rem] flex items-center justify-between hover:border-blue-500 transition-all group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                                    <Calendar className="w-5 h-5" />
+                                                </div>
+                                                <p className="text-[10px] font-black uppercase text-slate-600">Agendar Cita</p>
+                                            </div>
+                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500" />
                                         </button>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="space-y-6">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Canales de Contacto</h4>
-                                <div className="space-y-3">
-                                    <button className="w-full p-5 bg-white border border-slate-200 rounded-[1.5rem] flex items-center justify-between hover:border-[#166534] transition-all group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
-                                                <MessageSquare className="w-5 h-5" />
-                                            </div>
-                                            <p className="text-[10px] font-black uppercase text-slate-600">WhatsApp</p>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-green-500" />
-                                    </button>
-                                    <button className="w-full p-5 bg-white border border-slate-200 rounded-[1.5rem] flex items-center justify-between hover:border-blue-500 transition-all group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                                                <Calendar className="w-5 h-5" />
-                                            </div>
-                                            <p className="text-[10px] font-black uppercase text-slate-600">Agendar Cita</p>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
+                        </motion.div>
+                    </div>
+                </Portal>
             )}
         </div>
     )

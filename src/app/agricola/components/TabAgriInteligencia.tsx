@@ -8,6 +8,7 @@ import { agriService } from '@/lib/agriQuery'
 import { toast } from 'sonner'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
+import { Portal } from '@/components/shared/Portal'
 
 export function TabAgriInteligencia() {
     const [parcelas, setParcelas] = useState<any[]>([])
@@ -232,61 +233,6 @@ export function TabAgriInteligencia() {
                 </div>
             </div>
 
-            {/* Modal Recomendaciones IA */}
-            {showRecom && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl" onClick={() => setShowRecom(false)} />
-                    <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} className="bg-white rounded-[3rem] p-12 max-w-2xl w-full z-10 shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 -mr-16 -mt-16 rounded-full blur-3xl" />
-
-                        <div className="flex items-center gap-6 mb-10">
-                            <div className="w-20 h-20 rounded-3xl bg-green-50 flex items-center justify-center">
-                                <Cpu className="w-10 h-10 text-green-600 animate-pulse" />
-                            </div>
-                            <div>
-                                <h3 className="text-3xl font-black text-slate-800 tracking-tighter leading-none mb-2">RECOMENDACIONES IA</h3>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedParcela?.nombre} • {selectedParcela?.cultivo}</p>
-                            </div>
-                        </div>
-
-                        {loadingRecom ? (
-                            <div className="py-20 flex flex-col items-center justify-center gap-4">
-                                <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ejecutando Modelos de Salud...</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-8">
-                                <div className="bg-[#166534] text-white p-8 rounded-[2rem] relative overflow-hidden">
-                                    <TrendingUp className="absolute -bottom-6 -right-6 w-32 h-32 opacity-10" />
-                                    <p className="text-[10px] font-black uppercase text-green-300 mb-2 tracking-widest">Ahorro Estimado de Insumos</p>
-                                    <p className="text-4xl font-black tracking-tighter">{recomData?.ahorro_estimado}</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
-                                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                        Hoja de Ruta Técnica
-                                    </h4>
-                                    <div className="space-y-3">
-                                        {recomData?.consejos?.map((c: string, i: number) => (
-                                            <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-4 hover:border-green-200 transition-all">
-                                                <span className="w-6 h-6 rounded-lg bg-white shadow-sm flex items-center justify-center text-[10px] font-black text-slate-400">{i + 1}</span>
-                                                <p className="text-xs text-slate-600 font-medium leading-relaxed">{c}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-4 pt-4">
-                                    <button onClick={() => setShowRecom(false)} className="flex-1 py-5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cerrar</button>
-                                    <button onClick={() => { toast.success('Recomendaciones enviadas al equipo de campo'); setShowRecom(false); }} className="flex-[2] py-5 bg-[#166534] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-green-900/20 hover:scale-105 active:scale-95 transition-all">Programar Tareas en Campo</button>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-                </div>
-            )}
-
             {/* Export Center */}
             <div className="bg-slate-50 rounded-[3rem] p-12 border border-slate-200 flex flex-col items-center justify-center text-center gap-8 shadow-inner">
                 <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-2 border-dashed border-slate-200 shadow-sm outline outline-offset-4 outline-green-500/10">
@@ -311,6 +257,67 @@ export function TabAgriInteligencia() {
                     </button>
                 </div>
             </div>
+
+            {/* Modal Recomendaciones IA */}
+            {showRecom && (
+                <Portal>
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl" onClick={() => setShowRecom(false)} />
+                        <motion.div
+                            initial={{ scale: 0.9, y: 30 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="bg-white rounded-[3rem] p-12 max-w-2xl w-full z-10 shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 -mr-16 -mt-16 rounded-full blur-3xl" />
+
+                            <div className="flex items-center gap-6 mb-10">
+                                <div className="w-20 h-20 rounded-3xl bg-green-50 flex items-center justify-center">
+                                    <Cpu className="w-10 h-10 text-green-600 animate-pulse" />
+                                </div>
+                                <div>
+                                    <h3 className="text-3xl font-black text-slate-800 tracking-tighter leading-none mb-2">RECOMENDACIONES IA</h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedParcela?.nombre} • {selectedParcela?.cultivo}</p>
+                                </div>
+                            </div>
+
+                            {loadingRecom ? (
+                                <div className="py-20 flex flex-col items-center justify-center gap-4">
+                                    <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ejecutando Modelos de Salud...</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-8">
+                                    <div className="bg-[#166534] text-white p-8 rounded-[2rem] relative overflow-hidden">
+                                        <TrendingUp className="absolute -bottom-6 -right-6 w-32 h-32 opacity-10" />
+                                        <p className="text-[10px] font-black uppercase text-green-300 mb-2 tracking-widest">Ahorro Estimado de Insumos</p>
+                                        <p className="text-4xl font-black tracking-tighter">{recomData?.ahorro_estimado}</p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
+                                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                            Hoja de Ruta Técnica
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {recomData?.consejos?.map((c: string, i: number) => (
+                                                <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-4 hover:border-green-200 transition-all">
+                                                    <span className="w-6 h-6 rounded-lg bg-white shadow-sm flex items-center justify-center text-[10px] font-black text-slate-400">{i + 1}</span>
+                                                    <p className="text-xs text-slate-600 font-medium leading-relaxed">{c}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4 pt-4">
+                                        <button onClick={() => setShowRecom(false)} className="flex-1 py-5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cerrar</button>
+                                        <button onClick={() => { toast.success('Recomendaciones enviadas al equipo de campo'); setShowRecom(false); }} className="flex-[2] py-5 bg-[#166534] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-green-900/20 hover:scale-105 active:scale-95 transition-all">Programar Tareas en Campo</button>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+                </Portal>
+            )}
         </div>
     )
 }
