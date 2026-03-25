@@ -294,19 +294,105 @@ export const agriService = {
 
     // --- AGRICULTURA INTELIGENTE ---
     async getParcelas(agricultorId?: string) {
-        // Simulación de datos de parcelas con salud de suelo
         return [
-            { id: 'p1', nombre: 'Lote Norte - Arroz', area: '15 Ha', salud_suelo: 85, ph: 6.5, n: 45, p: 22, k: 34, estado: 'Óptimo' },
-            { id: 'p2', nombre: 'Sector Este - Maíz', area: '10 Ha', salud_suelo: 62, ph: 5.8, n: 30, p: 15, k: 20, estado: 'Requiere Nitrógeno' },
-            { id: 'p3', nombre: 'Pampa Sur - Semilleros', area: '5 Ha', salud_suelo: 45, ph: 7.2, n: 12, p: 8, k: 15, estado: 'Crítico: Alerta de Plagas' }
+            { id: 'p1', nombre: 'Lote Norte - Arroz', area: '15 Ha', salud_suelo: 85, ph: 6.5, n: 45, p: 22, k: 34, estado: 'Óptimo', ultima_revision: '2024-03-20', cultivo: 'Arroz INIA 508' },
+            { id: 'p2', nombre: 'Sector Este - Maíz', area: '10 Ha', salud_suelo: 62, ph: 5.8, n: 30, p: 15, k: 20, estado: 'Requiere Nitrógeno', ultima_revision: '2024-03-22', cultivo: 'Maíz Dekalb 7088' },
+            { id: 'p3', nombre: 'Pampa Sur - Semilleros', area: '5 Ha', salud_suelo: 45, ph: 7.2, n: 12, p: 8, k: 15, estado: 'Crítico: Alerta de Plagas', ultima_revision: '2024-03-24', cultivo: 'Algodón IPA 59' }
         ]
     },
 
     async getAlertasInteligentes() {
         return [
-            { id: 1, tipo: 'Clima', titulo: 'Alerta de Lluvias Intensas', desc: 'Previsión de 40mm para el fin de semana. Posponer fertilización en Lote Norte.', severity: 'High' },
-            { id: 2, tipo: 'Plaga', titulo: 'Detección de Gusano Cogollero', desc: 'Casos reportados en parcelas vecinas (radio 2km). Iniciar monitoreo preventivo.', severity: 'Medium' },
-            { id: 3, tipo: 'Nutrición', titulo: 'Deficiencia de Potasio Detectada', desc: 'Análisis satelital muestra estrés hídrico y falta de K en Sector Este.', severity: 'Low' }
+            { id: 1, tipo: 'Clima', titulo: 'Alerta de Lluvias Intensas', desc: 'Previsión de 40mm para el fin de semana. Posponer fertilización en Lote Norte.', severity: 'High', fecha: 'hace 2h' },
+            { id: 2, tipo: 'Plaga', titulo: 'Detección de Gusano Cogollero', desc: 'Casos reportados en parcelas vecinas (radio 2km). Iniciar monitoreo preventivo.', severity: 'Medium', fecha: 'hace 5h' },
+            { id: 3, tipo: 'Nutrición', titulo: 'Deficiencia de Potasio Detectada', desc: 'Análisis satelital muestra estrés hídrico y falta de K en Sector Este.', severity: 'Low', fecha: 'hace 1d' }
         ]
+    },
+
+    async getRecomendacionesIA(parcelaId: string) {
+        const recoms: any = {
+            'p1': {
+                titulo: 'Optimización de Riego y N',
+                consejos: [
+                    'Mantener lámina de agua de 5cm constante.',
+                    'Aplicar segunda dosis de Urea (50kg/ha) en 4 días.',
+                    'Monitorear presencia de avispa barrenadora.'
+                ],
+                ahorro_estimado: 'S/ 450 por Ha'
+            },
+            'p2': {
+                titulo: 'Corrección de Suelo Ácido',
+                consejos: [
+                    'Aplicar 2 TM de cal agrícola para elevar pH a 6.2.',
+                    'Incorporar materia orgánica (compost) en el próximo abonado.',
+                    'Reducir riego por gravedad para evitar lixiviación de N.'
+                ],
+                ahorro_estimado: 'S/ 320 por Ha'
+            },
+            'p3': {
+                titulo: 'Control Fitosanitario Urgente',
+                consejos: [
+                    'Aplicar Insecticida Karate Zeon de forma focalizada.',
+                    'Eliminar rastrojos infectados de la campaña anterior.',
+                    'Instalar trampas de luz para monitoreo de adultos.'
+                ],
+                ahorro_estimado: 'S/ 1,200 (Evita pérdida de cosecha)'
+            }
+        };
+        return recoms[parcelaId] || recoms['p1'];
+    },
+
+    // Facturación Avanzada
+    async crearFacturaCompleta(ventaData: any) {
+        // 1. Crear la venta
+        const numero = `${ventaData.tipo === 'Factura' ? 'F' : 'B'}001-${Math.floor(10000 + Math.random() * 90000)}`;
+        const { data: v, error: ve } = await supabase.from('agri_ventas').insert([{
+            agricultor_id: ventaData.agricultor_id,
+            tipo: ventaData.tipo,
+            total: ventaData.total,
+            estado: 'Completada',
+            numero: numero,
+            comprobante: ventaData.tipo,
+            metodo_pago: ventaData.metodo_pago,
+            fecha: new Date().toISOString()
+        }]).select().single()
+
+        if (ve) throw ve
+
+        // 2. Insertar items y actualizar stock/kardex
+        for (const item of ventaData.items) {
+            await supabase.from('agri_ventas_items').insert({
+                venta_id: v.id,
+                producto_id: item.id,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio_unitario,
+                subtotal: item.subtotal
+            })
+
+            // Stock
+            const { data: p } = await supabase.from('agri_productos').select('stock_actual').eq('id', item.id).single()
+            const nuevoStock = (p?.stock_actual || 0) - item.cantidad;
+            await supabase.from('agri_productos').update({ stock_actual: nuevoStock }).eq('id', item.id)
+
+            // Kardex
+            await supabase.from('agri_kardex').insert({
+                producto_id: item.id,
+                tipo: 'Salida',
+                cantidad: item.cantidad,
+                stock_restante: nuevoStock,
+                motivo: `Venta Directa: ${numero}`,
+                referencia: v.id
+            })
+        }
+
+        // 3. Si es a crédito, actualizar saldo del agricultor
+        if (ventaData.metodo_pago === 'Línea de Crédito') {
+            const { data: agri } = await supabase.from('agri_agricultores').select('saldo_utilizado').eq('id', ventaData.agricultor_id).single();
+            await supabase.from('agri_agricultores').update({
+                saldo_utilizado: (Number(agri?.saldo_utilizado) || 0) + Number(ventaData.total)
+            }).eq('id', ventaData.agricultor_id);
+        }
+
+        return v;
     }
 }
