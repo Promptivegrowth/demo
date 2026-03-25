@@ -86,6 +86,11 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
             const revTec = (flota || []).filter(f => new Date(f.vencimiento_rev_tecnica).getTime() - now.getTime() < 30 * 24 * 60 * 60 * 1000)
             revTec.forEach(r => newAlerts.push({ id: r.id + '_rev', tipo: 'flota', prop: new Date(r.vencimiento_rev_tecnica) < now ? '🔴' : '🟠', texto: new Date(r.vencimiento_rev_tecnica) < now ? `REVISIÓN TÉC. VENCIDA` : `Rev. Técnica próxima a vencer`, ref: r.placa }))
 
+            if (newAlerts.length === 0) {
+                newAlerts.push({ id: 'welcome', tipo: 'info', prop: 'ℹ️', texto: 'Sistema Operativo: Sin incidencias críticas', ref: 'Panel de Control' })
+                newAlerts.push({ id: 'demo1', tipo: 'info', prop: '💡', texto: 'Consejo: Revise el stock de cemento semanalmente', ref: 'Tip de Gestión' })
+            }
+
             setAlertas(newAlerts)
             updateCharts()
             setLoading(false)
