@@ -16,6 +16,12 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
     const [loading, setLoading] = useState(true)
     const [busqueda, setBusqueda] = useState('')
 
+    // Estados para Modales
+    const [modalUnidad, setModalUnidad] = useState<{ show: boolean, data?: any }>({ show: false })
+    const [modalViaje, setModalViaje] = useState<{ show: boolean, data?: any }>({ show: false })
+    const [modalMaint, setModalMaint] = useState<{ show: boolean, data?: any }>({ show: false })
+    const [selectedUnitGps, setSelectedUnitGps] = useState<any>(null)
+
     const fetchData = async () => {
         try {
             setLoading(true)
@@ -79,19 +85,24 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {activeSubTab === 'unidades' && <SectionUnidades units={flota} drivers={conductores} showToast={showToast} refresh={fetchData} loading={loading} />}
-                    {activeSubTab === 'viajes' && <SectionViajes viajes={viajes} showToast={showToast} refresh={fetchData} loading={loading} />}
-                    {activeSubTab === 'gps' && <SectionGPS units={flota} viajes={viajes} />}
-                    {activeSubTab === 'mantenimiento' && <SectionMantenimiento maints={mantenimientos} units={flota} showToast={showToast} refresh={fetchData} loading={loading} />}
+                    {activeSubTab === 'unidades' && <SectionUnidades units={flota} drivers={conductores} showToast={showToast} refresh={fetchData} loading={loading} setModal={setModalUnidad} />}
+                    {activeSubTab === 'viajes' && <SectionViajes viajes={viajes} showToast={showToast} refresh={fetchData} loading={loading} setModal={setModalViaje} />}
+                    {activeSubTab === 'gps' && <SectionGPS units={flota} viajes={viajes} selectedUnit={selectedUnitGps} setSelectedUnit={setSelectedUnitGps} />}
+                    {activeSubTab === 'mantenimiento' && <SectionMantenimiento maints={mantenimientos} units={flota} showToast={showToast} refresh={fetchData} loading={loading} setModal={setModalMaint} />}
                 </motion.div>
             </AnimatePresence>
+
+            {/* MODALES */}
+            <ModalUnidad isOpen={modalUnidad.show} onClose={() => setModalUnidad({ show: false })} data={modalUnidad.data} showToast={showToast} refresh={fetchData} />
+            <ModalViaje isOpen={modalViaje.show} onClose={() => setModalViaje({ show: false })} data={modalViaje.data} units={flota} drivers={conductores} showToast={showToast} refresh={fetchData} />
+            <ModalMantenimiento isOpen={modalMaint.show} onClose={() => setModalMaint({ show: false })} data={modalMaint.data} units={flota} showToast={showToast} refresh={fetchData} />
         </div>
     )
 }
 
 // --- SUB-COMPONENTES (SECCIONES) ---
 
-function SectionUnidades({ units, drivers, showToast, refresh, loading }: any) {
+function SectionUnidades({ units, drivers, showToast, refresh, loading, setModal }: any) {
     const [busqueda, setBusqueda] = useState('')
     const filtered = units.filter((u: any) => u.placa.toLowerCase().includes(busqueda.toLowerCase()))
 
@@ -105,7 +116,10 @@ function SectionUnidades({ units, drivers, showToast, refresh, loading }: any) {
                         className="w-full bg-[#161b22] border border-[#30363d] rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#f0a500]"
                     />
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg text-sm transition-colors">
+                <button
+                    onClick={() => setModal({ show: true })}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg text-sm transition-colors"
+                >
                     <Plus className="h-4 w-4" /> Registrar Unidad
                 </button>
             </div>
@@ -139,8 +153,18 @@ function SectionUnidades({ units, drivers, showToast, refresh, loading }: any) {
                             <p className="text-[10px] text-[#8b949e] mt-1 text-right">Próx. Mantenimiento: 2,400 km</p>
                         </div>
                         <div className="flex gap-2 mt-6">
-                            <button className="flex-1 py-1.5 bg-[#30363d] hover:bg-[#484f58] text-white text-xs font-bold rounded-lg transition-colors">Detalles</button>
-                            <button className="px-2.5 py-1.5 bg-[#f0a500]/10 text-[#f0a500] hover:bg-[#f0a500] hover:text-[#0d1117] rounded-lg transition-all"><PenTool className="h-4 w-4" /></button>
+                            <button
+                                onClick={() => setModal({ show: true, data: u })}
+                                className="flex-1 py-1.5 bg-[#30363d] hover:bg-[#484f58] text-white text-xs font-bold rounded-lg transition-colors"
+                            >
+                                Detalles
+                            </button>
+                            <button
+                                onClick={() => setModal({ show: true, data: u })}
+                                className="px-2.5 py-1.5 bg-[#f0a500]/10 text-[#f0a500] hover:bg-[#f0a500] hover:text-[#0d1117] rounded-lg transition-all"
+                            >
+                                <PenTool className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -149,12 +173,17 @@ function SectionUnidades({ units, drivers, showToast, refresh, loading }: any) {
     )
 }
 
-function SectionViajes({ viajes, showToast, refresh, loading }: any) {
+function SectionViajes({ viajes, showToast, refresh, loading, setModal }: any) {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-rajdhani font-bold text-white">Últimos Despachos y Viajes</h3>
-                <button className="px-4 py-2 bg-[#1f6feb] hover:bg-[#1158c7] text-white font-bold rounded-lg text-sm transition-colors">Planificar Viaje</button>
+                <button
+                    onClick={() => setModal({ show: true })}
+                    className="px-4 py-2 bg-[#1f6feb] hover:bg-[#1158c7] text-white font-bold rounded-lg text-sm transition-colors"
+                >
+                    Planificar Viaje
+                </button>
             </div>
 
             <div className="bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden shadow-2xl">
@@ -190,7 +219,12 @@ function SectionViajes({ viajes, showToast, refresh, loading }: any) {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button className="text-[#1f6feb] hover:underline font-bold text-xs">Ver Hoja</button>
+                                    <button
+                                        onClick={() => setModal({ show: true, data: v })}
+                                        className="text-[#1f6feb] hover:underline font-bold text-xs"
+                                    >
+                                        Ver Hoja
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -268,7 +302,7 @@ function SectionGPS({ units, viajes }: any) {
     )
 }
 
-function SectionMantenimiento({ maints, units, showToast, refresh, loading }: any) {
+function SectionMantenimiento({ maints, units, showToast, refresh, loading, setModal }: any) {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -276,7 +310,10 @@ function SectionMantenimiento({ maints, units, showToast, refresh, loading }: an
                     <h3 className="text-lg font-rajdhani font-bold text-white">Programa de Mantenimientos</h3>
                     <p className="text-xs text-[#8b949e]">Control preventivo y correctivo de la flota</p>
                 </div>
-                <button className="px-4 py-2 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg text-sm transition-colors flex items-center gap-2">
+                <button
+                    onClick={() => setModal({ show: true })}
+                    className="px-4 py-2 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg text-sm transition-colors flex items-center gap-2"
+                >
                     <Plus className="h-4 w-4" /> Programar Mantenimiento
                 </button>
             </div>
@@ -302,6 +339,177 @@ function SectionMantenimiento({ maints, units, showToast, refresh, loading }: an
                 ))}
             </div>
         </div>
+    )
+}
+
+// --- COMPONENTES DE MODAL (LOGICA FUNCIONAL) ---
+
+function ModalWrapper({ isOpen, onClose, title, children }: any) {
+    if (!isOpen) return null
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-[#161b22] border border-[#30363d] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+            >
+                <div className="flex justify-between items-center p-6 border-b border-[#30363d]">
+                    <h3 className="text-xl font-rajdhani font-bold text-white uppercase tracking-wider">{title}</h3>
+                    <button onClick={onClose} className="text-[#8b949e] hover:text-white transition-colors"><X className="h-6 w-6" /></button>
+                </div>
+                <div className="p-6 text-[#e6edf3]">
+                    {children}
+                </div>
+            </motion.div>
+        </div>
+    )
+}
+
+function ModalUnidad({ isOpen, onClose, data, showToast, refresh }: any) {
+    const [formData, setFormData] = useState<any>({ placa: '', marca: '', modelo: '', año: 2024, capacidad_m3: 15, estado: 'disponible' })
+
+    useEffect(() => {
+        if (data) setFormData(data)
+        else setFormData({ placa: '', marca: '', modelo: '', año: 2024, capacidad_m3: 15, estado: 'disponible' })
+    }, [data, isOpen])
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault()
+        try {
+            const { error } = await supabase.from('saf_flota').upsert(formData)
+            if (error) throw error
+            showToast(data ? 'Unidad actualizada' : 'Unidad registrada', 'success')
+            refresh()
+            onClose()
+        } catch (err: any) {
+            showToast(err.message, 'error')
+        }
+    }
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title={data ? 'Editar Unidad' : 'Registrar Nueva Unidad'}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Placa</label>
+                        <input required value={formData.placa || ''} onChange={e => setFormData({ ...formData, placa: e.target.value.toUpperCase() })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white focus:border-[#f0a500] outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Estado</label>
+                        <select value={formData.estado || 'disponible'} onChange={e => setFormData({ ...formData, estado: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white focus:border-[#f0a500] outline-none">
+                            <option value="disponible">Disponible</option>
+                            <option value="en_ruta">En Ruta</option>
+                            <option value="mantenimiento">Mantenimiento</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Marca</label>
+                        <input value={formData.marca || ''} onChange={e => setFormData({ ...formData, marca: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white focus:border-[#f0a500] outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Modelo</label>
+                        <input value={formData.modelo || ''} onChange={e => setFormData({ ...formData, modelo: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white focus:border-[#f0a500] outline-none" />
+                    </div>
+                </div>
+                <div className="flex gap-4 pt-4">
+                    <button type="button" onClick={onClose} className="flex-1 py-3 bg-[#30363d] text-white font-bold rounded-xl shadow-lg">Cancelar</button>
+                    <button type="submit" className="flex-1 py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl shadow-lg hover:brightness-110 transition-all">Guardar Cambios</button>
+                </div>
+            </form>
+        </ModalWrapper>
+    )
+}
+
+function ModalViaje({ isOpen, onClose, data, units, drivers, showToast, refresh }: any) {
+    const [formData, setFormData] = useState<any>({ flota_id: '', conductor_id: '', destino: '', cliente: '', estado: 'en_curso' })
+
+    useEffect(() => {
+        if (data) setFormData(data)
+        else setFormData({ flota_id: '', conductor_id: '', destino: '', cliente: '', estado: 'en_curso' })
+    }, [data, isOpen])
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault()
+        try {
+            const { error } = await supabase.from('saf_viajes').upsert(formData)
+            if (error) throw error
+            showToast('Operación exitosa', 'success')
+            refresh()
+            onClose()
+        } catch (err: any) {
+            showToast('Error al procesar viaje', 'error')
+        }
+    }
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title="Planificación de Viaje">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1">
+                    <label className="text-[10px] text-[#8b949e] uppercase font-bold">Unidad (Placa)</label>
+                    <select required value={formData.flota_id || ''} onChange={e => setFormData({ ...formData, flota_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                        <option value="">Seleccionar Unidad</option>
+                        {units.map((u: any) => <option key={u.id} value={u.id}>{u.placa} ({u.estado})</option>)}
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[10px] text-[#8b949e] uppercase font-bold">Conductor</label>
+                    <select required value={formData.conductor_id || ''} onChange={e => setFormData({ ...formData, conductor_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                        <option value="">Seleccionar Conductor</option>
+                        {drivers.map((d: any) => <option key={d.id} value={d.id}>{d.nombres} {d.apellidos}</option>)}
+                    </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <input placeholder="Destino" value={formData.destino || ''} onChange={e => setFormData({ ...formData, destino: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
+                    <input placeholder="Cliente" value={formData.cliente || ''} onChange={e => setFormData({ ...formData, cliente: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
+                </div>
+                <button type="submit" className="w-full py-3 bg-[#1f6feb] text-white font-bold rounded-xl mt-4 shadow-lg hover:brightness-110 transition-all">Confirmar Despacho</button>
+            </form>
+        </ModalWrapper>
+    )
+}
+
+function ModalMantenimiento({ isOpen, onClose, data, units, showToast, refresh }: any) {
+    const [formData, setFormData] = useState<any>({ flota_id: '', tipo: 'Preventivo', descripcion: '', costo_soles: 0, estado: 'en_proceso' })
+
+    useEffect(() => {
+        if (data) setFormData(data)
+        else setFormData({ flota_id: '', tipo: 'Preventivo', descripcion: '', costo_soles: 0, estado: 'en_proceso' })
+    }, [data, isOpen])
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault()
+        try {
+            const { error } = await supabase.from('saf_mantenimientos').upsert(formData)
+            if (error) throw error
+            showToast('Mantenimiento registrado', 'success')
+            refresh()
+            onClose()
+        } catch (err: any) {
+            showToast('Error', 'error')
+        }
+    }
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title="Gestión de Mantenimiento">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <select required value={formData.flota_id || ''} onChange={e => setFormData({ ...formData, flota_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                    <option value="">Seleccionar Unidad</option>
+                    {units.map((u: any) => <option key={u.id} value={u.id}>{u.placa}</option>)}
+                </select>
+                <input placeholder="Tipo (ej. Aceite, Llantas)" value={formData.tipo || ''} onChange={e => setFormData({ ...formData, tipo: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
+                <textarea placeholder="Descripción del trabajo..." value={formData.descripcion || ''} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white h-24 placeholder:text-[#8b949e]/50" />
+                <div className="flex gap-4">
+                    <input type="number" placeholder="Costo S/" value={formData.costo_soles || 0} onChange={e => setFormData({ ...formData, costo_soles: parseFloat(e.target.value) })} className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
+                    <select value={formData.estado || 'en_proceso'} onChange={e => setFormData({ ...formData, estado: e.target.value })} className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                        <option value="en_proceso">En Proceso</option>
+                        <option value="completado">Completado</option>
+                    </select>
+                </div>
+                <button type="submit" className="w-full py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl mt-4 shadow-lg hover:brightness-110 transition-all">Guardar Registro</button>
+            </form>
+        </ModalWrapper>
     )
 }
 

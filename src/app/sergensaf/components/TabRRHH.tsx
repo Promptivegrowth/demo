@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Users, UserPlus, Search, Calendar, FileText, Wallet, Clock,
-    MoreVertical, CheckCircle, AlertCircle, TrendingUp, Download, Eye
+    MoreVertical, CheckCircle, AlertCircle, TrendingUp, Download, Eye, X, Plus
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -13,6 +13,8 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
     const [empleados, setEmpleados] = useState<any[]>([])
     const [planillas, setPlanillas] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [modalEmpleado, setModalEmpleado] = useState<{ show: boolean, data?: any }>({ show: false })
+    const [modalPlanilla, setModalPlanilla] = useState<{ show: boolean }>({ show: false })
 
     const fetchData = async () => {
         try {
@@ -66,9 +68,9 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {activeTab === 'personal' && <SectionPersonal empleados={empleados} loading={loading} />}
+                    {activeTab === 'personal' && <SectionPersonal empleados={empleados} loading={loading} setModal={setModalEmpleado} />}
                     {activeTab === 'asistencia' && <SectionAsistencia empleados={empleados} />}
-                    {activeTab === 'planilla' && <SectionPlanilla planillas={planillas} empleados={empleados} />}
+                    {activeTab === 'planilla' && <SectionPlanilla planillas={planillas} empleados={empleados} setModal={setModalPlanilla} />}
                     {activeTab === 'ley' && <SectionBeneficios empleados={empleados} />}
                 </motion.div>
             </AnimatePresence>
@@ -78,7 +80,7 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
 
 // --- SUB-SECCIONES ---
 
-function SectionPersonal({ empleados, loading }: any) {
+function SectionPersonal({ empleados, loading, setModal }: any) {
     const [busqueda, setBusqueda] = useState('')
     const filtered = empleados.filter((e: any) => `${e.nombres} ${e.apellidos}`.toLowerCase().includes(busqueda.toLowerCase()))
 
@@ -92,7 +94,10 @@ function SectionPersonal({ empleados, loading }: any) {
                         className="w-full bg-[#161b22] border border-[#30363d] rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#f0a500]"
                     />
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg text-sm transition-colors">
+                <button
+                    onClick={() => setModal({ show: true })}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-lg text-sm transition-colors"
+                >
                     <UserPlus className="h-4 w-4" /> Nuevo Empleado
                 </button>
             </div>
@@ -110,7 +115,12 @@ function SectionPersonal({ empleados, loading }: any) {
                                 <h4 className="text-white font-bold">{e.nombres} {e.apellidos}</h4>
                                 <p className="text-xs text-[#8b949e] uppercase font-semibold">{e.cargo}</p>
                             </div>
-                            <button className="ml-auto p-2 text-[#8b949e] hover:text-white"><MoreVertical className="h-4 w-4" /></button>
+                            <button
+                                onClick={() => setModal({ show: true, data: e })}
+                                className="ml-auto p-2 text-[#8b949e] hover:text-white"
+                            >
+                                <MoreVertical className="h-4 w-4" />
+                            </button>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 mb-4">
@@ -170,7 +180,7 @@ function SectionAsistencia({ empleados }: any) {
     )
 }
 
-function SectionPlanilla({ planillas, empleados }: any) {
+function SectionPlanilla({ planillas, empleados, setModal }: any) {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -178,7 +188,10 @@ function SectionPlanilla({ planillas, empleados }: any) {
                     <h3 className="text-lg font-rajdhani font-bold text-white">Generación de Planillas Mensuales</h3>
                     <p className="text-xs text-[#8b949e]">Cálculo automático bajo normativa SUNAT y régimen general</p>
                 </div>
-                <button className="px-4 py-2 bg-[#1f6feb] hover:bg-[#1158c7] text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-2">
+                <button
+                    onClick={() => setModal({ show: true })}
+                    className="px-4 py-2 bg-[#1f6feb] hover:bg-[#1158c7] text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-2"
+                >
                     <TrendingUp className="h-4 w-4" /> Ejecutar Cierre Mensual
                 </button>
             </div>
@@ -255,5 +268,139 @@ function SectionBeneficios({ empleados }: any) {
                 </div>
             </div>
         </div>
+    )
+}
+
+// --- COMPONENTES DE MODAL ---
+
+function ModalWrapper({ isOpen, onClose, title, children }: any) {
+    if (!isOpen) return null
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-[#161b22] border border-[#30363d] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+            >
+                <div className="flex justify-between items-center p-6 border-b border-[#30363d]">
+                    <h3 className="text-xl font-rajdhani font-bold text-white uppercase tracking-wider">{title}</h3>
+                    <button onClick={onClose} className="text-[#8b949e] hover:text-white transition-colors"><X className="h-6 w-6" /></button>
+                </div>
+                <div className="p-6 text-[#e6edf3]">
+                    {children}
+                </div>
+            </motion.div>
+        </div>
+    )
+}
+
+function ModalEmpleado({ isOpen, onClose, data, showToast, refresh }: any) {
+    const [formData, setFormData] = useState<any>({
+        nombres: '', apellidos: '', dni: '', cargo: '',
+        sueldo_base: 1025, regimen_pension: 'afp', afp_nombre: 'Integra',
+        fecha_ingreso: new Date().toISOString().split('T')[0]
+    })
+
+    useEffect(() => {
+        if (data) setFormData(data)
+        else setFormData({
+            nombres: '', apellidos: '', dni: '', cargo: '',
+            sueldo_base: 1025, regimen_pension: 'afp', afp_nombre: 'Integra',
+            fecha_ingreso: new Date().toISOString().split('T')[0]
+        })
+    }, [data, isOpen])
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault()
+        try {
+            const { error } = await supabase.from('saf_empleados').upsert(formData)
+            if (error) throw error
+            showToast('Empleado guardado correctamente', 'success')
+            refresh()
+            onClose()
+        } catch (err: any) {
+            showToast(err.message, 'error')
+        }
+    }
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title={data ? 'Editar Ficha' : 'Nuevo Colaborador'}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <input placeholder="Nombres" required value={formData.nombres || ''} onChange={e => setFormData({ ...formData, nombres: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    <input placeholder="Apellidos" required value={formData.apellidos || ''} onChange={e => setFormData({ ...formData, apellidos: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <input placeholder="DNI" required value={formData.dni || ''} onChange={e => setFormData({ ...formData, dni: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    <input placeholder="Cargo" required value={formData.cargo || ''} onChange={e => setFormData({ ...formData, cargo: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Sueldo Base S/</label>
+                        <input type="number" value={formData.sueldo_base || 0} onChange={e => setFormData({ ...formData, sueldo_base: parseFloat(e.target.value) })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Régimen</label>
+                        <select value={formData.regimen_pension || 'afp'} onChange={e => setFormData({ ...formData, regimen_pension: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                            <option value="afp">AFP</option>
+                            <option value="onp">ONP</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" className="w-full py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl shadow-lg hover:brightness-110 mt-4">Guardar Empleado</button>
+            </form>
+        </ModalWrapper>
+    )
+}
+
+function ModalPlanilla({ isOpen, onClose, showToast, refresh }: any) {
+    const [mes, setMes] = useState('MARZO')
+    const [año, setAño] = useState(2024)
+
+    const handleEjecutar = async () => {
+        try {
+            const { data: emps } = await supabase.from('saf_empleados').select('*')
+            if (!emps) return
+
+            const resumen = {
+                mes, año,
+                total_empleados: emps.length,
+                total_bruto: emps.reduce((acc, curr) => acc + curr.sueldo_base, 0),
+                total_neto: emps.reduce((acc, curr) => acc + (curr.sueldo_base * 0.87), 0),
+                estado: 'pendiente'
+            }
+
+            const { error } = await supabase.from('saf_planilla').insert(resumen)
+            if (error) throw error
+            showToast(`Planilla de ${mes} ${año} generada con éxito`, 'success')
+            refresh()
+            onClose()
+        } catch (err: any) {
+            showToast(err.message, 'error')
+        }
+    }
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title="Cierre Mensual de Planilla">
+            <div className="space-y-6">
+                <p className="text-sm text-[#8b949e]">Esta acción calculará los sueldos, descuentos de ley (AFP/ONP) y aportes del empleador (EsSalud) para todos los trabajadores activos.</p>
+                <div className="grid grid-cols-2 gap-4">
+                    <select value={mes} onChange={e => setMes(e.target.value)} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                        <option value="ENERO">ENERO</option>
+                        <option value="FEBRERO">FEBRERO</option>
+                        <option value="MARZO">MARZO</option>
+                    </select>
+                    <select value={año} onChange={e => setAño(parseInt(e.target.value))} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                        <option value={2024}>2024</option>
+                        <option value={2025}>2025</option>
+                    </select>
+                </div>
+                <div className="bg-[#f0a500]/10 border border-[#f0a500]/20 p-4 rounded-xl">
+                    <p className="text-xs text-[#f0a500] font-bold uppercase mb-1">Nota importante</p>
+                    <p className="text-[11px] text-[#f0a500]/80">El sistema tomará la asistencia registrada en el módulo de 'Control Asistencia' para realizar los descuentos por tardanzas o faltas.</p>
+                </div>
+                <button onClick={handleEjecutar} className="w-full py-4 bg-[#1f6feb] text-white font-bold rounded-xl shadow-lg hover:brightness-110">Procesar y Generar PDF</button>
+            </div>
+        </ModalWrapper>
     )
 }

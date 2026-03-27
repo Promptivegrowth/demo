@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     BarChart3, FileJson, TrendingDown, TrendingUp,
     Download, Receipt, Camera, Search, Filter,
-    FileText, ArrowUpRight, ArrowDownRight, Printer, Eye
+    FileText, ArrowUpRight, ArrowDownRight, Printer, Eye, X, Plus
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -14,6 +14,7 @@ export default function TabContabilidad({ showToast }: { showToast: Function }) 
     const [gastos, setGastos] = useState<any[]>([])
     const [ventas, setVentas] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [modalGasto, setModalGasto] = useState<{ show: boolean, data?: any }>({ show: false })
 
     const fetchData = async () => {
         try {
@@ -68,7 +69,7 @@ export default function TabContabilidad({ showToast }: { showToast: Function }) 
                     transition={{ duration: 0.2 }}
                 >
                     {activeTab === 'resumen' && <SectionResumen gastos={gastos} ventas={ventas} />}
-                    {activeTab === 'gastos' && <SectionGastos gastos={gastos} loading={loading} />}
+                    {activeTab === 'gastos' && <SectionGastos gastos={gastos} loading={loading} setModal={setModalGasto} />}
                     {activeTab === 'ventas' && <SectionVentas ventas={ventas} loading={loading} />}
                     {activeTab === 'sire' && <SectionSIRE ventas={ventas} gastos={gastos} showToast={showToast} />}
                 </motion.div>
@@ -144,7 +145,7 @@ function SectionResumen({ gastos, ventas }: any) {
     )
 }
 
-function SectionGastos({ gastos, loading }: any) {
+function SectionGastos({ gastos, loading, setModal }: any) {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center mb-4">
@@ -154,7 +155,12 @@ function SectionGastos({ gastos, loading }: any) {
                 </div>
                 <div className="flex gap-2">
                     <button className="px-3 py-1.5 bg-[#161b22] border border-[#30363d] text-white text-xs font-bold rounded-lg flex items-center gap-1"><Camera className="h-3.5 w-3.5" /> Escanear Factura</button>
-                    <button className="px-3 py-1.5 bg-[#f0a500] text-[#0d1117] text-xs font-bold rounded-lg">+ Registrar Gasto</button>
+                    <button
+                        onClick={() => setModal({ show: true })}
+                        className="px-3 py-1.5 bg-[#f0a500] text-[#0d1117] text-xs font-bold rounded-lg transition-all hover:scale-105"
+                    >
+                        + Registrar Gasto
+                    </button>
                 </div>
             </div>
 
@@ -191,7 +197,12 @@ function SectionGastos({ gastos, loading }: any) {
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${g.estado === 'pagado' ? 'bg-[#238636]/20 text-[#238636]' : 'bg-[#f0a500]/20 text-[#f0a500]'}`}>{g.estado}</span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button className="text-[#8b949e] hover:text-[#f0a500]"><Eye className="h-4 w-4" /></button>
+                                    <button
+                                        onClick={() => setModal({ show: true, data: g })}
+                                        className="text-[#8b949e] hover:text-[#f0a500]"
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -305,5 +316,85 @@ function SectionSIRE({ ventas, gastos, showToast }: any) {
                 </div>
             </div>
         </div>
+    )
+}
+
+// --- COMPONENTES DE MODAL ---
+
+function ModalWrapper({ isOpen, onClose, title, children }: any) {
+    if (!isOpen) return null
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-[#161b22] border border-[#30363d] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+            >
+                <div className="flex justify-between items-center p-6 border-b border-[#30363d]">
+                    <h3 className="text-xl font-rajdhani font-bold text-white uppercase tracking-wider">{title}</h3>
+                    <button onClick={onClose} className="text-[#8b949e] hover:text-white transition-colors"><X className="h-6 w-6" /></button>
+                </div>
+                <div className="p-6 text-[#e6edf3]">
+                    {children}
+                </div>
+            </motion.div>
+        </div>
+    )
+}
+
+function ModalGasto({ isOpen, onClose, data, showToast, refresh }: any) {
+    const [formData, setFormData] = useState<any>({
+        proveedor: '', ruc_proveedor: '', descripcion: '',
+        categoria: 'Combustible', monto_total: 0, estado: 'pendiente',
+        fecha: new Date().toISOString().split('T')[0]
+    })
+
+    useEffect(() => {
+        if (data) setFormData(data)
+        else setFormData({
+            proveedor: '', ruc_proveedor: '', descripcion: '',
+            categoria: 'Combustible', monto_total: 0, estado: 'pendiente',
+            fecha: new Date().toISOString().split('T')[0]
+        })
+    }, [data, isOpen])
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault()
+        try {
+            const { error } = await supabase.from('saf_gastos_operativos').upsert(formData)
+            if (error) throw error
+            showToast('Gasto registrado correctamente', 'success')
+            refresh()
+            onClose()
+        } catch (err: any) {
+            showToast(err.message, 'error')
+        }
+    }
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title={data ? 'Editar Gasto' : 'Registrar Nuevo Gasto'}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <input placeholder="Proveedor / Empresa" required value={formData.proveedor || ''} onChange={e => setFormData({ ...formData, proveedor: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                <div className="grid grid-cols-2 gap-4">
+                    <input placeholder="RUC Proveedor" value={formData.ruc_proveedor || ''} onChange={e => setFormData({ ...formData, ruc_proveedor: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    <input type="date" value={formData.fecha || ''} onChange={e => setFormData({ ...formData, fecha: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                </div>
+                <input placeholder="Descripción breve" value={formData.descripcion || ''} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                <div className="grid grid-cols-2 gap-4">
+                    <select value={formData.categoria || 'Combustible'} onChange={e => setFormData({ ...formData, categoria: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                        <option value="Combustible">Combustible</option>
+                        <option value="Lubricantes">Lubricantes</option>
+                        <option value="Repuestos">Repuestos</option>
+                        <option value="Administrativo">Administrativo</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                    <input type="number" step="0.01" placeholder="Monto Total S/" required value={formData.monto_total || 0} onChange={e => setFormData({ ...formData, monto_total: parseFloat(e.target.value) })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                </div>
+                <div className="flex gap-4 pt-4">
+                    <button type="button" onClick={onClose} className="flex-1 py-3 bg-[#30363d] text-white font-bold rounded-xl outline-none">Cancelar</button>
+                    <button type="submit" className="flex-1 py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl shadow-lg hover:brightness-110 transition-all outline-none">Guardar Registro</button>
+                </div>
+            </form>
+        </ModalWrapper>
     )
 }
