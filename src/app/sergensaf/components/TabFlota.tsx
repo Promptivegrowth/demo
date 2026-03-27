@@ -3,9 +3,18 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2, User, Star, Calendar
+    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2, User, Star, Calendar, MapPin, Navigation
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import dynamic from 'next/dynamic'
+
+// Cargar Leaflet dinámicamente para evitar errores de SSR
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false })
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false })
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false })
+const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false })
+const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline), { ssr: false })
+
 
 export default function TabFlota({ showToast }: { showToast: Function }) {
     const [activeSubTab, setActiveSubTab] = useState('unidades')
@@ -13,7 +22,9 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
     const [viajes, setViajes] = useState<any[]>([])
     const [mantenimientos, setMantenimientos] = useState<any[]>([])
     const [conductores, setConductores] = useState<any[]>([])
+    const [locations, setLocations] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+
     const [busqueda, setBusqueda] = useState('')
 
     // Estados para Modales
@@ -25,24 +36,25 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
     const fetchData = async () => {
         try {
             setLoading(true)
-            const [fRes, vRes, mRes, cRes] = await Promise.all([
+            const [fRes, vRes, mRes, cRes, lRes] = await Promise.all([
                 supabase.from('saf_flota').select('*').order('placa'),
-                supabase.from('saf_viajes').select('*, saf_conductores(nombres, apellidos), saf_flota(placa)').order('created_at', { ascending: false }),
-                supabase.from('saf_mantenimientos').select('*, saf_flota(placa)').order('fecha', { ascending: false }),
-                supabase.from('saf_conductores').select('*').order('apellidos')
+                supabase.from('saf_viajes').select('*, saf_conductores(nombres, apellidos), saf_flota:vehiculo_id(placa)').order('created_at', { ascending: false }),
+                supabase.from('saf_mantenimientos').select('*, saf_flota:vehiculo_id(placa)').order('fecha', { ascending: false }),
+                supabase.from('saf_conductores').select('*').order('apellidos'),
+                supabase.from('saf_gps_ubicaciones').select('*').order('timestamp', { ascending: true })
             ])
-
-            if (fRes.error) throw fRes.error
             setFlota(fRes.data || [])
             setViajes(vRes.data || [])
             setMantenimientos(mRes.data || [])
             setConductores(cRes.data || [])
+            setLocations(lRes.data || [])
         } catch (err: any) {
             showToast('Error cargando datos de flota', 'error')
         } finally {
             setLoading(false)
         }
     }
+
 
     useEffect(() => { fetchData() }, [])
 
@@ -87,8 +99,9 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                 >
                     {activeSubTab === 'unidades' && <SectionUnidades units={flota} drivers={conductores} showToast={showToast} refresh={fetchData} loading={loading} setModal={setModalUnidad} />}
                     {activeSubTab === 'viajes' && <SectionViajes viajes={viajes} showToast={showToast} refresh={fetchData} loading={loading} setModal={setModalViaje} />}
-                    {activeSubTab === 'gps' && <SectionGPS units={flota} viajes={viajes} selectedUnit={selectedUnitGps} setSelectedUnit={setSelectedUnitGps} />}
+                    {activeSubTab === 'gps' && <SectionGPS units={flota} viajes={viajes} locations={locations} selectedUnit={selectedUnitGps} setSelectedUnit={setSelectedUnitGps} />}
                     {activeSubTab === 'mantenimiento' && <SectionMantenimiento maints={mantenimientos} units={flota} showToast={showToast} refresh={fetchData} loading={loading} setModal={setModalMaint} />}
+
                 </motion.div>
             </AnimatePresence>
 
@@ -235,66 +248,115 @@ function SectionViajes({ viajes, showToast, refresh, loading, setModal }: any) {
     )
 }
 
-function SectionGPS({ units, viajes }: any) {
-    const activeViaje = viajes.find((v: any) => v.estado === 'en_curso')
+function SectionGPS({ units, viajes, locations, selectedUnit, setSelectedUnit }: any) {
+    const activeViaje = selectedUnit ? viajes.find((v: any) => v.vehiculo_id === selectedUnit.id && v.estado === 'en_curso') : null
+    const unitLocations = selectedUnit ? locations.filter((l: any) => l.viaje_id === activeViaje?.id) : []
+    const lastPos = unitLocations.length > 0 ? unitLocations[unitLocations.length - 1] : null
+    const polyline = unitLocations.map((l: any) => [l.latitud, l.longitud])
+
+    // Leaflet fix icon issues
+    const [L, setL] = useState<any>(null)
+    useEffect(() => {
+        import('leaflet').then(leaflet => {
+            setL(leaflet)
+            delete (leaflet.Icon.Default.prototype as any)._getIconUrl
+            leaflet.Icon.Default.mergeOptions({
+                iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+                iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+            })
+        })
+    }, [])
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px]">
-            {/* Lista Unidades */}
-            <div className="lg:col-span-1 bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-[#30363d]">
-                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Unidades Activas</h4>
+            {/* Link to Leaflet CSS */}
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+            <div className="lg:col-span-1 bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden flex flex-col shadow-2xl">
+                <div className="p-4 border-b border-[#30363d] bg-black/20">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Navigation className="h-4 w-4 text-[#f0a500]" /> Unidades Activas
+                    </h4>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {units.map((u: any) => (
-                        <div key={u.id} className={`p-3 rounded-lg border transition-all cursor-pointer ${u.estado === 'en_ruta' ? 'bg-[#1f6feb]/10 border-[#1f6feb]/40 shadow-[0_0_10px_rgba(31,111,235,0.2)]' : 'bg-[#0d1117] border-[#30363d]'}`}>
+                        <div
+                            key={u.id}
+                            onClick={() => setSelectedUnit(u)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer group ${selectedUnit?.id === u.id ? 'bg-[#f0a500]/10 border-[#f0a500] shadow-[0_0_15px_rgba(240,165,0,0.1)]' : 'bg-[#0d1117] border-[#30363d] hover:border-[#8b949e]'}`}
+                        >
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-white">{u.placa}</span>
-                                {u.estado === 'en_ruta' && <div className="w-2 h-2 bg-[#238636] rounded-full animate-ping" />}
+                                <span className={`font-bold ${selectedUnit?.id === u.id ? 'text-[#f0a500]' : 'text-white'}`}>{u.placa}</span>
+                                {u.estado === 'en_ruta' && <div className="w-2 h-2 bg-[#238636] rounded-full animate-pulse" />}
                             </div>
-                            <p className="text-[10px] text-[#8b949e] mt-1">{u.estado.replace('_', ' ')}</p>
+                            <div className="flex justify-between mt-1 items-center">
+                                <p className="text-[10px] text-[#8b949e] uppercase font-semibold">{u.tipo || 'Unidad'}</p>
+                                <span className="text-[10px] text-[#238636] font-bold">{u.estado === 'en_ruta' ? 'ONLINE' : ''}</span>
+                            </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* Mapa Placeholder */}
-            <div className="lg:col-span-3 bg-[#0d1117] border border-[#30363d] rounded-xl relative overflow-hidden group shadow-inner">
-                <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=-12.06,-77.03&zoom=12&size=1200x600&maptype=roadmap&style=feature:all|element:labels|visibility:off&style=feature:all|element:geometry|color:0x242f3e&style=feature:administrative|element:labels.text.fill|color:0x746855&style=feature:landscape|element:geometry|color:0x242f3e&style=feature:poi|element:geometry|color:0x2f3948&style=feature:road|element:geometry|color:0x38414e&style=feature:water|element:geometry|color:0x17263c&key=PLACEHOLDER')] bg-cover opacity-60"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-transparent to-transparent"></div>
-
-                {/* Mock Live Elements */}
-                <div className="absolute inset-0 pointer-events-none">
-                    <motion.div
-                        animate={{ x: [200, 300, 250], y: [200, 150, 180] }}
-                        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                        className="absolute p-2 bg-[#f0a500] text-[#0d1117] rounded-full shadow-[0_0_20px_rgba(240,165,0,0.5)] border-2 border-white"
+            <div className="lg:col-span-3 bg-[#0d1117] border border-[#30363d] rounded-2xl relative overflow-hidden group shadow-2xl">
+                {typeof window !== 'undefined' && L && MapContainer && (
+                    <MapContainer
+                        center={lastPos ? [lastPos.latitud, lastPos.longitud] : [-12.046374, -77.042793]}
+                        zoom={13}
+                        style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
+                        className="z-0"
                     >
-                        <Truck className="h-4 w-4" />
-                        <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-black/80 text-[#f0a500] text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap">V3K-857 (65 km/h)</div>
-                    </motion.div>
-                </div>
+                        <TileLayer
+                            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                            attribution='&copy; OpenStreetMap'
+                        />
+                        {lastPos && (
+                            <Marker position={[lastPos.latitud, lastPos.longitud]}>
+                                <Popup>
+                                    <div className="text-black font-rajdhani">
+                                        <p className="font-bold text-sm">{selectedUnit?.placa}</p>
+                                        <p className="text-xs">Velocidad: {lastPos.velocidad_kmh?.toFixed(0)} km/h</p>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        )}
+                        {polyline.length > 0 && <Polyline positions={polyline} color="#f0a500" weight={4} opacity={0.6} />}
+                    </MapContainer>
+                )}
 
-                <div className="absolute bottom-6 left-6 right-6 p-4 bg-[#161b22]/90 backdrop-blur-md border border-[#30363d] rounded-xl flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">En Seguimiento</p>
-                        <h5 className="text-white font-bold">{activeViaje ? `Unidad ${activeViaje.saf_flota?.placa} - ${activeViaje.destino}` : 'Sin seguimiento activo'}</h5>
-                    </div>
-                    <div className="flex gap-3">
-                        <div className="text-right">
-                            <p className="text-[10px] text-[#8b949e]">Velocidad Promedio</p>
-                            <p className="text-sm font-bold text-white">42 km/h</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] text-[#8b949e]">Próx. Arribo</p>
-                            <p className="text-sm font-bold text-[#f0a500]">~15 min</p>
+                {!selectedUnit && (
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-10 flex items-center justify-center p-8 text-center text-[#e6edf3]">
+                        <div>
+                            <MapPin className="h-12 w-12 text-[#f0a500] mx-auto mb-4 opacity-50" />
+                            <h5 className="text-xl font-rajdhani font-bold text-white mb-2">Monitor GPS SERGENSAF</h5>
+                            <p className="text-sm text-[#8b949e] max-w-xs">Selecciona una unidad de la lista para visualizar su ubicación en tiempo real y recorrido histórico.</p>
                         </div>
                     </div>
-                </div>
+                )}
 
-                {!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY && (
-                    <div className="absolute top-4 right-4 bg-orange-500/20 text-orange-400 text-[10px] font-bold px-3 py-1.5 rounded-full border border-orange-500/30 flex items-center gap-2">
-                        <AlertTriangle className="h-3 w-3" /> Requiere Google Maps API Key
+                {selectedUnit && (
+                    <div className="absolute bottom-6 left-6 right-6 p-5 bg-[#161b22]/90 backdrop-blur-xl border border-[#30363d]/50 rounded-2xl flex items-center justify-between z-10 shadow-3xl text-[#e6edf3]">
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-full bg-[#f0a500]/20 flex items-center justify-center border border-[#f0a500]/30 mr-2">
+                                <Truck className="h-5 w-5 text-[#f0a500]" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Unidad Seguida</p>
+                                <h5 className="text-white font-bold">{selectedUnit.placa} - {selectedUnit.marca}</h5>
+                                <p className="text-[10px] text-[#238636] font-bold">{activeViaje?.destino || 'Sin ruta activa'}</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-6">
+                            <div className="text-right border-r border-[#30363d] pr-6">
+                                <p className="text-[10px] text-[#8b949e] uppercase font-bold">Velocidad</p>
+                                <p className="text-lg font-rajdhani font-bold text-white">{lastPos?.velocidad_kmh?.toFixed(0) || 0} <span className="text-xs font-normal">km/h</span></p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] text-[#f0a500] uppercase font-bold">Último Reporte</p>
+                                <p className="text-sm font-bold text-white">{lastPos ? new Date(lastPos.timestamp).toLocaleTimeString() : '--:--'}</p>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -423,11 +485,11 @@ function ModalUnidad({ isOpen, onClose, data, showToast, refresh }: any) {
 }
 
 function ModalViaje({ isOpen, onClose, data, units, drivers, showToast, refresh }: any) {
-    const [formData, setFormData] = useState<any>({ flota_id: '', conductor_id: '', destino: '', cliente: '', estado: 'en_curso' })
+    const [formData, setFormData] = useState<any>({ vehiculo_id: '', conductor_id: '', destino: '', cliente: '', estado: 'en_curso' })
 
     useEffect(() => {
         if (data) setFormData(data)
-        else setFormData({ flota_id: '', conductor_id: '', destino: '', cliente: '', estado: 'en_curso' })
+        else setFormData({ vehiculo_id: '', conductor_id: '', destino: '', cliente: '', estado: 'en_curso' })
     }, [data, isOpen])
 
     const handleSubmit = async (e: any) => {
@@ -448,11 +510,12 @@ function ModalViaje({ isOpen, onClose, data, units, drivers, showToast, refresh 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
                     <label className="text-[10px] text-[#8b949e] uppercase font-bold">Unidad (Placa)</label>
-                    <select required value={formData.flota_id || ''} onChange={e => setFormData({ ...formData, flota_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                    <select required value={formData.vehiculo_id || ''} onChange={e => setFormData({ ...formData, vehiculo_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white text-sm">
                         <option value="">Seleccionar Unidad</option>
                         {units.map((u: any) => <option key={u.id} value={u.id}>{u.placa} ({u.estado})</option>)}
                     </select>
                 </div>
+
                 <div className="space-y-1">
                     <label className="text-[10px] text-[#8b949e] uppercase font-bold">Conductor</label>
                     <select required value={formData.conductor_id || ''} onChange={e => setFormData({ ...formData, conductor_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
@@ -471,11 +534,11 @@ function ModalViaje({ isOpen, onClose, data, units, drivers, showToast, refresh 
 }
 
 function ModalMantenimiento({ isOpen, onClose, data, units, showToast, refresh }: any) {
-    const [formData, setFormData] = useState<any>({ flota_id: '', tipo: 'Preventivo', descripcion: '', costo_soles: 0, estado: 'en_proceso' })
+    const [formData, setFormData] = useState<any>({ vehiculo_id: '', tipo: 'Preventivo', descripcion: '', costo_soles: 0, estado: 'en_proceso' })
 
     useEffect(() => {
         if (data) setFormData(data)
-        else setFormData({ flota_id: '', tipo: 'Preventivo', descripcion: '', costo_soles: 0, estado: 'en_proceso' })
+        else setFormData({ vehiculo_id: '', tipo: 'Preventivo', descripcion: '', costo_soles: 0, estado: 'en_proceso' })
     }, [data, isOpen])
 
     const handleSubmit = async (e: any) => {
@@ -491,13 +554,15 @@ function ModalMantenimiento({ isOpen, onClose, data, units, showToast, refresh }
         }
     }
 
+
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose} title="Gestión de Mantenimiento">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <select required value={formData.flota_id || ''} onChange={e => setFormData({ ...formData, flota_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                <select required value={formData.vehiculo_id || ''} onChange={e => setFormData({ ...formData, vehiculo_id: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white text-sm">
                     <option value="">Seleccionar Unidad</option>
                     {units.map((u: any) => <option key={u.id} value={u.id}>{u.placa}</option>)}
                 </select>
+
                 <input placeholder="Tipo (ej. Aceite, Llantas)" value={formData.tipo || ''} onChange={e => setFormData({ ...formData, tipo: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
                 <textarea placeholder="Descripción del trabajo..." value={formData.descripcion || ''} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white h-24 placeholder:text-[#8b949e]/50" />
                 <div className="flex gap-4">

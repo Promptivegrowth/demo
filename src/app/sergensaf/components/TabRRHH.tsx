@@ -21,8 +21,9 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
             setLoading(true)
             const [eRes, pRes] = await Promise.all([
                 supabase.from('saf_empleados').select('*').order('apellidos'),
-                supabase.from('saf_planilla').select('*').order('año', { ascending: false }).order('mes', { ascending: false })
+                supabase.from('saf_planilla').select('*').order('periodo_anio', { ascending: false }).order('periodo_mes', { ascending: false })
             ])
+
             setEmpleados(eRes.data || [])
             setPlanillas(pRes.data || [])
         } catch (err) {
@@ -125,13 +126,14 @@ function SectionPersonal({ empleados, loading, setModal }: any) {
 
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             <div className="bg-[#0d1117] p-2.5 rounded-xl border border-[#30363d]">
-                                <p className="text-[10px] text-[#8b949e] uppercase">Sueldo Base</p>
-                                <p className="text-sm font-rajdhani font-bold text-[#f0a500]">S/ {e.sueldo_base?.toLocaleString()}</p>
+                                <p className="text-[10px] text-[#8b949e] uppercase">Remuneración</p>
+                                <p className="text-sm font-rajdhani font-bold text-[#f0a500]">S/ {e.remuneracion_bruta?.toLocaleString()}</p>
                             </div>
                             <div className="bg-[#0d1117] p-2.5 rounded-xl border border-[#30363d]">
                                 <p className="text-[10px] text-[#8b949e] uppercase">Régimen</p>
-                                <p className="text-sm font-bold text-white">{e.regimen_pension === 'afp' ? e.afp_nombre : 'ONP'}</p>
+                                <p className="text-sm font-bold text-white uppercase">{e.sistema_pensionario === 'afp' ? e.afp_nombre : e.sistema_pensionario}</p>
                             </div>
+
                         </div>
 
                         <div className="space-y-2">
@@ -212,8 +214,8 @@ function SectionPlanilla({ planillas, empleados, setModal }: any) {
                     <tbody className="divide-y divide-[#30363d]">
                         {planillas.map((p: any) => (
                             <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
-                                <td className="px-6 py-4 font-bold text-white uppercase">{p.mes} {p.año}</td>
-                                <td className="px-6 py-4 text-white">{p.total_empleados}</td>
+                                <td className="px-6 py-4 font-bold text-white uppercase">{p.periodo_mes}/{p.periodo_anio}</td>
+                                <td className="px-6 py-4 text-white">{p.total_empleados || '--'}</td>
                                 <td className="px-6 py-4 text-white">S/ {p.total_bruto?.toLocaleString()}</td>
                                 <td className="px-6 py-4 text-[#da3633]">S/ {(p.total_bruto - p.total_neto)?.toLocaleString()}</td>
                                 <td className="px-6 py-4 text-[#238636] font-bold">S/ {p.total_neto?.toLocaleString()}</td>
@@ -222,6 +224,7 @@ function SectionPlanilla({ planillas, empleados, setModal }: any) {
                                         {p.estado}
                                     </span>
                                 </td>
+
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex gap-2 justify-end">
                                         <button className="p-1.5 text-[#8b949e] hover:text-[#1f6feb]"><Download className="h-4 w-4" /></button>
@@ -247,9 +250,10 @@ function SectionBeneficios({ empleados }: any) {
                     {empleados.slice(0, 4).map((e: any) => (
                         <div key={e.id} className="flex justify-between items-center p-3 bg-[#0d1117] rounded-xl border border-[#30363d]">
                             <span className="text-xs text-white">{e.nombres} {e.apellidos}</span>
-                            <span className="text-sm font-rajdhani font-bold text-white">S/ {(e.sueldo_base / 2).toFixed(2)}</span>
+                            <span className="text-sm font-rajdhani font-bold text-white">S/ {(e.remuneracion_bruta / 2).toFixed(2)}</span>
                         </div>
                     ))}
+
                 </div>
             </div>
             <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-6">
@@ -296,19 +300,20 @@ function ModalWrapper({ isOpen, onClose, title, children }: any) {
 
 function ModalEmpleado({ isOpen, onClose, data, showToast, refresh }: any) {
     const [formData, setFormData] = useState<any>({
-        nombres: '', apellidos: '', dni: '', cargo: '',
-        sueldo_base: 1025, regimen_pension: 'afp', afp_nombre: 'Integra',
-        fecha_ingreso: new Date().toISOString().split('T')[0]
+        nombres: '', apellidos: '', dni: '', cargo: '', area: '', sexo: 'M',
+        remuneracion_bruta: 1025, sistema_pensionary: 'afp', afp_nombre: 'Integra',
+        fecha_ingreso: new Date().toISOString().split('T')[0], estado: 'activo'
     })
 
     useEffect(() => {
         if (data) setFormData(data)
         else setFormData({
-            nombres: '', apellidos: '', dni: '', cargo: '',
-            sueldo_base: 1025, regimen_pension: 'afp', afp_nombre: 'Integra',
-            fecha_ingreso: new Date().toISOString().split('T')[0]
+            nombres: '', apellidos: '', dni: '', cargo: '', area: '', sexo: 'M',
+            remuneracion_bruta: 1025, sistema_pensionario: 'afp', afp_nombre: 'Integra',
+            fecha_ingreso: new Date().toISOString().split('T')[0], estado: 'activo'
         })
     }, [data, isOpen])
+
 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
@@ -336,17 +341,31 @@ function ModalEmpleado({ isOpen, onClose, data, showToast, refresh }: any) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Sueldo Base S/</label>
-                        <input type="number" value={formData.sueldo_base || 0} onChange={e => setFormData({ ...formData, sueldo_base: parseFloat(e.target.value) })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Remuneración Bruta S/</label>
+                        <input type="number" value={formData.remuneracion_bruta || 0} onChange={e => setFormData({ ...formData, remuneracion_bruta: parseFloat(e.target.value) })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Régimen</label>
-                        <select value={formData.regimen_pension || 'afp'} onChange={e => setFormData({ ...formData, regimen_pension: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
-                            <option value="afp">AFP</option>
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Sist. Pensionario</label>
+                        <select value={formData.sistema_pensionario || 'afp'} onChange={e => setFormData({ ...formData, sistema_pensionario: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                            <option value="afp">AFP (Integra/Prima...)</option>
                             <option value="onp">ONP</option>
                         </select>
                     </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Género</label>
+                        <select value={formData.sexo || 'M'} onChange={e => setFormData({ ...formData, sexo: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Área</label>
+                        <input value={formData.area || ''} onChange={e => setFormData({ ...formData, area: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    </div>
+                </div>
+
                 <button type="submit" className="w-full py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl shadow-lg hover:brightness-110 mt-4">Guardar Empleado</button>
             </form>
         </ModalWrapper>
@@ -363,12 +382,12 @@ function ModalPlanilla({ isOpen, onClose, showToast, refresh }: any) {
             if (!emps) return
 
             const resumen = {
-                mes, año,
-                total_empleados: emps.length,
-                total_bruto: emps.reduce((acc, curr) => acc + curr.sueldo_base, 0),
-                total_neto: emps.reduce((acc, curr) => acc + (curr.sueldo_base * 0.87), 0),
+                periodo_mes: mes, periodo_anio: año,
+                total_bruto: emps.reduce((acc, curr) => acc + (curr.remuneracion_bruta || 0), 0),
+                total_neto: emps.reduce((acc, curr) => acc + ((curr.remuneracion_bruta || 0) * 0.87), 0),
                 estado: 'pendiente'
             }
+
 
             const { error } = await supabase.from('saf_planilla').insert(resumen)
             if (error) throw error

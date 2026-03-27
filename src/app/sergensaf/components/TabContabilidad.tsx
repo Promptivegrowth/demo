@@ -20,9 +20,10 @@ export default function TabContabilidad({ showToast }: { showToast: Function }) 
         try {
             setLoading(true)
             const [gRes, vRes] = await Promise.all([
-                supabase.from('saf_gastos_operativos').select('*').order('fecha', { ascending: false }),
-                supabase.from('saf_registro_ventas').select('*').order('fecha', { ascending: false })
+                supabase.from('saf_gastos_operativos').select('*').order('fecha_emision', { ascending: false }),
+                supabase.from('saf_registro_ventas').select('*').order('fecha_emision', { ascending: false })
             ])
+
             setGastos(gRes.data || [])
             setVentas(vRes.data || [])
         } catch (err) {
@@ -81,8 +82,9 @@ export default function TabContabilidad({ showToast }: { showToast: Function }) 
 // --- SUB-SECCIONES ---
 
 function SectionResumen({ gastos, ventas }: any) {
-    const totalVentas = ventas.reduce((acc: number, v: any) => acc + (v.total || 0), 0)
-    const totalGastos = gastos.reduce((acc: number, g: any) => acc + (g.monto_total || 0), 0)
+    const totalVentas = ventas.reduce((acc: number, v: any) => acc + (v.importe_total || 0), 0)
+    const totalGastos = gastos.reduce((acc: number, g: any) => acc + (g.importe_total || 0), 0)
+
     const margen = totalVentas - totalGastos
 
     return (
@@ -182,20 +184,21 @@ function SectionGastos({ gastos, loading, setModal }: any) {
                         ) : gastos.map((g: any) => (
                             <tr key={g.id} className="hover:bg-white/[0.02] transition-colors">
                                 <td className="px-6 py-4">
-                                    <p className="text-white font-bold">{new Date(g.fecha).toLocaleDateString()}</p>
+                                    <p className="text-white font-bold">{new Date(g.fecha_emision).toLocaleDateString()}</p>
                                     <p className="text-[10px] text-[#8b949e]">{g.ruc_proveedor || 'S/N RUC'}</p>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <p className="text-white font-medium">{g.proveedor}</p>
+                                    <p className="text-white font-medium">{g.razon_social_proveedor}</p>
                                     <p className="text-[10px] text-[#8b949e] italic">{g.descripcion}</p>
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className="px-2 py-0.5 bg-[#30363d] text-[10px] text-white rounded-full border border-white/5 uppercase">{g.categoria}</span>
                                 </td>
-                                <td className="px-6 py-4 font-bold text-white">S/ {g.monto_total?.toLocaleString()}</td>
+                                <td className="px-6 py-4 font-bold text-white">S/ {g.importe_total?.toLocaleString()}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${g.estado === 'pagado' ? 'bg-[#238636]/20 text-[#238636]' : 'bg-[#f0a500]/20 text-[#f0a500]'}`}>{g.estado}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#238636]/20 text-[#238636]`}>OK</span>
                                 </td>
+
                                 <td className="px-6 py-4 text-right">
                                     <button
                                         onClick={() => setModal({ show: true, data: g })}
@@ -240,19 +243,20 @@ function SectionVentas({ ventas, loading }: any) {
                         {ventas.map((v: any) => (
                             <tr key={v.id} className="hover:bg-white/[0.02] transition-colors">
                                 <td className="px-6 py-4">
-                                    <p className="text-[#f0a500] font-bold">{v.serie_numero}</p>
-                                    <p className="text-[10px] text-[#8b949e]">{new Date(v.fecha).toLocaleDateString()}</p>
+                                    <p className="text-[#f0a500] font-bold">{v.serie}-{v.numero}</p>
+                                    <p className="text-[10px] text-[#8b949e]">{new Date(v.fecha_emision).toLocaleDateString()}</p>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <p className="text-white font-medium">{v.cliente_denominacion}</p>
-                                    <p className="text-[10px] text-[#8b949e]">{v.cliente_numero_documento}</p>
+                                    <p className="text-white font-medium">{v.razon_social_cliente}</p>
+                                    <p className="text-[10px] text-[#8b949e]">{v.ruc_dni_cliente}</p>
                                 </td>
-                                <td className="px-6 py-4 text-white">S/ {v.base_imponible?.toLocaleString()}</td>
+                                <td className="px-6 py-4 text-white">S/ {v.base_imponible_gravado?.toLocaleString()}</td>
                                 <td className="px-6 py-4 text-[#8b949e]">S/ {v.igv?.toLocaleString()}</td>
-                                <td className="px-6 py-4 font-bold text-white">S/ {v.total?.toLocaleString()}</td>
+                                <td className="px-6 py-4 font-bold text-white">S/ {v.importe_total?.toLocaleString()}</td>
                                 <td className="px-6 py-4 text-right">
-                                    <span className="px-2 py-0.5 bg-[#1f6feb]/20 text-[#1f6feb] text-[10px] font-bold rounded">EMI</span>
+                                    <span className="px-2 py-0.5 bg-[#238636]/20 text-[#238636] text-[10px] font-bold rounded">EMI</span>
                                 </td>
+
                             </tr>
                         ))}
                     </tbody>
@@ -266,8 +270,9 @@ function SectionSIRE({ ventas, gastos, showToast }: any) {
     const handleGenerateSIRE = () => {
         showToast('Generando Archivo SIRE...', 'info')
         setTimeout(() => {
-            const content = ventas.map((v: any) => `${v.cliente_numero_documento}|${v.serie_numero}|${v.fecha}|${v.total}`).join('\n')
+            const content = ventas.map((v: any) => `${v.ruc_dni_cliente}|${v.serie}|${v.numero}|${v.fecha_emision}|${v.importe_total}`).join('\n')
             const blob = new Blob([content], { type: 'text/plain' })
+
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
@@ -344,19 +349,20 @@ function ModalWrapper({ isOpen, onClose, title, children }: any) {
 
 function ModalGasto({ isOpen, onClose, data, showToast, refresh }: any) {
     const [formData, setFormData] = useState<any>({
-        proveedor: '', ruc_proveedor: '', descripcion: '',
-        categoria: 'Combustible', monto_total: 0, estado: 'pendiente',
-        fecha: new Date().toISOString().split('T')[0]
+        razon_social_proveedor: '', ruc_proveedor: '', descripcion: '',
+        categoria: 'Combustible', importe_total: 0,
+        fecha_emision: new Date().toISOString().split('T')[0]
     })
 
     useEffect(() => {
         if (data) setFormData(data)
         else setFormData({
-            proveedor: '', ruc_proveedor: '', descripcion: '',
-            categoria: 'Combustible', monto_total: 0, estado: 'pendiente',
-            fecha: new Date().toISOString().split('T')[0]
+            razon_social_proveedor: '', ruc_proveedor: '', descripcion: '',
+            categoria: 'Combustible', importe_total: 0,
+            fecha_emision: new Date().toISOString().split('T')[0]
         })
     }, [data, isOpen])
+
 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
@@ -374,10 +380,10 @@ function ModalGasto({ isOpen, onClose, data, showToast, refresh }: any) {
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose} title={data ? 'Editar Gasto' : 'Registrar Nuevo Gasto'}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                <input placeholder="Proveedor / Empresa" required value={formData.proveedor || ''} onChange={e => setFormData({ ...formData, proveedor: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                <input placeholder="Proveedor / Empresa" required value={formData.razon_social_proveedor || ''} onChange={e => setFormData({ ...formData, razon_social_proveedor: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                 <div className="grid grid-cols-2 gap-4">
                     <input placeholder="RUC Proveedor" value={formData.ruc_proveedor || ''} onChange={e => setFormData({ ...formData, ruc_proveedor: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
-                    <input type="date" value={formData.fecha || ''} onChange={e => setFormData({ ...formData, fecha: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    <input type="date" value={formData.fecha_emision || ''} onChange={e => setFormData({ ...formData, fecha_emision: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                 </div>
                 <input placeholder="Descripción breve" value={formData.descripcion || ''} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                 <div className="grid grid-cols-2 gap-4">
@@ -388,8 +394,9 @@ function ModalGasto({ isOpen, onClose, data, showToast, refresh }: any) {
                         <option value="Administrativo">Administrativo</option>
                         <option value="Otros">Otros</option>
                     </select>
-                    <input type="number" step="0.01" placeholder="Monto Total S/" required value={formData.monto_total || 0} onChange={e => setFormData({ ...formData, monto_total: parseFloat(e.target.value) })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    <input type="number" step="0.01" placeholder="Monto Total S/" required value={formData.importe_total || 0} onChange={e => setFormData({ ...formData, importe_total: parseFloat(e.target.value) })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                 </div>
+
                 <div className="flex gap-4 pt-4">
                     <button type="button" onClick={onClose} className="flex-1 py-3 bg-[#30363d] text-white font-bold rounded-xl outline-none">Cancelar</button>
                     <button type="submit" className="flex-1 py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl shadow-lg hover:brightness-110 transition-all outline-none">Guardar Registro</button>
