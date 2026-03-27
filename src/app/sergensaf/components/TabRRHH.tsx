@@ -301,7 +301,7 @@ function ModalWrapper({ isOpen, onClose, title, children }: any) {
 function ModalEmpleado({ isOpen, onClose, data, showToast, refresh }: any) {
     const [formData, setFormData] = useState<any>({
         nombres: '', apellidos: '', dni: '', cargo: '', area: '', sexo: 'M',
-        remuneracion_bruta: 1025, sistema_pensionary: 'afp', afp_nombre: 'Integra',
+        remuneracion_bruta: 1025, sistema_pensionario: 'afp', afp_nombre: 'Integra',
         fecha_ingreso: new Date().toISOString().split('T')[0], estado: 'activo'
     })
 
@@ -381,13 +381,16 @@ function ModalPlanilla({ isOpen, onClose, showToast, refresh }: any) {
             const { data: emps } = await supabase.from('saf_empleados').select('*')
             if (!emps) return
 
+            const meses: any = { 'ENERO': 1, 'FEBRERO': 2, 'MARZO': 3, 'ABRIL': 4, 'MAYO': 5, 'JUNIO': 6, 'JULIO': 7, 'AGOSTO': 8, 'SETIEMBRE': 9, 'OCTUBRE': 10, 'NOVIEMBRE': 11, 'DICIEMBRE': 12 }
+
             const resumen = {
-                periodo_mes: mes, periodo_anio: año,
+                periodo_mes: meses[mes],
+                periodo_anio: año,
                 total_bruto: emps.reduce((acc, curr) => acc + (curr.remuneracion_bruta || 0), 0),
                 total_neto: emps.reduce((acc, curr) => acc + ((curr.remuneracion_bruta || 0) * 0.87), 0),
+                total_essalud_empleador: emps.reduce((acc, curr) => acc + ((curr.remuneracion_bruta || 0) * 0.09), 0),
                 estado: 'pendiente'
             }
-
 
             const { error } = await supabase.from('saf_planilla').insert(resumen)
             if (error) throw error

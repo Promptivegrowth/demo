@@ -350,7 +350,8 @@ function ModalWrapper({ isOpen, onClose, title, children }: any) {
 function ModalGasto({ isOpen, onClose, data, showToast, refresh }: any) {
     const [formData, setFormData] = useState<any>({
         razon_social_proveedor: '', ruc_proveedor: '', descripcion: '',
-        categoria: 'Combustible', importe_total: 0,
+        categoria: 'Combustible', importe_total: 0, moneda: 'PEN',
+        tipo_comprobante: '01', serie: '', numero: '',
         fecha_emision: new Date().toISOString().split('T')[0]
     })
 
@@ -358,7 +359,8 @@ function ModalGasto({ isOpen, onClose, data, showToast, refresh }: any) {
         if (data) setFormData(data)
         else setFormData({
             razon_social_proveedor: '', ruc_proveedor: '', descripcion: '',
-            categoria: 'Combustible', importe_total: 0,
+            categoria: 'Combustible', importe_total: 0, moneda: 'PEN',
+            tipo_comprobante: '01', serie: '', numero: '',
             fecha_emision: new Date().toISOString().split('T')[0]
         })
     }, [data, isOpen])
@@ -384,6 +386,15 @@ function ModalGasto({ isOpen, onClose, data, showToast, refresh }: any) {
                 <div className="grid grid-cols-2 gap-4">
                     <input placeholder="RUC Proveedor" value={formData.ruc_proveedor || ''} onChange={e => setFormData({ ...formData, ruc_proveedor: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                     <input type="date" value={formData.fecha_emision || ''} onChange={e => setFormData({ ...formData, fecha_emision: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <select value={formData.tipo_comprobante || '01'} onChange={e => setFormData({ ...formData, tipo_comprobante: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white text-xs">
+                        <option value="01">Factura (01)</option>
+                        <option value="03">Boleta (03)</option>
+                        <option value="00">Otros</option>
+                    </select>
+                    <input placeholder="Serie" value={formData.serie || ''} onChange={e => setFormData({ ...formData, serie: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    <input placeholder="Número" value={formData.numero || ''} onChange={e => setFormData({ ...formData, numero: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                 </div>
                 <input placeholder="Descripción breve" value={formData.descripcion || ''} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
                 <div className="grid grid-cols-2 gap-4">
