@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Package, FileText, ShoppingCart, Truck, Factory,
     DollarSign, Car, BarChart2, Bell, X, RefreshCw,
-    CheckCircle2 as CheckCircle, AlertTriangle, Info
+    CheckCircle2 as CheckCircle, AlertTriangle, Info,
+    Users, Receipt, MapPin
 } from 'lucide-react'
 import { supabase } from './lib/supabase'
 
@@ -17,6 +18,8 @@ import TabDespachos from './components/TabDespachos'
 import TabProduccion from './components/TabProduccion'
 import TabCobranzas from './components/TabCobranzas'
 import TabFlota from './components/TabFlota'
+import TabRRHH from './components/TabRRHH'
+import TabContabilidad from './components/TabContabilidad'
 
 export default function SergensafModule() {
     const [activeTab, setActiveTab] = useState('Dashboard')
@@ -27,14 +30,16 @@ export default function SergensafModule() {
 
     // Global Navigation Tabs
     const TABS = [
+        { id: 'Dashboard', icon: BarChart2, label: 'Dashboard' },
         { id: 'Inventario', icon: Package, label: 'Inventario' },
         { id: 'Cotizaciones', icon: FileText, label: 'Cotizaciones' },
         { id: 'Ordenes', icon: ShoppingCart, label: 'Órdenes' },
         { id: 'Despachos', icon: Truck, label: 'Despachos' },
+        { id: 'Flota', icon: MapPin, label: 'Flota & GPS' },
+        { id: 'RRHH', icon: Users, label: 'RRHH' },
+        { id: 'Contabilidad', icon: Receipt, label: 'Contabilidad' },
         { id: 'Produccion', icon: Factory, label: 'Producción' },
-        { id: 'Cobranzas', icon: DollarSign, label: 'Cobranzas' },
-        { id: 'Flota', icon: Car, label: 'Flota' },
-        { id: 'Dashboard', icon: BarChart2, label: 'Dashboard' }
+        { id: 'Cobranzas', icon: DollarSign, label: 'Cobranzas' }
     ]
 
     // Initialize Supabase & check connection
@@ -77,6 +82,8 @@ export default function SergensafModule() {
             case 'Produccion': return <TabProduccion showToast={showToast} />
             case 'Cobranzas': return <TabCobranzas showToast={showToast} />
             case 'Flota': return <TabFlota showToast={showToast} />
+            case 'RRHH': return <TabRRHH showToast={showToast} />
+            case 'Contabilidad': return <TabContabilidad showToast={showToast} />
             default: return <TabDashboard showToast={showToast} />
         }
     }

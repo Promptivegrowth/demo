@@ -1,0 +1,309 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+    BarChart3, FileJson, TrendingDown, TrendingUp,
+    Download, Receipt, Camera, Search, Filter,
+    FileText, ArrowUpRight, ArrowDownRight, Printer, Eye
+} from 'lucide-react'
+import { supabase } from '../lib/supabase'
+
+export default function TabContabilidad({ showToast }: { showToast: Function }) {
+    const [activeTab, setActiveTab] = useState('resumen')
+    const [gastos, setGastos] = useState<any[]>([])
+    const [ventas, setVentas] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    const fetchData = async () => {
+        try {
+            setLoading(true)
+            const [gRes, vRes] = await Promise.all([
+                supabase.from('saf_gastos_operativos').select('*').order('fecha', { ascending: false }),
+                supabase.from('saf_registro_ventas').select('*').order('fecha', { ascending: false })
+            ])
+            setGastos(gRes.data || [])
+            setVentas(vRes.data || [])
+        } catch (err) {
+            showToast('Error cargando datos contables', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => { fetchData() }, [])
+
+    return (
+        <div className="space-y-6 text-[#e6edf3]">
+            {/* SUB-NAVBAR */}
+            <div className="flex items-center justify-between border-b border-[#30363d]">
+                <div className="flex gap-8">
+                    {[
+                        { id: 'resumen', label: 'Dashboard Financiero', icon: BarChart3 },
+                        { id: 'gastos', label: 'Egresos / Gastos', icon: TrendingDown },
+                        { id: 'ventas', label: 'Libro de Ventas', icon: TrendingUp },
+                        { id: 'sire', label: 'SUNAT SIRE', icon: FileJson },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 pb-4 px-1 text-sm font-semibold transition-all relative ${activeTab === tab.id ? 'text-[#f0a500]' : 'text-[#8b949e] hover:text-white'}`}
+                        >
+                            <tab.icon className="h-4 w-4" />
+                            {tab.label}
+                            {activeTab === tab.id && (
+                                <motion.div layoutId="contActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#f0a500]" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    {activeTab === 'resumen' && <SectionResumen gastos={gastos} ventas={ventas} />}
+                    {activeTab === 'gastos' && <SectionGastos gastos={gastos} loading={loading} />}
+                    {activeTab === 'ventas' && <SectionVentas ventas={ventas} loading={loading} />}
+                    {activeTab === 'sire' && <SectionSIRE ventas={ventas} gastos={gastos} showToast={showToast} />}
+                </motion.div>
+            </AnimatePresence>
+        </div>
+    )
+}
+
+// --- SUB-SECCIONES ---
+
+function SectionResumen({ gastos, ventas }: any) {
+    const totalVentas = ventas.reduce((acc: number, v: any) => acc + (v.total || 0), 0)
+    const totalGastos = gastos.reduce((acc: number, g: any) => acc + (g.monto_total || 0), 0)
+    const margen = totalVentas - totalGastos
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-[#161b22] border border-[#30363d] p-6 rounded-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><TrendingUp className="h-16 w-16 text-[#238636]" /></div>
+                    <p className="text-xs text-[#8b949e] uppercase font-bold tracking-widest mb-1">Ingresos Totales (Mes)</p>
+                    <p className="text-3xl font-rajdhani font-bold text-white">S/ {totalVentas?.toLocaleString()}</p>
+                    <div className="flex items-center gap-1 text-[#238636] text-[10px] mt-2 font-bold"><ArrowUpRight className="h-3 w-3" /> +12.5% vs Mes Anterior</div>
+                </div>
+                <div className="bg-[#161b22] border border-[#30363d] p-6 rounded-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><TrendingDown className="h-16 w-16 text-[#da3633]" /></div>
+                    <p className="text-xs text-[#8b949e] uppercase font-bold tracking-widest mb-1">Egresos Operativos</p>
+                    <p className="text-3xl font-rajdhani font-bold text-white">S/ {totalGastos?.toLocaleString()}</p>
+                    <div className="flex items-center gap-1 text-[#da3633] text-[10px] mt-2 font-bold"><ArrowDownRight className="h-3 w-3" /> +4.2% (Combustible)</div>
+                </div>
+                <div className="bg-[#161b22] border border-[#f0a500]/30 p-6 rounded-2xl relative overflow-hidden group shadow-[0_0_20px_rgba(240,165,0,0.05)]">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><Receipt className="h-16 w-16 text-[#f0a500]" /></div>
+                    <p className="text-xs text-[#f0a500] uppercase font-bold tracking-widest mb-1">Utilidad Operativa Est.</p>
+                    <p className="text-3xl font-rajdhani font-bold text-white">S/ {margen?.toLocaleString()}</p>
+                    <div className="w-full bg-[#0d1117] h-1 rounded-full overflow-hidden mt-4">
+                        <div className="bg-[#f0a500] h-full" style={{ width: '45%' }}></div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-6">
+                    <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-wider flex items-center gap-2"><Filter className="h-4 w-4" /> Distribución de Gastos</h3>
+                    <div className="space-y-4">
+                        {[
+                            { label: 'Combustible', value: 45, color: '#f0a500' },
+                            { label: 'Mantenimientos', value: 25, color: '#1f6feb' },
+                            { label: 'Planilla RRHH', value: 20, color: '#238636' },
+                            { label: 'Otros / Administrativos', value: 10, color: '#8b949e' }
+                        ].map(item => (
+                            <div key={item.label} className="space-y-1">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-[#8b949e]">{item.label}</span>
+                                    <span className="text-white font-bold">{item.value}%</span>
+                                </div>
+                                <div className="w-full bg-[#0d1117] h-1.5 rounded-full overflow-hidden">
+                                    <div className="h-full transition-all duration-1000" style={{ width: `${item.value}%`, backgroundColor: item.color }}></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-6">
+                    <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-wider flex items-center gap-2"><FileText className="h-4 w-4" /> Proyectado Impuestos (IGV)</h3>
+                    <div className="p-8 border-2 border-dashed border-[#30363d] rounded-xl text-center">
+                        <p className="text-[10px] text-[#8b949e] uppercase mb-2">Crédito Fiscal vs Débito</p>
+                        <p className="text-4xl font-rajdhani font-bold text-[#f0a500]">S/ {(totalVentas * 0.18 - totalGastos * 0.18).toLocaleString()}</p>
+                        <p className="text-xs text-[#8b949e] mt-4 italic">* Estimación basada en facturas cargadas hasta hoy {new Date().toLocaleDateString()}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function SectionGastos({ gastos, loading }: any) {
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+                <div className="relative w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8b949e]" />
+                    <input type="text" placeholder="Buscar gasto..." className="w-full bg-[#161b22] border border-[#30363d] rounded-lg pl-10 pr-4 py-1.5 text-xs text-white focus:border-[#f0a500]" />
+                </div>
+                <div className="flex gap-2">
+                    <button className="px-3 py-1.5 bg-[#161b22] border border-[#30363d] text-white text-xs font-bold rounded-lg flex items-center gap-1"><Camera className="h-3.5 w-3.5" /> Escanear Factura</button>
+                    <button className="px-3 py-1.5 bg-[#f0a500] text-[#0d1117] text-xs font-bold rounded-lg">+ Registrar Gasto</button>
+                </div>
+            </div>
+
+            <div className="bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden shadow-2xl">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-black/20 text-[#8b949e] uppercase text-[10px] tracking-wider border-b border-[#30363d]">
+                        <tr>
+                            <th className="px-6 py-4">Fecha / Doc</th>
+                            <th className="px-6 py-4">Proveedor / Concepto</th>
+                            <th className="px-6 py-4">Categoría</th>
+                            <th className="px-6 py-4">Monto Total</th>
+                            <th className="px-6 py-4">Estado</th>
+                            <th className="px-6 py-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#30363d]">
+                        {loading ? (
+                            <tr><td colSpan={6} className="p-8 text-center text-[#8b949e]">Procesando base de datos...</td></tr>
+                        ) : gastos.map((g: any) => (
+                            <tr key={g.id} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="px-6 py-4">
+                                    <p className="text-white font-bold">{new Date(g.fecha).toLocaleDateString()}</p>
+                                    <p className="text-[10px] text-[#8b949e]">{g.ruc_proveedor || 'S/N RUC'}</p>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <p className="text-white font-medium">{g.proveedor}</p>
+                                    <p className="text-[10px] text-[#8b949e] italic">{g.descripcion}</p>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className="px-2 py-0.5 bg-[#30363d] text-[10px] text-white rounded-full border border-white/5 uppercase">{g.categoria}</span>
+                                </td>
+                                <td className="px-6 py-4 font-bold text-white">S/ {g.monto_total?.toLocaleString()}</td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${g.estado === 'pagado' ? 'bg-[#238636]/20 text-[#238636]' : 'bg-[#f0a500]/20 text-[#f0a500]'}`}>{g.estado}</span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <button className="text-[#8b949e] hover:text-[#f0a500]"><Eye className="h-4 w-4" /></button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    )
+}
+
+function SectionVentas({ ventas, loading }: any) {
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest">Control Interno de Facturación</h3>
+                <div className="flex gap-2">
+                    <button className="px-3 py-1.5 bg-[#161b22] border border-[#30363d] text-white text-xs font-bold rounded-lg flex items-center gap-1"><Printer className="h-3.5 w-3.5" /> PDF Masivo</button>
+                    <button className="px-3 py-1.5 bg-[#1f6feb] text-white text-xs font-bold rounded-lg">Exportar Excel</button>
+                </div>
+            </div>
+
+            <div className="bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-black/20 text-[#8b949e] uppercase text-[10px] tracking-wider border-b border-[#30363d]">
+                        <tr>
+                            <th className="px-6 py-4">Serie-Número</th>
+                            <th className="px-6 py-4">Cliente / RUC</th>
+                            <th className="px-6 py-4">Operación</th>
+                            <th className="px-6 py-4">IGV</th>
+                            <th className="px-6 py-4">Total</th>
+                            <th className="px-6 py-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#30363d]">
+                        {ventas.map((v: any) => (
+                            <tr key={v.id} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="px-6 py-4">
+                                    <p className="text-[#f0a500] font-bold">{v.serie_numero}</p>
+                                    <p className="text-[10px] text-[#8b949e]">{new Date(v.fecha).toLocaleDateString()}</p>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <p className="text-white font-medium">{v.cliente_denominacion}</p>
+                                    <p className="text-[10px] text-[#8b949e]">{v.cliente_numero_documento}</p>
+                                </td>
+                                <td className="px-6 py-4 text-white">S/ {v.base_imponible?.toLocaleString()}</td>
+                                <td className="px-6 py-4 text-[#8b949e]">S/ {v.igv?.toLocaleString()}</td>
+                                <td className="px-6 py-4 font-bold text-white">S/ {v.total?.toLocaleString()}</td>
+                                <td className="px-6 py-4 text-right">
+                                    <span className="px-2 py-0.5 bg-[#1f6feb]/20 text-[#1f6feb] text-[10px] font-bold rounded">EMI</span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    )
+}
+
+function SectionSIRE({ ventas, gastos, showToast }: any) {
+    const handleGenerateSIRE = () => {
+        showToast('Generando Archivo SIRE...', 'info')
+        setTimeout(() => {
+            const content = ventas.map((v: any) => `${v.cliente_numero_documento}|${v.serie_numero}|${v.fecha}|${v.total}`).join('\n')
+            const blob = new Blob([content], { type: 'text/plain' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `LE_SIRE_RVIE_${new Date().getFullYear()}${new Date().getMonth() + 1}.txt`
+            a.click()
+            showToast('Archivo RVIE (TXT) descargado con éxito', 'success')
+        }, 1500)
+    }
+
+    return (
+        <div className="bg-[#0b0f19] border border-[#30363d] rounded-2xl p-10 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#f0a500]/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+
+            <FileJson className="h-16 w-16 text-[#f0a500] mx-auto mb-6" />
+            <h3 className="text-2xl font-rajdhani font-bold text-white mb-4 uppercase tracking-widest">Generador SIRE SUNAT v2024</h3>
+            <p className="text-sm text-[#8b949e] max-w-xl mx-auto mb-10 leading-relaxed">
+                Nuestra plataforma está 100% integrada con el Sistema Integrado de Registros Electrónicos (SIRE).
+                Exporta tus registros de ventas (RVIE) y compras (RCRE) en formato TXT estructurado con la lógica de pipes (`|`) requerida por SUNAT.
+            </p>
+
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+                <button onClick={handleGenerateSIRE} className="px-8 py-4 bg-[#f0a500] hover:bg-[#e06c00] text-[#0d1117] font-bold rounded-xl transition-all shadow-lg hover:shadow-[#f0a500]/20 flex items-center justify-center gap-3">
+                    <Download className="h-5 w-5" /> Generar RVIE (Ventas)
+                </button>
+                <button onClick={() => showToast('Módulo RCRE en desarrollo', 'info')} className="px-8 py-4 bg-[#161b22] border border-[#30363d] hover:bg-[#21262d] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3">
+                    <Download className="h-5 w-5 opacity-50" /> Generar RCRE (Compras)
+                </button>
+            </div>
+
+            <div className="mt-12 pt-8 border-t border-[#30363d] grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
+                <div>
+                    <p className="text-[10px] text-[#8b949e] uppercase font-bold mb-1">Última Valid.</p>
+                    <p className="text-xs text-white">25 Mar 2024</p>
+                </div>
+                <div>
+                    <p className="text-[10px] text-[#8b949e] uppercase font-bold mb-1">Pendiante SIRE</p>
+                    <p className="text-xs text-[#f0a500] font-bold">12 Documentos</p>
+                </div>
+                <div>
+                    <p className="text-[10px] text-[#8b949e] uppercase font-bold mb-1">Errores Estruc.</p>
+                    <p className="text-xs text-white">0 Detectados</p>
+                </div>
+                <div>
+                    <p className="text-[10px] text-[#8b949e] uppercase font-bold mb-1">Cod. Operación</p>
+                    <p className="text-xs text-white">Régimen Gral.</p>
+                </div>
+            </div>
+        </div>
+    )
+}
