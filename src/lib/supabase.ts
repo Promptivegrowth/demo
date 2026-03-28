@@ -27,7 +27,17 @@ export async function getUser() {
 export async function getUserProfile() {
     const user = await getUser()
     if (!user) return null
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+
+    // Intento 1
+    let { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+
+    // Intento 2 con pequeño delay (Buffer de propagación para nuevos usuarios demo)
+    if (!data && !error) {
+        await new Promise(r => setTimeout(r, 800))
+        const retry = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+        data = retry.data
+    }
+
     return data
 }
 

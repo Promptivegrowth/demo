@@ -65,11 +65,15 @@ export async function ensureConfirmedDemoUser(email: string, password: string, f
         }
 
         if (user) {
+            // BUSCAR ORG_ID VÁLIDO (De la primera organización o del perfil admin)
+            const { data: orgData } = await adminClient.from('organizations').select('id').limit(1).single()
+
             await adminClient.from('profiles').upsert({
                 id: user.id,
                 email,
                 full_name: fullName,
-                role: 'admin'
+                role: 'admin',
+                org_id: orgData?.id // CRÍTICO: Sin esto el Dashboard aparece en 0 por RLS
             })
         }
 

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { signIn } from '@/lib/supabase'
+import { signIn, signOut } from '@/lib/supabase'
 import { ensureConfirmedDemoUser } from '@/app/sergensaf/actions/db_actions'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,12 @@ export default function LoginPage() {
         setError('')
         setLoading(true)
         try {
+            // LIMPIEZA DE SESIÓN PREVIA (Eliminar Errores de Bloqueo/AbortError)
+            if (email.startsWith('test')) {
+                await signOut()
+                await new Promise(r => setTimeout(r, 200)) // Buffer de estabilidad
+            }
+
             const { error: authError } = await signIn(email, password)
             if (authError) {
                 // AUTO-PROVISIONING ADMINISTRATIVO (BYPASS EMAIL CONFIRM)
