@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const router = useRouter()
     const [ready, setReady] = useState(false)
+    const lastUserId = useRef<string | null>(null)
 
     const loadProfile = useCallback(async (userId: string, userEmail?: string, userMeta?: Record<string, unknown>) => {
         console.log('[PROMPTIVE] Loading profile for:', userEmail || userId)
@@ -41,7 +42,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }
 
             // 2. If no profile or no org_id, and it's a demo user, auto-assign first organization
-            // This ensures RLS doesn't block data for the demo experience
             if (userEmail?.endsWith('@promptive.pe') || userEmail?.includes('sergensaf.com')) {
                 console.log('[PROMPTIVE] Demo/Sergensaf user detect, ensuring org_id context')
                 const { data: orgData } = await supabase.from('organizations').select('id').limit(1).maybeSingle()
@@ -51,13 +51,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     full_name: (userMeta?.full_name as string) || (userEmail?.includes('admin') || userEmail?.includes('test') ? 'Administrador Demo' : 'Usuario Demo'),
                     email: userEmail || '',
                     role: (userEmail?.includes('admin') ? 'admin' : 'operativo') as any,
-                    org_id: orgData?.id || null, // CRITICAL FIX for "Everything at 0"
+                    org_id: orgData?.id || null,
                     avatar_url: null,
                     is_active: true,
                 }
             }
 
-            // 3. Fallback to metadata if DB is unreachable or user is new
+            // 3. Fallback to metadata
             console.log('[PROMPTIVE] No profile found, using metadata fallback')
             return {
                 id: userId,
@@ -93,12 +93,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 if (!mounted) return
 
                 if (session?.user) {
+                    lastUserId.current = session.user.id
                     const profile = await loadProfile(session.user.id, session.user.email, session.user.user_metadata)
                     if (mounted) {
                         if (profile) setUser(profile)
                         else setUser(null)
                     }
                 } else {
+                    lastUserId.current = null
                     if (mounted) setUser(null)
                 }
             } catch (err) {
@@ -109,12 +111,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }
         }
 
-        // Add a safety timeout — never stay loading more than 6 seconds
         const timeout = setTimeout(() => {
             if (mounted && !ready) {
                 console.warn('Auth timeout — forcing ready to prevent infinite loader')
                 setReady(true)
-                // If we hit timeout, we might be offline or service is slow
             }
         }, 6000)
 
@@ -123,12 +123,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!mounted) return
 
-            console.log(`Auth event: ${event}`)
+            console.log(`[AUTH] Event: ${event} | User: ${session?.user?.id || 'none'}`)
 
-            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
+                // GUARD: Si el usuario es el mismo, no recargar perfil (Evita bucles infinitos)
+                if (lastUserId.current === session.user.id) {
+                    console.log('[AUTH] Ignoring redundant event for same user')
+                    return
+                }
+
+                lastUserId.current = session.user.id
                 const profile = await loadProfile(session.user.id, session.user.email, session.user.user_metadata)
                 if (profile && mounted) setUser(profile)
             } else if (event === 'SIGNED_OUT') {
+                lastUserId.current = null
                 setUser(null)
                 router.push('/login')
             }
@@ -141,7 +149,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
     }, [setUser, loadProfile, router])
 
-    // Redirect to login when not authenticated
     useEffect(() => {
         if (!ready) return
         if (!isAuthenticated && pathname !== '/login') {
@@ -149,12 +156,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, pathname, router, ready])
 
-    // Login page — no shell
     if (pathname === '/login') {
         return <>{children}<Toaster position="top-right" richColors /></>
     }
 
-    // Loading state with pulse animation
     if (!ready || isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-background">
@@ -173,7 +178,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Sidebar />
             <CommandPalette />
             <Toaster position="top-right" richColors />
-            {/* Desktop layout */}
             <motion.div
                 initial={false}
                 animate={{ marginLeft: sidebarCollapsed ? 72 : 256 }}
@@ -183,7 +187,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Topbar />
                 <main className="p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">{children}</main>
             </motion.div>
-            {/* Mobile layout */}
             <div className="lg:hidden min-h-screen">
                 <Topbar />
                 <main className="p-3 sm:p-4 animate-in fade-in duration-200">{children}</main>
