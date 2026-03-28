@@ -15,6 +15,8 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
     const [loading, setLoading] = useState(true)
     const [modalEmpleado, setModalEmpleado] = useState<{ show: boolean, data?: any }>({ show: false })
     const [modalPlanilla, setModalPlanilla] = useState<{ show: boolean }>({ show: false })
+    const [modalAsistencia, setModalAsistencia] = useState<{ show: boolean, employee?: any }>({ show: false })
+    const [modalLegajo, setModalLegajo] = useState<{ show: boolean, employee?: any }>({ show: false })
 
     const fetchData = async () => {
         try {
@@ -69,8 +71,8 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {activeTab === 'personal' && <SectionPersonal empleados={empleados} loading={loading} setModal={setModalEmpleado} />}
-                    {activeTab === 'asistencia' && <SectionAsistencia empleados={empleados} />}
+                    {activeTab === 'personal' && <SectionPersonal empleados={empleados} loading={loading} setModal={setModalEmpleado} setModalAsistencia={setModalAsistencia} setModalLegajo={setModalLegajo} />}
+                    {activeTab === 'asistencia' && <SectionAsistencia empleados={empleados} setModalAsistencia={setModalAsistencia} />}
                     {activeTab === 'planilla' && <SectionPlanilla planillas={planillas} empleados={empleados} setModal={setModalPlanilla} />}
                     {activeTab === 'ley' && <SectionBeneficios empleados={empleados} />}
                 </motion.div>
@@ -89,6 +91,19 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
                 onClose={() => setModalPlanilla({ show: false })}
                 showToast={showToast}
                 refresh={fetchData}
+                empleados={empleados}
+            />
+            <ModalAsistencia
+                isOpen={modalAsistencia.show}
+                onClose={() => setModalAsistencia({ show: false })}
+                employee={modalAsistencia.employee}
+                showToast={showToast}
+                refresh={fetchData}
+            />
+            <ModalLegajo
+                isOpen={modalLegajo.show}
+                onClose={() => setModalLegajo({ show: false })}
+                employee={modalLegajo.employee}
             />
         </div>
     )
@@ -96,7 +111,7 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
 
 // --- SUB-SECCIONES ---
 
-function SectionPersonal({ empleados, loading, setModal }: any) {
+function SectionPersonal({ empleados, loading, setModal, setModalAsistencia, setModalLegajo }: any) {
     const [busqueda, setBusqueda] = useState('')
     const filtered = empleados.filter((e: any) => `${e.nombres} ${e.apellidos}`.toLowerCase().includes(busqueda.toLowerCase()))
 
@@ -148,7 +163,6 @@ function SectionPersonal({ empleados, loading, setModal }: any) {
                                 <p className="text-[10px] text-[#8b949e] uppercase">Régimen</p>
                                 <p className="text-sm font-bold text-white uppercase">{e.sistema_pensionario === 'afp' ? e.afp_nombre : e.sistema_pensionario}</p>
                             </div>
-
                         </div>
 
                         <div className="space-y-2">
@@ -163,8 +177,18 @@ function SectionPersonal({ empleados, loading, setModal }: any) {
                         </div>
 
                         <div className="mt-5 pt-4 border-t border-[#30363d] flex gap-2">
-                            <button className="flex-1 py-1.5 bg-[#30363d] hover:bg-[#484f58] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1"><Eye className="h-3 w-3" /> Legajo</button>
-                            <button className="flex-1 py-1.5 bg-[#f0a500]/10 text-[#f0a500] hover:bg-[#f0a500] hover:text-[#0d1117] text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1"><Calendar className="h-3 w-3" /> Asistencia</button>
+                            <button
+                                onClick={() => setModalLegajo({ show: true, employee: e })}
+                                className="flex-1 py-1.5 bg-[#30363d] hover:bg-[#484f58] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1"
+                            >
+                                <Eye className="h-3 w-3" /> Legajo
+                            </button>
+                            <button
+                                onClick={() => setModalAsistencia({ show: true, employee: e })}
+                                className="flex-1 py-1.5 bg-[#f0a500]/10 text-[#f0a500] hover:bg-[#f0a500] hover:text-[#0d1117] text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1"
+                            >
+                                <Calendar className="h-3 w-3" /> Asistencia
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -173,24 +197,32 @@ function SectionPersonal({ empleados, loading, setModal }: any) {
     )
 }
 
-function SectionAsistencia({ empleados }: any) {
+function SectionAsistencia({ empleados, setModalAsistencia }: any) {
     return (
-        <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-8 text-center">
-            <Calendar className="h-12 w-12 text-[#f0a500] mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-bold text-white mb-2">Monitor de Asistencia en Tiempo Real</h3>
-            <p className="text-sm text-[#8b949e] max-w-md mx-auto mb-6">Visualiza las tardanzas, faltas y horas extra de hoy. Sincronizado con el reloj biométrico de planta.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                <div className="p-4 bg-[#0d1117] rounded-xl border border-[#30363d]">
-                    <p className="text-2xl font-bold text-[#238636]">14</p>
-                    <p className="text-xs text-[#8b949e]">Presentes</p>
-                </div>
-                <div className="p-4 bg-[#0d1117] rounded-xl border border-[#30363d]">
-                    <p className="text-2xl font-bold text-[#f0a500]">2</p>
-                    <p className="text-xs text-[#8b949e]">Tardanzas</p>
-                </div>
-                <div className="p-4 bg-[#0d1117] rounded-xl border border-[#30363d]">
-                    <p className="text-2xl font-bold text-[#da3633]">1</p>
-                    <p className="text-xs text-[#8b949e]">Faltas</p>
+        <div className="space-y-6">
+            <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-8 text-center bg-gradient-to-b from-[#161b22] to-[#0d1117]">
+                <Calendar className="h-12 w-12 text-[#f0a500] mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-bold text-white mb-2">Monitor de Asistencia en Tiempo Real</h3>
+                <p className="text-sm text-[#8b949e] max-w-md mx-auto mb-6">Visualiza las tardanzas, faltas y horas extra de hoy. Sincronizado con el reloj biométrico de planta.</p>
+                <button
+                    onClick={() => setModalAsistencia({ show: true })}
+                    className="mb-8 px-6 py-2.5 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl shadow-[0_0_20px_rgba(240,165,0,0.2)] hover:scale-105 transition-all text-sm"
+                >
+                    Registrar Marcación Manual
+                </button>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                    <div className="p-4 bg-[#0d1117] rounded-xl border border-[#30363d]">
+                        <p className="text-2xl font-bold text-[#238636]">14</p>
+                        <p className="text-xs text-[#8b949e]">Presentes</p>
+                    </div>
+                    <div className="p-4 bg-[#0d1117] rounded-xl border border-[#30363d]">
+                        <p className="text-2xl font-bold text-[#f0a500]">2</p>
+                        <p className="text-xs text-[#8b949e]">Tardanzas</p>
+                    </div>
+                    <div className="p-4 bg-[#0d1117] rounded-xl border border-[#30363d]">
+                        <p className="text-2xl font-bold text-[#da3633]">1</p>
+                        <p className="text-xs text-[#8b949e]">Faltas</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -239,7 +271,6 @@ function SectionPlanilla({ planillas, empleados, setModal }: any) {
                                         {p.estado}
                                     </span>
                                 </td>
-
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex gap-2 justify-end">
                                         <button className="p-1.5 text-[#8b949e] hover:text-[#1f6feb]"><Download className="h-4 w-4" /></button>
@@ -268,7 +299,6 @@ function SectionBeneficios({ empleados }: any) {
                             <span className="text-sm font-rajdhani font-bold text-white">S/ {(e.remuneracion_bruta / 2).toFixed(2)}</span>
                         </div>
                     ))}
-
                 </div>
             </div>
             <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-6">
@@ -295,17 +325,17 @@ function SectionBeneficios({ empleados }: any) {
 function ModalWrapper({ isOpen, onClose, title, children }: any) {
     if (!isOpen) return null
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm shadow-2xl">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-[#161b22] border border-[#30363d] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+                className="w-full max-w-lg bg-[#0d1117] border border-[#30363d] rounded-2xl overflow-hidden shadow-2xl"
             >
-                <div className="flex justify-between items-center p-6 border-b border-[#30363d]">
-                    <h3 className="text-xl font-rajdhani font-bold text-white uppercase tracking-wider">{title}</h3>
-                    <button onClick={onClose} className="text-[#8b949e] hover:text-white transition-colors"><X className="h-6 w-6" /></button>
+                <div className="flex justify-between items-center px-6 py-4 border-b border-[#30363d] bg-[#161b22]">
+                    <h3 className="text-lg font-bold text-white">{title}</h3>
+                    <button onClick={onClose} className="p-1 text-[#8b949e] hover:text-white"><X className="h-5 w-5" /></button>
                 </div>
-                <div className="p-6 text-[#e6edf3]">
+                <div className="p-6">
                     {children}
                 </div>
             </motion.div>
@@ -314,129 +344,231 @@ function ModalWrapper({ isOpen, onClose, title, children }: any) {
 }
 
 function ModalEmpleado({ isOpen, onClose, data, showToast, refresh }: any) {
-    const [formData, setFormData] = useState<any>({
-        nombres: '', apellidos: '', dni: '', cargo: '', area: '', sexo: 'M',
-        remuneracion_bruta: 1025, sistema_pensionario: 'afp', afp_nombre: 'Integra',
-        fecha_ingreso: new Date().toISOString().split('T')[0], estado: 'activo'
-    })
+    const [formData, setFormData] = useState<any>({})
 
     useEffect(() => {
         if (data) setFormData(data)
-        else setFormData({
-            nombres: '', apellidos: '', dni: '', cargo: '', area: '', sexo: 'M',
-            remuneracion_bruta: 1025, sistema_pensionario: 'afp', afp_nombre: 'Integra',
-            fecha_ingreso: new Date().toISOString().split('T')[0], estado: 'activo'
-        })
+        else setFormData({ nombres: '', apellidos: '', dni: '', cargo: '', remuneracion_bruta: 0, sistema_pensionario: 'onp' })
     }, [data, isOpen])
-
 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
         try {
-            const { error } = await supabase.from('saf_empleados').upsert(formData)
-            if (error) throw error
-            showToast('Empleado guardado correctamente', 'success')
+            if (data?.id) {
+                await supabase.from('saf_empleados').update(formData).eq('id', data.id)
+                showToast('Empleado actualizado', 'success')
+            } else {
+                await supabase.from('saf_empleados').insert([formData])
+                showToast('Empleado registrado', 'success')
+            }
             refresh()
             onClose()
-        } catch (err: any) {
-            showToast(err.message, 'error')
+        } catch (error) {
+            showToast('Error procesando registro', 'error')
         }
     }
 
     return (
-        <ModalWrapper isOpen={isOpen} onClose={onClose} title={data ? 'Editar Ficha' : 'Nuevo Colaborador'}>
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title={data?.id ? 'Editar Empleado' : 'Nuevo Registro de Personal'}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <input placeholder="Nombres" required value={formData.nombres || ''} onChange={e => setFormData({ ...formData, nombres: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
-                    <input placeholder="Apellidos" required value={formData.apellidos || ''} onChange={e => setFormData({ ...formData, apellidos: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                    <input type="text" placeholder="Nombres" className="bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm" value={formData.nombres || ''} onChange={e => setFormData({ ...formData, nombres: e.target.value })} required />
+                    <input type="text" placeholder="Apellidos" className="bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm" value={formData.apellidos || ''} onChange={e => setFormData({ ...formData, apellidos: e.target.value })} required />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <input placeholder="DNI" required value={formData.dni || ''} onChange={e => setFormData({ ...formData, dni: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
-                    <input placeholder="Cargo" required value={formData.cargo || ''} onChange={e => setFormData({ ...formData, cargo: e.target.value })} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
-                </div>
+                <input type="text" placeholder="DNI" className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm" value={formData.dni || ''} onChange={e => setFormData({ ...formData, dni: e.target.value })} required />
+                <input type="text" placeholder="Cargo" className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm" value={formData.cargo || ''} onChange={e => setFormData({ ...formData, cargo: e.target.value })} required />
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Remuneración Bruta S/</label>
-                        <input type="number" value={formData.remuneracion_bruta || 0} onChange={e => setFormData({ ...formData, remuneracion_bruta: parseFloat(e.target.value) })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
+                        <p className="text-[10px] text-[#8b949e] uppercase">Sueldo Bruto (S/)</p>
+                        <input type="number" className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm" value={formData.remuneracion_bruta || 0} onChange={e => setFormData({ ...formData, remuneracion_bruta: parseFloat(e.target.value) })} required />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Sist. Pensionario</label>
-                        <select value={formData.sistema_pensionario || 'afp'} onChange={e => setFormData({ ...formData, sistema_pensionario: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
-                            <option value="afp">AFP (Integra/Prima...)</option>
+                        <p className="text-[10px] text-[#8b949e] uppercase">Sistema Pensión</p>
+                        <select className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm appearance-none" value={formData.sistema_pensionario || 'onp'} onChange={e => setFormData({ ...formData, sistema_pensionario: e.target.value })}>
                             <option value="onp">ONP</option>
+                            <option value="afp">AFP</option>
                         </select>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Género</label>
-                        <select value={formData.sexo || 'M'} onChange={e => setFormData({ ...formData, sexo: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
-                            <option value="M">Masculino</option>
-                            <option value="F">Femenino</option>
-                        </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] text-[#8b949e] uppercase font-bold">Área</label>
-                        <input value={formData.area || ''} onChange={e => setFormData({ ...formData, area: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white" />
-                    </div>
-                </div>
-
-                <button type="submit" className="w-full py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl shadow-lg hover:brightness-110 mt-4">Guardar Empleado</button>
+                <button type="submit" className="w-full py-3 bg-[#f0a500] text-[#0d1117] font-bold rounded-xl mt-4">Guardar Registro</button>
             </form>
         </ModalWrapper>
     )
 }
 
-function ModalPlanilla({ isOpen, onClose, showToast, refresh }: any) {
-    const [mes, setMes] = useState('MARZO')
-    const [año, setAño] = useState(2024)
+function ModalAsistencia({ isOpen, onClose, employee, showToast, refresh }: any) {
+    const [tipo, setTipo] = useState('entrada')
+    const [hora, setHora] = useState(new Date().toTimeString().slice(0, 5))
+
+    const handleRegister = async () => {
+        try {
+            const isLate = tipo === 'entrada' && hora > '08:00'
+            const tardanzaMinutos = isLate ? (parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1])) - 480 : 0
+
+            const { error } = await supabase.from('saf_asistencia_log').insert([{
+                empleado_id: employee?.id,
+                fecha: new Date().toISOString().split('T')[0],
+                [tipo === 'entrada' ? 'hora_entrada' : 'hora_salida']: hora,
+                estado: isLate ? 'tardanza' : 'presente',
+                tardanza_minutos: tardanzaMinutos
+            }])
+
+            if (error) throw error
+            showToast(`Marcación de ${tipo} registrada${employee ? ` para ${employee.nombres}` : ''}`, 'success')
+            setTimeout(() => {
+                refresh()
+                onClose()
+            }, 1000)
+        } catch (err) {
+            showToast('Error registrando asistencia', 'error')
+        }
+    }
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title={`Control Asistencia: ${employee?.nombres || 'General'}`}>
+            <div className="space-y-6">
+                <div className="p-4 bg-[#161b22] border border-[#30363d] rounded-xl flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-[#f0a500]" />
+                    </div>
+                    <div>
+                        <p className="text-white font-bold uppercase">{new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                        <p className="text-xs text-[#8b949e]">Sincronizado con Biométrica</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => setTipo('entrada')} className={`py-3 rounded-xl border font-bold transition-all ${tipo === 'entrada' ? 'bg-[#238636] border-[#238636] text-white shadow-lg' : 'bg-[#161b22] border-[#30363d] text-[#8b949e]'}`}>Entrada</button>
+                    <button onClick={() => setTipo('salida')} className={`py-3 rounded-xl border font-bold transition-all ${tipo === 'salida' ? 'bg-[#da3633] border-[#da3633] text-white shadow-lg' : 'bg-[#161b22] border-[#30363d] text-[#8b949e]'}`}>Salida</button>
+                </div>
+
+                <div className="space-y-2">
+                    <p className="text-xs text-[#8b949e] uppercase">Hora del Evento</p>
+                    <input type="time" value={hora} onChange={e => setHora(e.target.value)} className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl p-4 text-3xl font-bold text-white text-center" />
+                    {tipo === 'entrada' && hora > '08:00' && (
+                        <p className="text-[10px] text-[#f0a500] font-bold text-center uppercase tracking-widest animate-pulse">Detectada Tardanza (TARIFA)</p>
+                    )}
+                </div>
+
+                <button onClick={handleRegister} className="w-full py-4 bg-[#f0a500] text-[#0d1117] font-bold rounded-2xl hover:scale-[1.02] transition-all">Confirmar Marcación</button>
+            </div>
+        </ModalWrapper>
+    )
+}
+
+function ModalLegajo({ isOpen, onClose, employee }: any) {
+    const docs = [
+        { name: 'Documento Nacional de Identidad', date: '2023-01-15', status: 'valid', type: 'PDF' },
+        { name: 'Contrato de Trabajo 2024', date: '2024-02-01', status: 'valid', type: 'PDF' },
+        { name: 'Antecedentes Policiales', date: '2023-12-10', status: 'expired', type: 'IMG' },
+        { name: 'Examen Médico Ocupacional', date: '2024-01-20', status: 'valid', type: 'PDF' },
+    ]
+
+    return (
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title={`Legajo Digital: ${employee?.nombres} ${employee?.apellidos}`}>
+            <div className="space-y-4">
+                {docs.map((doc, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 bg-[#161b22] border border-[#30363d] rounded-xl hover:border-white/20 transition-all cursor-pointer">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${doc.type === 'PDF' ? 'bg-[#da3633]/20 text-[#da3633]' : 'bg-[#1f6feb]/20 text-[#1f6feb]'}`}>
+                                <FileText className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-white font-medium">{doc.name}</p>
+                                <p className="text-[10px] text-[#8b949e]">Subido el {doc.date}</p>
+                            </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${doc.status === 'valid' ? 'bg-[#238636]/20 text-[#238636]' : 'bg-[#da3633]/20 text-[#da3633]'}`}>
+                            {doc.status}
+                        </span>
+                    </div>
+                ))}
+                <button className="w-full py-3 border-2 border-dashed border-[#30363d] text-[#8b949e] rounded-xl hover:border-[#f0a500] hover:text-[#f0a500] transition-all text-sm font-bold">+ Subir Documento</button>
+            </div>
+        </ModalWrapper>
+    )
+}
+
+function ModalPlanilla({ isOpen, onClose, showToast, refresh, empleados }: any) {
+    const [mes, setMes] = useState(new Date().getMonth() + 1)
+    const [año, setAño] = useState(new Date().getFullYear())
 
     const handleEjecutar = async () => {
         try {
-            const { data: emps } = await supabase.from('saf_empleados').select('*')
-            if (!emps) return
+            showToast('Calculando aportes y rentas...', 'info')
 
-            const meses: any = { 'ENERO': 1, 'FEBRERO': 2, 'MARZO': 3, 'ABRIL': 4, 'MAYO': 5, 'JUNIO': 6, 'JULIO': 7, 'AGOSTO': 8, 'SETIEMBRE': 9, 'OCTUBRE': 10, 'NOVIEMBRE': 11, 'DICIEMBRE': 12 }
+            const totalBruto = empleados.reduce((acc: number, cur: any) => acc + (cur.remuneracion_bruta || 0), 0)
+            const totalNeto = totalBruto * 0.87
 
-            const resumen = {
-                periodo_mes: meses[mes],
+            const { data: planilla, error: pErr } = await supabase.from('saf_planilla').insert([{
+                periodo_mes: mes,
                 periodo_anio: año,
-                total_bruto: emps.reduce((acc, curr) => acc + (curr.remuneracion_bruta || 0), 0),
-                total_neto: emps.reduce((acc, curr) => acc + ((curr.remuneracion_bruta || 0) * 0.87), 0),
-                total_essalud_empleador: emps.reduce((acc, curr) => acc + ((curr.remuneracion_bruta || 0) * 0.09), 0),
+                total_empleados: empleados.length,
+                total_bruto: totalBruto,
+                total_neto: totalNeto,
                 estado: 'pendiente'
-            }
+            }]).select().single()
 
-            const { error } = await supabase.from('saf_planilla').insert(resumen)
-            if (error) throw error
-            showToast(`Planilla de ${mes} ${año} generada con éxito`, 'success')
+            if (pErr) throw pErr
+
+            // @ts-ignore
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(22).text('SERGENSAF S.A.C.', 105, 20, { align: 'center' });
+            doc.setFontSize(14).text(`BOLETA DE PAGO CONSOLIDADA - ${mes}/${año}`, 105, 30, { align: 'center' });
+
+            const tableData = empleados.map((e: any) => [
+                `${e.nombres} ${e.apellidos}`,
+                e.cargo,
+                `S/ ${e.remuneracion_bruta}`,
+                `S/ ${(e.remuneracion_bruta * 0.13).toFixed(2)}`,
+                `S/ ${(e.remuneracion_bruta * 0.87).toFixed(2)}`
+            ]);
+
+            // @ts-ignore
+            doc.autoTable({
+                head: [['Empleado', 'Cargo', 'Ingresos', 'Descuentos', 'Neto']],
+                body: tableData,
+                startY: 40,
+                theme: 'striped',
+                headStyles: { fillColor: [31, 111, 235] }
+            });
+
+            doc.save(`Planilla_SERGENSAF_${mes}_${año}.pdf`);
+            showToast('Planilla procesada y PDF generado', 'success')
             refresh()
             onClose()
-        } catch (err: any) {
-            showToast(err.message, 'error')
+        } catch (err) {
+            showToast('Error al procesar planilla', 'error')
         }
     }
 
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose} title="Cierre Mensual de Planilla">
-            <div className="space-y-6">
-                <p className="text-sm text-[#8b949e]">Esta acción calculará los sueldos, descuentos de ley (AFP/ONP) y aportes del empleador (EsSalud) para todos los trabajadores activos.</p>
+            <div className="space-y-4">
+                <div className="p-4 bg-[#1f6feb]/10 border border-[#1f6feb]/30 rounded-xl">
+                    <p className="text-xs text-white uppercase font-bold tracking-widest">Procedimiento de Cierre Masivo</p>
+                    <p className="text-[10px] text-[#8b949e]">Se procesarán {empleados?.length} legajos bajo normativa SUNAT.</p>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <select value={mes} onChange={e => setMes(e.target.value)} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
-                        <option value="ENERO">ENERO</option>
-                        <option value="FEBRERO">FEBRERO</option>
-                        <option value="MARZO">MARZO</option>
-                    </select>
-                    <select value={año} onChange={e => setAño(parseInt(e.target.value))} className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
-                        <option value={2024}>2024</option>
-                        <option value={2025}>2025</option>
-                    </select>
+                    <div>
+                        <p className="text-xs text-[#8b949e] mb-1">Mes</p>
+                        <select value={mes} onChange={e => setMes(parseInt(e.target.value))} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm">
+                            {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'].map((m, i) => (
+                                <option key={i} value={i + 1}>{m}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <p className="text-xs text-[#8b949e] mb-1">Año</p>
+                        <select value={año} onChange={e => setAño(parseInt(e.target.value))} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-2 text-white text-sm">
+                            <option value={2024}>2024</option>
+                            <option value={2025}>2025</option>
+                            <option value={2026}>2026</option>
+                        </select>
+                    </div>
                 </div>
-                <div className="bg-[#f0a500]/10 border border-[#f0a500]/20 p-4 rounded-xl">
-                    <p className="text-xs text-[#f0a500] font-bold uppercase mb-1">Nota importante</p>
-                    <p className="text-[11px] text-[#f0a500]/80">El sistema tomará la asistencia registrada en el módulo de 'Control Asistencia' para realizar los descuentos por tardanzas o faltas.</p>
-                </div>
-                <button onClick={handleEjecutar} className="w-full py-4 bg-[#1f6feb] text-white font-bold rounded-xl shadow-lg hover:brightness-110">Procesar y Generar PDF</button>
+                <button onClick={handleEjecutar} className="w-full py-4 bg-[#1f6feb] text-white font-bold rounded-2xl mt-4 shadow-lg shadow-[#1f6feb]/20 active:scale-95 transition-all">Generar PDF y Cerrar Periodo</button>
             </div>
         </ModalWrapper>
     )
