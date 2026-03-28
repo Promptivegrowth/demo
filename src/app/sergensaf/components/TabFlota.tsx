@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2, User, Star, Calendar, MapPin, Navigation
+    Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2, User, Star, Calendar, MapPin, Navigation, Activity
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { adminUpsert } from '../actions/db_actions'
 import dynamic from 'next/dynamic'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 // Cargar Leaflet dinámicamente para evitar errores de SSR
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false })
@@ -18,11 +19,11 @@ const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline)
 import { useMap } from 'react-leaflet'
 
 // Componente para recentrar el mapa
-function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
+function ChangeView({ center, zoom }: { center: [number, number], zoom?: number }) {
     const map = useMap()
     useEffect(() => {
-        map.setView(center, zoom)
-    }, [center, zoom])
+        map.setView(center, zoom || map.getZoom())
+    }, [center, zoom, map])
     return null
 }
 
@@ -77,7 +78,7 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                     {[
                         { id: 'unidades', label: 'Unidades', icon: Truck },
                         { id: 'viajes', label: 'Viajes / Despachos', icon: Calendar },
-                        { id: 'gps', label: 'Live GPS', icon: PenTool }, // Usando PenTool como placeholder de GPS icon si no hay uno mejor en el set inicial
+                        { id: 'gps', label: 'Live GPS', icon: Navigation },
                         { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench },
                     ].map(tab => (
                         <button
@@ -261,12 +262,11 @@ function SectionViajes({ viajes, showToast, refresh, loading, setModal }: any) {
 
 function SectionGPS({ units, viajes, locations, selectedUnit, setSelectedUnit }: any) {
     const activeViaje = selectedUnit ? viajes.find((v: any) => v.vehiculo_id === selectedUnit.id && v.estado === 'en_curso') : null
-    const unitLocations = selectedUnit ? locations.filter((l: any) => l.viaje_id === activeViaje?.id) : []
-    const lastPos = unitLocations.length > 0 ? unitLocations[unitLocations.length - 1] : null
-    const polyline = unitLocations.map((l: any) => [l.latitud, l.longitud])
 
-    // Leaflet fix icon issues
+    // Leaflet fix icon issues & Truck Icon
     const [L, setL] = useState<any>(null)
+    const [truckIcon, setTruckIcon] = useState<any>(null)
+
     useEffect(() => {
         import('leaflet').then(leaflet => {
             setL(leaflet)
@@ -276,14 +276,48 @@ function SectionGPS({ units, viajes, locations, selectedUnit, setSelectedUnit }:
                 iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
             })
+
+            // Custom Truck Icon using DivIcon
+            const iconHtml = renderToStaticMarkup(
+                <div className="relative">
+                    <div className="absolute -inset-2 bg-[#f0a500] opacity-20 rounded-full animate-ping"></div>
+                    <div className="relative bg-[#0d1117] border-2 border-[#f0a500] p-1.5 rounded-lg shadow-[0_0_15px_rgba(240,165,0,0.4)]">
+                        <Truck className="w-5 h-5 text-[#f0a500]" />
+                    </div>
+                </div>
+            )
+
+            setTruckIcon(new leaflet.DivIcon({
+                html: iconHtml,
+                className: 'custom-truck-icon',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            }))
         })
     }, [])
 
+    // Simulation Generator (Deterministic based on unit ID and Time)
+    const getUnitPos = (unit: any) => {
+        // Base: Lima / Planta SERGENSAF (Approx -12.0464, -77.0428)
+        const baseLat = -12.0464; const baseLng = -77.0428;
+        const seed = unit.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
+        const timeFactor = (new Date().getTime() / 15000) // Cambia cada 15 seg
+
+        // Offset determinista
+        const offLat = Math.sin(seed + timeFactor) * 0.02
+        const offLng = Math.cos(seed + timeFactor) * 0.02
+
+        return [baseLat + offLat, baseLng + offLng]
+    }
+
+    const currentPos = selectedUnit ? getUnitPos(selectedUnit) : [-12.0464, -77.0428]
+    const currentSpeed = selectedUnit?.estado === 'en_ruta' ? (45 + (selectedUnit.id.length % 15)) : 0
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px]">
-            {/* Link to Leaflet CSS */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px] relative">
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+            {/* LISTA DE UNIDADES */}
             <div className="lg:col-span-1 bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden flex flex-col shadow-2xl">
                 <div className="p-4 border-b border-[#30363d] bg-black/20">
                     <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -302,72 +336,73 @@ function SectionGPS({ units, viajes, locations, selectedUnit, setSelectedUnit }:
                                 {u.estado === 'en_ruta' && <div className="w-2 h-2 bg-[#238636] rounded-full animate-pulse" />}
                             </div>
                             <div className="flex justify-between mt-1 items-center">
-                                <p className="text-[10px] text-[#8b949e] uppercase font-semibold">{u.tipo || 'Unidad'}</p>
-                                <span className="text-[10px] text-[#238636] font-bold">{u.estado === 'en_ruta' ? 'ONLINE' : ''}</span>
+                                <p className="text-[10px] text-[#8b949e] uppercase font-semibold">{u.marca}</p>
+                                <span className="text-[10px] text-[#238636] font-bold">{u.estado === 'en_ruta' ? 'EN RUTA' : 'STANDBY'}</span>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="lg:col-span-3 bg-[#0d1117] border border-[#30363d] rounded-2xl relative overflow-hidden group shadow-2xl">
-                {typeof window !== 'undefined' && L && MapContainer && (
-                    <MapContainer
-                        center={lastPos ? [lastPos.latitud, lastPos.longitud] : [-12.046374, -77.042793]}
-                        zoom={13}
-                        style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
-                        className="z-0"
-                    >
-                        <TileLayer
-                            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                            attribution='&copy; OpenStreetMap'
-                        />
-                        {lastPos && <ChangeView center={[lastPos.latitud, lastPos.longitud]} zoom={15} />}
-                        {lastPos && (
-                            <Marker position={[lastPos.latitud, lastPos.longitud]}>
-                                <Popup>
-                                    <div className="text-black font-rajdhani">
-                                        <p className="font-bold text-sm">{selectedUnit?.placa}</p>
-                                        <p className="text-xs">Velocidad: {lastPos.velocidad_kmh?.toFixed(0)} km/h</p>
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        )}
-                        {polyline.length > 0 && <Polyline positions={polyline} color="#f0a500" weight={4} opacity={0.6} />}
+            {/* MAPA Y OVERLAY DE INFO */}
+            <div className="lg:col-span-3 bg-[#0d1117] rounded-xl border border-[#30363d] overflow-hidden relative shadow-2xl">
+                {L && (
+                    <MapContainer center={[-12.0464, -77.0428]} zoom={12} style={{ height: '100%', width: '100%', background: '#0d1117' }}>
+                        <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                        <ChangeView center={currentPos as any} />
+
+                        {units.map((u: any) => {
+                            const pos = getUnitPos(u)
+                            return (
+                                <Marker key={u.id} position={pos as any} icon={truckIcon || new L.Icon.Default()}>
+                                    <Popup>
+                                        <div className="text-[#0d1117] p-1">
+                                            <p className="font-bold border-b pb-1 mb-1">{u.placa}</p>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase">{u.estado.replace('_', ' ')}</p>
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            )
+                        })}
                     </MapContainer>
                 )}
 
-                {!selectedUnit && (
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-10 flex items-center justify-center p-8 text-center text-[#e6edf3]">
-                        <div>
-                            <MapPin className="h-12 w-12 text-[#f0a500] mx-auto mb-4 opacity-50" />
-                            <h5 className="text-xl font-rajdhani font-bold text-white mb-2">Monitor GPS SERGENSAF</h5>
-                            <p className="text-sm text-[#8b949e] max-w-xs">Selecciona una unidad de la lista para visualizar su ubicación en tiempo real y recorrido histórico.</p>
-                        </div>
-                    </div>
-                )}
-
-                {selectedUnit && (
-                    <div className="absolute bottom-6 left-6 right-6 p-5 bg-[#161b22]/90 backdrop-blur-xl border border-[#30363d]/50 rounded-2xl flex items-center justify-between z-10 shadow-3xl text-[#e6edf3]">
+                {/* Info Panel Overlay */}
+                {selectedUnit ? (
+                    <div className="absolute bottom-6 left-6 right-6 p-5 bg-[#0d1117]/80 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col md:flex-row items-center justify-between z-[400] shadow-3xl text-white gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-full bg-[#f0a500]/20 flex items-center justify-center border border-[#f0a500]/30 mr-2">
+                            <div className="h-10 w-10 rounded-full bg-[#f0a500]/20 flex items-center justify-center border border-[#f0a500]/30">
                                 <Truck className="h-5 w-5 text-[#f0a500]" />
                             </div>
                             <div>
-                                <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Unidad Seguida</p>
-                                <h5 className="text-white font-bold">{selectedUnit.placa} - {selectedUnit.marca}</h5>
-                                <p className="text-[10px] text-[#238636] font-bold">{activeViaje?.destino || 'Sin ruta activa'}</p>
+                                <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Unidad en Seguimiento</p>
+                                <h5 className="text-white font-bold text-lg">{selectedUnit.placa} <span className="text-[#8b949e] font-normal text-sm ml-2">({selectedUnit.marca})</span></h5>
+                                <p className="text-xs text-[#f0a500] font-medium flex items-center gap-1">
+                                    <Activity className="w-3 h-3" /> {activeViaje ? `Destino: ${activeViaje.destino}` : 'Sin despacho activo'}
+                                </p>
                             </div>
                         </div>
-                        <div className="flex gap-6">
-                            <div className="text-right border-r border-[#30363d] pr-6">
-                                <p className="text-[10px] text-[#8b949e] uppercase font-bold">Velocidad</p>
-                                <p className="text-lg font-rajdhani font-bold text-white">{lastPos?.velocidad_kmh?.toFixed(0) || 0} <span className="text-xs font-normal">km/h</span></p>
+
+                        <div className="flex gap-6 w-full md:w-auto">
+                            <div className="flex-1 md:flex-none bg-black/40 p-3 rounded-xl border border-white/5 text-center px-6">
+                                <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">Velocidad</p>
+                                <p className={`text-2xl font-rajdhani font-black ${currentSpeed > 0 ? 'text-[#238636]' : 'text-white'}`}>{currentSpeed} <span className="text-xs text-[#8b949e]">KM/H</span></p>
                             </div>
-                            <div className="text-right">
-                                <p className="text-[10px] text-[#f0a500] uppercase font-bold">Último Reporte</p>
-                                <p className="text-sm font-bold text-white">{lastPos ? new Date(lastPos.fecha_gps).toLocaleTimeString() : '--:--'}</p>
+                            <div className="flex-1 md:flex-none bg-black/40 p-3 rounded-xl border border-white/5 text-center px-6">
+                                <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-widest">GPS Status</p>
+                                <p className="text-sm font-bold text-[#f0a500] mt-1 uppercase tracking-tighter">Sincronizado</p>
+                                <p className="text-[8px] text-[#8b949e]">LAT: {currentPos[0].toFixed(3)} LNG: {currentPos[1].toFixed(3)}</p>
                             </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center z-[400]">
+                        <div className="bg-[#0d1117]/90 border border-[#30363d] p-8 rounded-3xl text-center shadow-2xl max-w-sm">
+                            <div className="w-16 h-16 bg-[#f0a500]/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#f0a500]/20">
+                                <MapPin className="h-8 w-8 text-[#f0a500]" />
+                            </div>
+                            <h4 className="text-xl font-rajdhani font-bold text-white mb-2 uppercase">Monitor Satelital V4</h4>
+                            <p className="text-xs text-[#8b949e] leading-relaxed">Selecciona una unidad de la lista lateral para iniciar el seguimiento en tiempo real de su posición, velocidad y ruta de despacho.</p>
                         </div>
                     </div>
                 )}

@@ -6,6 +6,7 @@ import {
     Truck, Plus, CheckCircle2, Clock, Search, FileText, AlertTriangle, Play, X, Navigation
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { adminInsert } from '../actions/db_actions'
 
 export default function TabDespachos({ showToast }: { showToast: Function }) {
     const [despachos, setDespachos] = useState<any[]>([])
@@ -19,6 +20,7 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
     // Modals
     const [modalNuevo, setModalNuevo] = useState(false)
     const [modalDetalle, setModalDetalle] = useState<{ isOpen: boolean, data: any }>({ isOpen: false, data: null })
+    const [modalGuia, setModalGuia] = useState<{ isOpen: boolean, data: any }>({ isOpen: false, data: null })
 
     // New Dispatch State
     const [nuevaOrdenId, setNuevaOrdenId] = useState('')
@@ -109,12 +111,19 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
         if (!nuevaOrdenId || !nuevaFlotaId || !conductor || !volumen || !guia) return showToast('Complete todos los campos obligatorios', 'warning')
 
         try {
-            // Registrar Despacho
-            const { error: errD } = await supabase.from('saf_despachos').insert({
-                orden_id: nuevaOrdenId, vehiculo_id: nuevaFlotaId, numero_guia: guia,
-                fecha_despacho: new Date().toISOString(), conductor, volumen_m3: volumen, estado: 'en_ruta'
-            })
-            if (errD) throw errD
+            // Registrar Despacho usando adminInsert para bypass RLS y asegurar consistencia
+            const payload = {
+                orden_id: nuevaOrdenId,
+                vehiculo_id: nuevaFlotaId,
+                numero_guia: guia,
+                fecha_despacho: new Date().toISOString(),
+                conductor,
+                volumen_m3: volumen,
+                estado: 'en_ruta'
+            }
+
+            const res = await adminInsert('saf_despachos', payload)
+            if (!res.success) throw new Error(res.error)
 
             // Marcar Vehiculo 'en_ruta'
             await supabase.from('saf_flota').update({ estado: 'en_ruta' }).eq('id', nuevaFlotaId)
@@ -125,7 +134,10 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
             showToast(`Despacho ${guia} originado correctamente`, 'success')
             setModalNuevo(false)
             fetchData()
-        } catch (err) { showToast('Error al crear despacho', 'error') }
+        } catch (err: any) {
+            console.error(err)
+            showToast(`Error al crear despacho: ${err.message}`, 'error')
+        }
     }
 
     // Effect para auto-seleccionar conductor por defecto
@@ -242,7 +254,13 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="flex items-center justify-center gap-1">
-                                                <button className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] bg-[#21262d] hover:bg-[#30363d] rounded" title="Ver Guía"><FileText className="h-4 w-4" /></button>
+                                                <button
+                                                    onClick={() => setModalGuia({ isOpen: true, data: d })}
+                                                    className="p-1.5 text-[#f0a500] hover:text-[#0d1117] bg-[#f0a500]/10 hover:bg-[#f0a500] border border-[#f0a500]/30 rounded transition-all"
+                                                    title="Ver Guía"
+                                                >
+                                                    <FileText className="h-4 w-4" />
+                                                </button>
                                                 {d.estado !== 'entregado' && (
                                                     <button onClick={() => handleMarcarEntregado(d)} className="p-2 text-[#8b949e] hover:text-[#238636] bg-black/20 hover:bg-[#238636]/10 border border-transparent hover:border-[#238636]/30 rounded-lg transition-all" title="Marcar como Entregado"><CheckCircle2 className="h-4 w-4" /></button>
                                                 )}
@@ -427,6 +445,94 @@ export default function TabDespachos({ showToast }: { showToast: Function }) {
                                         <span className="w-2 h-2 rounded-full bg-[#238636] animate-pulse"></span>
                                     </div>
 
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL GUIA DE REMISION (MOCK) */}
+            <AnimatePresence>
+                {modalGuia.isOpen && modalGuia.data && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-md p-4">
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white text-black w-full max-w-3xl rounded-none shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+                            {/* Toolbar */}
+                            <div className="bg-[#f0a500] p-4 flex justify-between items-center text-[#0d1117] print:hidden">
+                                <h4 className="font-rajdhani font-black uppercase flex items-center gap-2 italic"><FileText className="w-5 h-5" /> Vista Previa: Guía de Remisión Electrónica</h4>
+                                <div className="flex gap-2">
+                                    <button onClick={() => window.print()} className="px-3 py-1 bg-black/10 hover:bg-black/20 rounded font-bold text-xs uppercase">Imprimir / PDF</button>
+                                    <button onClick={() => setModalGuia({ isOpen: false, data: null })} className="p-1 hover:bg-black/10 rounded"><X className="w-5 h-5" /></button>
+                                </div>
+                            </div>
+
+                            {/* Guía Content */}
+                            <div className="flex-1 overflow-y-auto p-12 space-y-8 font-sans">
+                                <div className="flex justify-between items-start border-b-2 border-black pb-6">
+                                    <div className="space-y-1">
+                                        <h1 className="text-3xl font-black tracking-tighter text-[#0d1117]">SERGENSAF S.A.C.</h1>
+                                        <p className="text-[10px] w-64 leading-tight font-medium">Servicios Generales de Saneamiento y Fletes. Abastecimiento de Materiales y Agregados para Construcción.</p>
+                                        <p className="text-[10px] italic">Av. Minerales 123, Callao, Lima - Perú</p>
+                                    </div>
+                                    <div className="border-2 border-black p-4 text-center min-w-[250px]">
+                                        <p className="font-bold text-sm tracking-widest">R.U.C. 20601234567</p>
+                                        <div className="bg-[#f0a500] text-black font-black py-1 my-2 text-lg">GUÍA DE REMISIÓN</div>
+                                        <p className="font-bold text-xl">{modalGuia.data.numero_guia}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-8 text-[11px]">
+                                    <div className="space-y-2">
+                                        <p className="font-black uppercase border-b border-black pb-1">Punto de Partida</p>
+                                        <p>Planta Chancadora SERGENSAF - Cantera Chilca</p>
+                                        <p className="font-black uppercase border-b border-black pb-1 mt-4">Remitente (Cliente)</p>
+                                        <p className="font-bold text-sm">{modalGuia.data.saf_ordenes?.saf_clientes?.razon_social || 'CONSTRUCTORA XYZ S.A.'}</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="font-black uppercase border-b border-black pb-1">Punto de Llegada</p>
+                                        <p className="font-bold">{modalGuia.data.saf_ordenes?.saf_clientes?.direccion || 'Av. Los Próceres 456, Surco'}</p>
+                                        <p className="font-black uppercase border-b border-black pb-1 mt-4">Transporte</p>
+                                        <p><span className="font-bold">Unidad:</span> {modalGuia.data.saf_flota?.placa}</p>
+                                        <p><span className="font-bold">Conductor:</span> {modalGuia.data.conductor}</p>
+                                    </div>
+                                </div>
+
+                                <table className="w-full border-collapse text-[10px]">
+                                    <thead>
+                                        <tr className="bg-black text-white">
+                                            <th className="border border-black p-2 text-left">COD</th>
+                                            <th className="border border-black p-2 text-left">DESCRIPCIÓN DEL MATERIAL</th>
+                                            <th className="border border-black p-2 text-center">CANTIDAD</th>
+                                            <th className="border border-black p-2 text-center">UM</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="border border-black p-3 align-top">001</td>
+                                            <td className="border border-black p-3">
+                                                <p className="font-bold">Agregado de Construcción (Seleccionado)</p>
+                                                <p className="italic text-[9px] text-gray-600 mt-1">Material apto para bases y sub-bases viales. Control de calidad aprobado.</p>
+                                            </td>
+                                            <td className="border border-black p-3 text-center font-bold text-base">{modalGuia.data.volumen_m3}</td>
+                                            <td className="border border-black p-3 text-center">M3</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <div className="pt-20 flex justify-between gap-12">
+                                    <div className="flex-1 border-t border-black text-center pt-2">
+                                        <p className="text-[9px] uppercase font-bold">Firma Remitente</p>
+                                    </div>
+                                    <div className="flex-1 border-t border-black text-center pt-2">
+                                        <p className="text-[9px] uppercase font-bold">Firma Transportista</p>
+                                    </div>
+                                    <div className="flex-1 border-t border-black text-center pt-2">
+                                        <p className="text-[9px] uppercase font-bold">Sello y Firma Cliente</p>
+                                    </div>
+                                </div>
+
+                                <div className="text-[8px] text-gray-500 pt-10 text-center uppercase tracking-widest">
+                                    Representación impresa de Guía de Remisión Electrónica generada por Sistema ERP SERGENSAF v4.0
                                 </div>
                             </div>
                         </motion.div>
