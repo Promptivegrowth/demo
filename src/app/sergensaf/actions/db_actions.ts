@@ -39,3 +39,43 @@ export async function adminUpdate(table: string, data: any, eqField: string, eqV
         return { success: false, error: err.message }
     }
 }
+
+export async function ensureConfirmedDemoUser(email: string, password: string, fullName: string) {
+    try {
+        const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers()
+        if (listError) throw listError
+
+        let user = users.find(u => u.email === email)
+
+        if (!user) {
+            const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
+                email,
+                password,
+                email_confirm: true,
+                user_metadata: { full_name: fullName, role: 'admin' }
+            })
+            if (createError) throw createError
+            user = createData.user
+        } else {
+            const { error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
+                email_confirm: true,
+                user_metadata: { full_name: fullName, role: 'admin' }
+            })
+            if (updateError) throw updateError
+        }
+
+        if (user) {
+            await adminClient.from('profiles').upsert({
+                id: user.id,
+                email,
+                full_name: fullName,
+                role: 'admin'
+            })
+        }
+
+        return { success: true }
+    } catch (err: any) {
+        console.error('Error in ensureConfirmedDemoUser:', err)
+        return { success: false, error: err.message }
+    }
+}

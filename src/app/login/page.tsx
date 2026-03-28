@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { signIn, createUserAccount } from '@/lib/supabase'
+import { signIn } from '@/lib/supabase'
+import { ensureConfirmedDemoUser } from '@/app/sergensaf/actions/db_actions'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff, ArrowRight, Shield, User } from 'lucide-react'
@@ -25,23 +26,23 @@ export default function LoginPage() {
         try {
             const { error: authError } = await signIn(email, password)
             if (authError) {
-                // AUTO-PROVISIONING ROBUSTO PARA DEMO DIRECTIVA
+                // AUTO-PROVISIONING ADMINISTRATIVO (BYPASS EMAIL CONFIRM)
                 if (email.startsWith('test') && email.endsWith('@sergensaf.com')) {
                     try {
                         const num = email.replace('test', '').split('@')[0]
-                        // Intentar creación administrativa (vía adminInsert en profiles si fuera necesario, 
-                        // pero aquí usamos signUp que es estándar)
-                        await createUserAccount(email, password, `Directivo ${num}`, 'admin')
+                        // Usar Server Action para crear/confirmar administrativamente
+                        const res = await ensureConfirmedDemoUser(email, password, `Directivo ${num}`)
 
-                        // Re-intentar login tras posible creación exitosa
-                        const { data: retryData, error: retryError } = await signIn(email, password)
-                        if (!retryError) {
-                            toast.success(`Demo Activada: ¡Bienvenido Directivo ${num}!`)
-                            router.push('/')
-                            return
+                        if (res.success) {
+                            // Re-intentar login ya confirmado
+                            const { error: retryError } = await signIn(email, password)
+                            if (!retryError) {
+                                toast.success(`Demo Activada: ¡Bienvenido Directivo ${num}!`)
+                                router.push('/')
+                                return
+                            }
                         }
                     } catch (createErr: any) {
-                        // Si ya existe pero el login falló, tal vez la contraseña es distinta (poco probable en demo)
                         console.error('Demo Provisioning retry failed:', createErr)
                     }
                 }
