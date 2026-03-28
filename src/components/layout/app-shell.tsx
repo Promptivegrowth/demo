@@ -17,13 +17,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const router = useRouter()
     const [ready, setReady] = useState(false)
-    const lastUserId = useRef<string | null>(null)
+    const profileLoadedRef = useRef(false)
 
     const loadProfile = useCallback(async (userId: string, userEmail?: string, userMeta?: Record<string, unknown>) => {
         console.log('[PROMPTIVE] Loading profile for:', userEmail || userId)
 
         try {
-            // 1. Try to load from DB (Always, to get latest org_id)
             const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -41,7 +40,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            // 2. If no profile or no org_id, and it's a demo user, auto-assign first organization
             if (userEmail?.endsWith('@promptive.pe') || userEmail?.includes('sergensaf.com')) {
                 console.log('[PROMPTIVE] Demo/Sergensaf user detect, ensuring org_id context')
                 const { data: orgData } = await supabase.from('organizations').select('id').limit(1).maybeSingle()
@@ -57,7 +55,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            // 3. Fallback to metadata
             console.log('[PROMPTIVE] No profile found, using metadata fallback')
             return {
                 id: userId,
@@ -84,7 +81,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         let mounted = true
+        profileLoadedRef.current = false
 
+        // STRATEGY v5.0: Let onAuthStateChange handle ALL profile loading.
+        // checkSession only serves as a fast-path redirect to /login if no session exists.
         const checkSession = async () => {
             try {
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -93,52 +93,77 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 if (!mounted) return
 
                 if (session?.user) {
-                    lastUserId.current = session.user.id
-                    const profile = await loadProfile(session.user.id, session.user.email, session.user.user_metadata)
-                    if (mounted) {
-                        if (profile) setUser(profile)
-                        else setUser(null)
-                    }
+                    // Session exists — profile will be loaded by onAuthStateChange (INITIAL_SESSION)
+                    // Only set ready if we don't get an onAuthStateChange callback in time
+                    console.log('[AUTH] Session found, waiting for onAuthStateChange to load profile...')
                 } else {
-                    lastUserId.current = null
-                    if (mounted) setUser(null)
+                    // No session at all — redirect immediately
+                    console.log('[AUTH] No session found')
+                    if (mounted) {
+                        setUser(null)
+                        setReady(true)
+                    }
                 }
             } catch (err) {
                 console.error('Session check error:', err)
-                if (mounted) setUser(null)
-            } finally {
-                if (mounted) setReady(true)
+                if (mounted) {
+                    setUser(null)
+                    setReady(true)
+                }
             }
         }
 
+        // Safety timeout — increased to 10s for slow connections
         const timeout = setTimeout(() => {
             if (mounted && !ready) {
-                console.warn('Auth timeout — forcing ready to prevent infinite loader')
+                console.warn('[AUTH] Safety timeout (10s) — forcing ready')
                 setReady(true)
             }
-        }, 6000)
+        }, 10000)
 
         checkSession()
 
+        // SINGLE SOURCE OF TRUTH for profile loading
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!mounted) return
 
-            console.log(`[AUTH] Event: ${event} | User: ${session?.user?.id || 'none'}`)
+            console.log(`[AUTH] Event: ${event} | User: ${session?.user?.id?.slice(0, 8) || 'none'}`)
 
-            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
-                // GUARD: Si el usuario es el mismo, no recargar perfil (Evita bucles infinitos)
-                if (lastUserId.current === session.user.id) {
-                    console.log('[AUTH] Ignoring redundant event for same user')
+            if (event === 'SIGNED_OUT') {
+                profileLoadedRef.current = false
+                setUser(null)
+                setReady(true)
+                router.push('/login')
+                return
+            }
+
+            if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+                // For TOKEN_REFRESHED: skip if profile already loaded (avoids unnecessary DB queries)
+                if (event === 'TOKEN_REFRESHED' && profileLoadedRef.current) {
+                    console.log('[AUTH] Token refreshed, profile already loaded — skipping')
                     return
                 }
 
-                lastUserId.current = session.user.id
-                const profile = await loadProfile(session.user.id, session.user.email, session.user.user_metadata)
-                if (profile && mounted) setUser(profile)
-            } else if (event === 'SIGNED_OUT') {
-                lastUserId.current = null
-                setUser(null)
-                router.push('/login')
+                // For SIGNED_IN: only skip if profile was already loaded AND it's the same user
+                // (prevents re-loading on duplicate SIGNED_IN events from Supabase)
+                if (event === 'SIGNED_IN' && profileLoadedRef.current) {
+                    console.log('[AUTH] Ignoring duplicate SIGNED_IN — profile already active')
+                    return
+                }
+
+                // Load profile for INITIAL_SESSION (always) and first SIGNED_IN
+                try {
+                    const profile = await loadProfile(session.user.id, session.user.email, session.user.user_metadata)
+                    if (profile && mounted) {
+                        setUser(profile)
+                        profileLoadedRef.current = true
+                        console.log('[AUTH] Profile loaded successfully')
+                    }
+                } catch (err) {
+                    console.error('[AUTH] Failed to load profile:', err)
+                } finally {
+                    if (mounted) setReady(true)
+                }
             }
         })
 

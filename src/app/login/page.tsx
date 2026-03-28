@@ -19,29 +19,28 @@ export default function LoginPage() {
     const [error, setError] = useState('')
     const router = useRouter()
 
-    async function handleLogin(e: React.FormEvent) {
-        e.preventDefault()
+    // Core login logic — reusable for form submit AND quick-access buttons
+    async function executeLogin(loginEmail: string, loginPassword: string) {
         setError('')
         setLoading(true)
         try {
-            // LIMPIEZA DE SESIÓN PREVIA (Eliminar Errores de Bloqueo/AbortError)
-            if (email.startsWith('test')) {
-                await signOut()
-                await new Promise(r => setTimeout(r, 600)) // Buffer de estabilidad aumentado
-            }
+            // v5.0: ALWAYS clean previous session to prevent zombie tokens
+            console.log('[LOGIN] Cleaning previous session...')
+            await signOut()
+            await new Promise(r => setTimeout(r, 800)) // Increased buffer for session cleanup
 
-            const { error: authError } = await signIn(email, password)
+            // Attempt 1
+            const { error: authError } = await signIn(loginEmail, loginPassword)
             if (authError) {
-                // AUTO-PROVISIONING ADMINISTRATIVO (BYPASS EMAIL CONFIRM)
-                if (email.startsWith('test') && email.endsWith('@sergensaf.com')) {
+                // AUTO-PROVISIONING for test@sergensaf.com users
+                if (loginEmail.startsWith('test') && loginEmail.endsWith('@sergensaf.com')) {
                     try {
-                        const num = email.replace('test', '').split('@')[0]
-                        // Usar Server Action para crear/confirmar administrativamente
-                        const res = await ensureConfirmedDemoUser(email, password, `Directivo ${num}`)
+                        const num = loginEmail.replace('test', '').split('@')[0]
+                        const res = await ensureConfirmedDemoUser(loginEmail, loginPassword, `Directivo ${num}`)
 
                         if (res.success) {
-                            // Re-intentar login ya confirmado
-                            const { error: retryError } = await signIn(email, password)
+                            await new Promise(r => setTimeout(r, 300))
+                            const { error: retryError } = await signIn(loginEmail, loginPassword)
                             if (!retryError) {
                                 toast.success(`Demo Activada: ¡Bienvenido Directivo ${num}!`)
                                 router.push('/')
@@ -53,9 +52,17 @@ export default function LoginPage() {
                     }
                 }
 
-                setError(authError.message === 'Invalid login credentials'
-                    ? 'Credenciales incorrectas o usuario no registrado.'
-                    : authError.message)
+                // Attempt 2: Retry once after a brief wait (handles transient Lock errors)
+                await new Promise(r => setTimeout(r, 500))
+                const { error: retryError } = await signIn(loginEmail, loginPassword)
+                if (retryError) {
+                    setError(retryError.message === 'Invalid login credentials'
+                        ? 'Credenciales incorrectas o usuario no registrado.'
+                        : retryError.message)
+                } else {
+                    toast.success('¡Sesión Iniciada con Éxito!')
+                    router.push('/')
+                }
             } else {
                 toast.success('¡Sesión Iniciada con Éxito!')
                 router.push('/')
@@ -67,10 +74,22 @@ export default function LoginPage() {
         }
     }
 
+    async function handleLogin(e: React.FormEvent) {
+        e.preventDefault()
+        await executeLogin(email, password)
+    }
+
+    // Auto-login for quick-access buttons
+    async function handleQuickLogin(loginEmail: string, loginPassword: string) {
+        setEmail(loginEmail)
+        setPassword(loginPassword)
+        await executeLogin(loginEmail, loginPassword)
+    }
+
     function fillDemo(type: 'admin' | 'operativo') {
-        setEmail(type === 'admin' ? 'admin@promptive.pe' : 'operativo@promptive.pe')
-        setPassword(type === 'admin' ? 'Admin1234!' : 'Operativo1234!')
-        setError('')
+        const demoEmail = type === 'admin' ? 'admin@promptive.pe' : 'operativo@promptive.pe'
+        const demoPass = type === 'admin' ? 'Admin1234!' : 'Operativo1234!'
+        handleQuickLogin(demoEmail, demoPass)
     }
 
     return (
@@ -233,11 +252,7 @@ export default function LoginPage() {
                                 {[1, 2, 3, 4, 5].map(num => (
                                     <button
                                         key={num}
-                                        onClick={() => {
-                                            setEmail(`test${num}@sergensaf.com`)
-                                            setPassword('Test1234!')
-                                            setError('')
-                                        }}
+                                        onClick={() => handleQuickLogin(`test${num}@sergensaf.com`, 'Test1234!')}
                                         disabled={loading}
                                         className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-black/10 bg-black/5 hover:bg-brand-purple/10 hover:border-brand-purple/30 transition-all group shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
