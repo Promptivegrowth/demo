@@ -41,7 +41,7 @@ export default function TabFlota({ showToast }: { showToast: Function }) {
                 supabase.from('saf_viajes').select('*, saf_conductores(nombres, apellidos), saf_flota:vehiculo_id(placa)').order('created_at', { ascending: false }),
                 supabase.from('saf_mantenimientos').select('*, saf_flota:vehiculo_id(placa)').order('fecha', { ascending: false }),
                 supabase.from('saf_conductores').select('*').order('apellidos'),
-                supabase.from('saf_gps_ubicaciones').select('*').order('timestamp', { ascending: true })
+                supabase.from('saf_gps_ubicaciones').select('*').order('fecha_gps', { ascending: true })
             ])
             setFlota(fRes.data || [])
             setViajes(vRes.data || [])

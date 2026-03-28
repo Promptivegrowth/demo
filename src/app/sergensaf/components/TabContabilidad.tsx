@@ -75,6 +75,15 @@ export default function TabContabilidad({ showToast }: { showToast: Function }) 
                     {activeTab === 'sire' && <SectionSIRE ventas={ventas} gastos={gastos} showToast={showToast} />}
                 </motion.div>
             </AnimatePresence>
+
+            {/* MODALES */}
+            <ModalGasto
+                isOpen={modalGasto.show}
+                onClose={() => setModalGasto({ show: false })}
+                data={modalGasto.data}
+                showToast={showToast}
+                refresh={fetchData}
+            />
         </div>
     )
 }

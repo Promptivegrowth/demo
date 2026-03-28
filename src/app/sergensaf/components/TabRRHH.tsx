@@ -75,6 +75,21 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
                     {activeTab === 'ley' && <SectionBeneficios empleados={empleados} />}
                 </motion.div>
             </AnimatePresence>
+
+            {/* MODALES */}
+            <ModalEmpleado
+                isOpen={modalEmpleado.show}
+                onClose={() => setModalEmpleado({ show: false })}
+                data={modalEmpleado.data}
+                showToast={showToast}
+                refresh={fetchData}
+            />
+            <ModalPlanilla
+                isOpen={modalPlanilla.show}
+                onClose={() => setModalPlanilla({ show: false })}
+                showToast={showToast}
+                refresh={fetchData}
+            />
         </div>
     )
 }
@@ -110,7 +125,7 @@ function SectionPersonal({ empleados, loading, setModal }: any) {
                     <div key={e.id} className="bg-[#161b22] border border-[#30363d] rounded-2xl p-5 hover:border-[#f0a500]/50 transition-all group relative overflow-hidden">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#21262d] to-[#0d1117] border border-[#30363d] flex items-center justify-center text-[#8b949e] font-bold text-xl uppercase">
-                                {e.nombres[0]}{e.apellidos[0]}
+                                {e.nombres?.[0] || '?'}{e.apellidos?.[0] || '?'}
                             </div>
                             <div>
                                 <h4 className="text-white font-bold">{e.nombres} {e.apellidos}</h4>
