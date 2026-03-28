@@ -74,7 +74,7 @@ export default function SergensafModule() {
     // Active Component Renderer
     const renderTab = () => {
         switch (activeTab) {
-            case 'Dashboard': return <TabDashboard showToast={showToast} />
+            case 'Dashboard': return <TabDashboard showToast={showToast} setActiveTab={setActiveTab} />
             case 'Inventario': return <TabInventario showToast={showToast} />
             case 'Cotizaciones': return <TabCotizaciones showToast={showToast} />
             case 'Ordenes': return <TabOrdenes showToast={showToast} />
@@ -84,7 +84,7 @@ export default function SergensafModule() {
             case 'Flota': return <TabFlota showToast={showToast} />
             case 'RRHH': return <TabRRHH showToast={showToast} />
             case 'Contabilidad': return <TabContabilidad showToast={showToast} />
-            default: return <TabDashboard showToast={showToast} />
+            default: return <TabDashboard showToast={showToast} setActiveTab={setActiveTab} />
         }
     }
 

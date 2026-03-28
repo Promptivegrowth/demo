@@ -19,7 +19,7 @@ const useScript = (url: string) => {
     }, [url]);
 };
 
-export default function TabDashboard({ showToast }: { showToast: Function }) {
+export default function TabDashboard({ showToast, setActiveTab }: { showToast: Function, setActiveTab: Function }) {
     // Load Chart.js from CDN
     useScript('https://cdn.jsdelivr.net/npm/chart.js');
 
@@ -39,6 +39,8 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
     const [ultimasOrdenes, setUltimasOrdenes] = useState<any[]>([])
     const [alertas, setAlertas] = useState<any[]>([])
 
+    const [chartMode, setChartMode] = useState<'ventas' | 'm3'>('ventas')
+
     // Chart References
     const barChartRef = useRef<HTMLCanvasElement>(null)
     const doughnutChartRef = useRef<HTMLCanvasElement>(null)
@@ -53,16 +55,16 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
             const { data: ordenes } = await supabase.from('saf_ordenes').select('*, saf_clientes(razon_social)')
             const { data: cobros } = await supabase.from('saf_cuentas_por_cobrar').select('*')
             const { data: flota } = await supabase.from('saf_flota').select('*')
-            const { data: despachos } = await supabase.from('saf_despachos').select('*, saf_ordenes(*)')
+            const { data: produccion } = await supabase.from('saf_produccion').select('*')
 
             const currentMonth = now.getMonth()
             const ordenesMes = (ordenes || []).filter(o => new Date(o.fecha).getMonth() === currentMonth && o.estado !== 'anulado')
-            const m3Mes = (despachos || []).filter(d => new Date(d.fecha_despacho).getMonth() === currentMonth).reduce((sum, d) => sum + 15, 0) // Mock 15m3 
+            const m3Mes = (produccion || []).filter(p => new Date(p.fecha).getMonth() === currentMonth).reduce((sum, p) => sum + Number(p.cantidad_producida), 0)
 
             setKpis({
                 ventasMes: ordenesMes.reduce((sum, o) => sum + Number(o.total), 0),
                 ordenesMes: ordenesMes.length,
-                m3Mes: m3Mes || 350,
+                m3Mes: m3Mes || 0,
                 stockTotal: (prods || []).reduce((sum, p) => sum + Number(p.stock_actual), 0),
                 porCobrar: (cobros || []).filter(c => c.estado !== 'pagado').reduce((sum, c) => sum + Number(c.saldo), 0),
                 vehiculosDisponibles: (flota || []).filter(f => f.estado === 'disponible').length,
@@ -106,23 +108,19 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
             // Bar Chart
             if (barChartRef.current) {
                 if (chartInstances.current.bar) chartInstances.current.bar.destroy()
-                const ctx = barChartRef.current.getContext('2d')
-                const gradient = ctx?.createLinearGradient(0, 0, 0, 400)
-                if (gradient) {
-                    gradient.addColorStop(0, 'rgba(240, 165, 0, 0.8)')
-                    gradient.addColorStop(1, 'rgba(240, 165, 0, 0.1)')
-                }
+                const color = chartMode === 'ventas' ? 'rgba(240, 165, 0, 0.8)' : 'rgba(31, 111, 235, 0.8)'
+                const borderColor = chartMode === 'ventas' ? '#f0a500' : '#1f6feb'
 
                 // @ts-ignore
                 chartInstances.current.bar = new window.Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: ['Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar'],
+                        labels: ['Ene', 'Feb', 'Mar'],
                         datasets: [{
-                            label: 'Ventas (S/.)',
-                            data: [32000, 41000, 48000, 39000, 45000, kpis.ventasMes > 0 ? kpis.ventasMes : 15000],
-                            backgroundColor: gradient || '#f0a500',
-                            borderColor: '#f0a500',
+                            label: chartMode === 'ventas' ? 'Ventas (S/.)' : 'Despacho (m³)',
+                            data: chartMode === 'ventas' ? [35000, 42000, kpis.ventasMes] : [280, 410, kpis.m3Mes],
+                            backgroundColor: color,
+                            borderColor: borderColor,
                             borderWidth: 1,
                             borderRadius: 6,
                             barPercentage: 0.6
@@ -316,9 +314,16 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
                         <h3 className="font-rajdhani font-bold text-white text-xl flex items-center gap-2">
                             <Activity className="h-5 w-5 text-[#f0a500]" /> Histórico de Ventas
                         </h3>
-                        <select className="bg-black/40 border border-white/10 text-xs font-bold text-[#8b949e] rounded-xl px-3 py-2 outline-none focus:border-[#f0a500] transition-colors cursor-pointer appearance-none">
-                            <option>Volumen en S/.</option>
-                            <option>Despachos en m³</option>
+                        <select
+                            value={chartMode}
+                            onChange={(e) => {
+                                setChartMode(e.target.value as any)
+                                setTimeout(updateCharts, 100)
+                            }}
+                            className="bg-black/40 border border-white/10 text-xs font-bold text-[#f0a500] rounded-xl px-4 py-2 outline-none focus:border-[#f0a500] transition-colors cursor-pointer appearance-none shadow-lg"
+                        >
+                            <option value="ventas">Volumen en S/.</option>
+                            <option value="m3">Despachos en m³</option>
                         </select>
                     </div>
                     <div className="h-64 w-full relative z-10">
@@ -397,14 +402,22 @@ export default function TabDashboard({ showToast }: { showToast: Function }) {
                             </div>
                         ) : (
                             alertas.map((a, i) => (
-                                <div key={i} className="group p-4 rounded-2xl bg-black/20 hover:bg-white/5 border border-white/5 hover:border-[#f0a500]/30 transition-all cursor-pointer flex items-center justify-between">
+                                <div
+                                    key={i}
+                                    onClick={() => {
+                                        if (a.tipo === 'stock') setActiveTab('Inventario')
+                                        else if (a.tipo === 'cobro') setActiveTab('Cobranzas')
+                                        else if (a.tipo === 'flota') setActiveTab('Flota')
+                                    }}
+                                    className="group p-4 rounded-2xl bg-black/20 hover:bg-white/5 border border-white/5 hover:border-[#f0a500]/30 transition-all cursor-pointer flex items-center justify-between"
+                                >
                                     <div className="flex gap-3 items-center">
                                         <div className="p-2 bg-white/5 rounded-xl text-xl shadow-inner group-hover:scale-110 transition-transform">
                                             {a.prop}
                                         </div>
                                         <span className="text-sm font-bold text-white">{a.texto}</span>
                                     </div>
-                                    <span className="text-[10px] font-bold tracking-widest text-[#8b949e] bg-black/50 px-3 py-1.5 rounded-full border border-white/5 uppercase">
+                                    <span className="text-[10px] font-bold tracking-widest text-[#f0a500] bg-black/50 px-3 py-1.5 rounded-full border border-[#f0a500]/20 uppercase group-hover:bg-[#f0a500]/10 transition-all">
                                         {a.ref}
                                     </span>
                                 </div>
