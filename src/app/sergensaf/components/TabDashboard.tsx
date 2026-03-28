@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
-    TrendingUp, Activity, CheckCircle, Package, Car, ShoppingCart, Truck, AlertTriangle, FileText, Anchor, Navigation
+    TrendingUp, Activity, CheckCircle, Package, Car, ShoppingCart, Truck, AlertTriangle, FileText, Anchor, Navigation, DollarSign, Zap
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -32,6 +32,8 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
         m3Mes: 0,
         stockTotal: 0,
         porCobrar: 0,
+        utilidad: 0,
+        eficiencia: 0,
         vehiculosDisponibles: 0,
         vehiculosTotal: 0
     })
@@ -44,7 +46,8 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
     // Chart References
     const barChartRef = useRef<HTMLCanvasElement>(null)
     const doughnutChartRef = useRef<HTMLCanvasElement>(null)
-    const chartInstances = useRef<{ bar: any, doughnut: any }>({ bar: null, doughnut: null })
+    const lineChartRef = useRef<HTMLCanvasElement>(null)
+    const chartInstances = useRef<{ bar: any, doughnut: any, line: any }>({ bar: null, doughnut: null, line: null })
 
     // Fetch all dashboard data
     const fetchData = async () => {
@@ -61,12 +64,17 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
             const ordenesMes = (ordenes || []).filter(o => new Date(o.fecha).getMonth() === currentMonth && o.estado !== 'anulado')
             const m3Mes = (produccion || []).filter(p => new Date(p.fecha).getMonth() === currentMonth).reduce((sum, p) => sum + Number(p.cantidad_producida), 0)
 
+            const totalVentas = ordenesMes.reduce((sum, o) => sum + Number(o.total), 0)
+            const totalPorCobrar = (cobros || []).filter(c => c.estado !== 'pagado').reduce((sum, c) => sum + Number(c.saldo), 0)
+
             setKpis({
-                ventasMes: ordenesMes.reduce((sum, o) => sum + Number(o.total), 0),
+                ventasMes: totalVentas,
                 ordenesMes: ordenesMes.length,
                 m3Mes: m3Mes || 0,
                 stockTotal: (prods || []).reduce((sum, p) => sum + Number(p.stock_actual), 0),
-                porCobrar: (cobros || []).filter(c => c.estado !== 'pagado').reduce((sum, c) => sum + Number(c.saldo), 0),
+                porCobrar: totalPorCobrar,
+                utilidad: totalVentas * 0.35, // Margen estimado
+                eficiencia: m3Mes > 0 ? Math.min(Math.round((m3Mes / 500) * 100), 100) : 0,
                 vehiculosDisponibles: (flota || []).filter(f => f.estado === 'disponible').length,
                 vehiculosTotal: (flota || []).length
             })
@@ -108,6 +116,7 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
             // Bar Chart
             if (barChartRef.current) {
                 if (chartInstances.current.bar) chartInstances.current.bar.destroy()
+                const ctx = barChartRef.current.getContext('2d')
                 const color = chartMode === 'ventas' ? 'rgba(240, 165, 0, 0.8)' : 'rgba(31, 111, 235, 0.8)'
                 const borderColor = chartMode === 'ventas' ? '#f0a500' : '#1f6feb'
 
@@ -118,12 +127,12 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
                         labels: ['Ene', 'Feb', 'Mar'],
                         datasets: [{
                             label: chartMode === 'ventas' ? 'Ventas (S/.)' : 'Despacho (m³)',
-                            data: chartMode === 'ventas' ? [35000, 42000, kpis.ventasMes] : [280, 410, kpis.m3Mes],
+                            data: chartMode === 'ventas' ? [35000, 42000, kpis.ventasMes || 15000] : [280, 410, kpis.m3Mes || 120],
                             backgroundColor: color,
                             borderColor: borderColor,
                             borderWidth: 1,
-                            borderRadius: 6,
-                            barPercentage: 0.6
+                            borderRadius: 12,
+                            barPercentage: 0.5
                         }]
                     },
                     options: {
@@ -131,8 +140,8 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
                         maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
                         scales: {
-                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e', font: { family: 'Inter' } }, beginAtZero: true },
-                            x: { grid: { display: false }, ticks: { color: '#8b949e', font: { family: 'Inter' } } }
+                            y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#8b949e', font: { family: 'Rajdhani', weight: 'bold' } }, beginAtZero: true },
+                            x: { grid: { display: false }, ticks: { color: '#8b949e', font: { family: 'Rajdhani', weight: 'bold' } } }
                         }
                     }
                 })
@@ -146,22 +155,64 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
                 chartInstances.current.doughnut = new window.Chart(ctx2, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Arena Fina', 'Arena Gruesa', 'Piedra Chancada', 'Hormigón'],
+                        labels: ['Arena', 'Piedra', 'Hormigón', 'Afirmado'],
                         datasets: [{
-                            data: [35, 25, 20, 20],
+                            data: [40, 25, 20, 15],
                             backgroundColor: ['#f0a500', '#da3633', '#238636', '#1f6feb'],
                             borderWidth: 0,
-                            hoverOffset: 10
+                            hoverOffset: 15
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'right', labels: { color: '#e6edf3', font: { family: 'Inter', size: 12 }, padding: 20 } }
+                            legend: { position: 'bottom', labels: { color: '#8b949e', font: { family: 'Rajdhani', size: 11 }, padding: 15, usePointStyle: true } }
                         },
-                        cutout: '75%',
-                        layout: { padding: 10 }
+                        cutout: '80%',
+                        layout: { padding: 5 }
+                    }
+                })
+            }
+
+            // Line Chart (Trends)
+            if (lineChartRef.current) {
+                if (chartInstances.current.line) chartInstances.current.line.destroy()
+                const ctx3 = lineChartRef.current.getContext('2d')
+                // @ts-ignore
+                chartInstances.current.line = new window.Chart(ctx3, {
+                    type: 'line',
+                    data: {
+                        labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+                        datasets: [
+                            {
+                                label: 'Producción',
+                                data: [65, 59, 80, 81, 56, 55, 40],
+                                borderColor: '#f0a500',
+                                backgroundColor: 'rgba(240, 165, 0, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 0
+                            },
+                            {
+                                label: 'Despachos',
+                                data: [45, 48, 62, 70, 48, 50, 35],
+                                borderColor: '#1f6feb',
+                                backgroundColor: 'transparent',
+                                borderDash: [5, 5],
+                                tension: 0.4,
+                                pointRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { display: false, beginAtZero: true },
+                            x: { grid: { display: false }, ticks: { color: '#8b949e', font: { family: 'Rajdhani', size: 10 } } }
+                        }
                     }
                 })
             }
@@ -238,92 +289,95 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
                 </motion.div>
             </div>
 
-            {/* KPI GRID 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#f0a500]/50 transition-all duration-300">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#238636]/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-[#238636]/20 transition-all"></div>
-                    <div className="flex justify-between items-start relative z-10">
-                        <div className="p-3 bg-black/40 rounded-2xl border border-white/5 backdrop-blur-xl shadow-inner text-[#238636]">
-                            <TrendingUp className="h-6 w-6" />
-                        </div>
+            {/* KPI GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#f0a500]/50 transition-all">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#f0a500]/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-[#f0a500]/10 transition-all border border-white/5"></div>
+                    <div className="p-2 bg-black/40 rounded-xl border border-white/5 w-max text-[#f0a500] mb-3 relative z-10 shadow-inner">
+                        <TrendingUp className="h-5 w-5" />
                     </div>
-                    <div className="mt-4 relative z-10">
-                        <p className="text-xs text-[#8b949e] uppercase font-bold tracking-widest mb-1">Ventas del Mes</p>
-                        <h3 className="text-3xl font-rajdhani font-black text-white drop-shadow-md">{formatSoles(kpis.ventasMes)}</h3>
-                        <p className="text-xs mt-2 flex items-center gap-1 font-bold text-[#238636] bg-[#238636]/10 w-max px-2 py-1 rounded-full border border-[#238636]/20">
-                            +12% vs mes ant.
-                        </p>
+                    <div className="relative z-10">
+                        <p className="text-[9px] text-[#8b949e] uppercase font-black tracking-widest mb-1">Ventas Mes</p>
+                        <h3 className="text-xl font-rajdhani font-black text-white leading-tight">{formatSoles(kpis.ventasMes)}</h3>
                     </div>
                 </motion.div>
 
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#1f6feb]/50 transition-all duration-300">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#1f6feb]/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-[#1f6feb]/20 transition-all"></div>
-                    <div className="flex justify-between items-start relative z-10">
-                        <div className="p-3 bg-black/40 rounded-2xl border border-white/5 backdrop-blur-xl shadow-inner text-[#1f6feb]">
-                            <ShoppingCart className="h-6 w-6" />
-                        </div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#1f6feb]/50 transition-all">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#1f6feb]/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-[#1f6feb]/10 transition-all border border-white/5"></div>
+                    <div className="p-2 bg-black/40 rounded-xl border border-white/5 w-max text-[#1f6feb] mb-3 relative z-10 shadow-inner">
+                        <ShoppingCart className="h-5 w-5" />
                     </div>
-                    <div className="mt-4 relative z-10">
-                        <p className="text-xs text-[#8b949e] uppercase font-bold tracking-widest mb-1">Órdenes el Mes</p>
-                        <h3 className="text-3xl font-rajdhani font-black text-white drop-shadow-md">{kpis.ordenesMes}</h3>
-                        <p className="text-xs mt-2 flex items-center gap-1 font-bold text-[#1f6feb] bg-[#1f6feb]/10 w-max px-2 py-1 rounded-full border border-[#1f6feb]/20">
-                            En proceso
-                        </p>
+                    <div className="relative z-10">
+                        <p className="text-[9px] text-[#8b949e] uppercase font-black tracking-widest mb-1">Órdenes</p>
+                        <h3 className="text-2xl font-rajdhani font-black text-white leading-tight">{kpis.ordenesMes}</h3>
                     </div>
                 </motion.div>
 
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#f0a500]/50 transition-all duration-300">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#f0a500]/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-[#f0a500]/20 transition-all"></div>
-                    <div className="flex justify-between items-start relative z-10">
-                        <div className="p-3 bg-black/40 rounded-2xl border border-white/5 backdrop-blur-xl shadow-inner text-[#f0a500]">
-                            <Truck className="h-6 w-6" />
-                        </div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#f0a500]/50 transition-all">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#f0a500]/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-[#f0a500]/10 transition-all border border-white/5"></div>
+                    <div className="p-2 bg-black/40 rounded-xl border border-white/5 w-max text-[#f0a500] mb-3 relative z-10 shadow-inner">
+                        <Truck className="h-5 w-5" />
                     </div>
-                    <div className="mt-4 relative z-10">
-                        <p className="text-xs text-[#8b949e] uppercase font-bold tracking-widest mb-1">m³ Despachados</p>
-                        <h3 className="text-3xl font-rajdhani font-black text-white drop-shadow-md">{kpis.m3Mes} <span className="text-xl text-[#f0a500]">m³</span></h3>
-                        <p className="text-xs mt-2 flex items-center gap-1 font-bold text-[#f0a500] bg-[#f0a500]/10 w-max px-2 py-1 rounded-full border border-[#f0a500]/20">
-                            +5% vs mes ant.
-                        </p>
+                    <div className="relative z-10">
+                        <p className="text-[9px] text-[#8b949e] uppercase font-black tracking-widest mb-1">Despacho m³</p>
+                        <h3 className="text-2xl font-rajdhani font-black text-white leading-tight">{kpis.m3Mes}</h3>
                     </div>
                 </motion.div>
 
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#da3633]/50 transition-all duration-300">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#da3633]/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-[#da3633]/20 transition-all"></div>
-                    <div className="flex justify-between items-start relative z-10">
-                        <div className="p-3 bg-black/40 rounded-2xl border border-white/5 backdrop-blur-xl shadow-inner text-[#da3633]">
-                            <AlertTriangle className="h-6 w-6" />
-                        </div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#da3633]/50 transition-all">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#da3633]/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-[#da3633]/10 transition-all border border-white/5"></div>
+                    <div className="p-2 bg-black/40 rounded-xl border border-white/5 w-max text-[#da3633] mb-3 relative z-10 shadow-inner">
+                        <AlertTriangle className="h-5 w-5" />
                     </div>
-                    <div className="mt-4 relative z-10">
-                        <p className="text-xs text-[#da3633] uppercase font-bold tracking-widest mb-1">Por Cobrar</p>
-                        <h3 className="text-3xl font-rajdhani font-black text-[#da3633] drop-shadow-md">{formatSoles(kpis.porCobrar)}</h3>
-                        <p className="text-xs mt-2 flex items-center gap-1 font-bold text-[#da3633] bg-[#da3633]/10 w-max px-2 py-1 rounded-full border border-[#da3633]/20">
-                            Requiere Atención
-                        </p>
+                    <div className="relative z-10">
+                        <p className="text-[9px] text-[#da3633] uppercase font-black tracking-widest mb-1">Cuentas x Cobrar</p>
+                        <h3 className="text-[17px] font-rajdhani font-black text-[#da3633] leading-tight break-all">{formatSoles(kpis.porCobrar)}</h3>
                     </div>
                 </motion.div>
 
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#238636]/50 transition-all">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#238636]/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-[#238636]/10 transition-all border border-white/5"></div>
+                    <div className="p-2 bg-black/40 rounded-xl border border-white/5 w-max text-[#238636] mb-3 relative z-10 shadow-inner">
+                        <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div className="relative z-10">
+                        <p className="text-[9px] text-[#8b949e] uppercase font-black tracking-widest mb-1">Utilidad Est. (35%)</p>
+                        <h3 className="text-xl font-rajdhani font-black text-[#238636] leading-tight">{formatSoles(kpis.utilidad)}</h3>
+                    </div>
+                </motion.div>
+
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="bg-[#0B0F19]/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/5 shadow-2xl relative overflow-hidden group hover:border-[#1f6feb]/50 transition-all">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#1f6feb]/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-[#1f6feb]/10 transition-all border border-white/5"></div>
+                    <div className="p-2 bg-black/40 rounded-xl border border-white/5 w-max text-[#1f6feb] mb-3 relative z-10 shadow-inner">
+                        <Zap className="h-5 w-5" />
+                    </div>
+                    <div className="relative z-10">
+                        <p className="text-[9px] text-[#8b949e] uppercase font-black tracking-widest mb-1">Eficiencia Planta</p>
+                        <h3 className="text-2xl font-rajdhani font-black text-white leading-tight">{kpis.eficiencia}%</h3>
+                    </div>
+                </motion.div>
             </div>
 
             {/* CHARTS LAYER */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="bg-[#0B0F19]/60 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-6 relative overflow-hidden group">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="lg:col-span-2 bg-[#0B0F19]/60 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-6 relative overflow-hidden group hover:border-[#f0a500]/20 transition-all">
                     <div className="flex justify-between items-center mb-6 relative z-10">
-                        <h3 className="font-rajdhani font-bold text-white text-xl flex items-center gap-2">
-                            <Activity className="h-5 w-5 text-[#f0a500]" /> Histórico de Ventas
-                        </h3>
+                        <div className="flex flex-col">
+                            <h3 className="font-rajdhani font-bold text-white text-xl flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-[#f0a500]" /> Histórico Operativo
+                            </h3>
+                            <p className="text-[10px] text-[#8b949e] font-medium uppercase tracking-widest mt-1 ml-7">Rendimiento Mensual</p>
+                        </div>
                         <select
                             value={chartMode}
                             onChange={(e) => {
                                 setChartMode(e.target.value as any)
                                 setTimeout(updateCharts, 100)
                             }}
-                            className="bg-black/40 border border-white/10 text-xs font-bold text-[#f0a500] rounded-xl px-4 py-2 outline-none focus:border-[#f0a500] transition-colors cursor-pointer appearance-none shadow-lg"
+                            className="bg-black/60 border border-white/10 text-[10px] font-black text-[#f0a500] rounded-lg px-3 py-1.5 outline-none focus:border-[#f0a500] transition-colors cursor-pointer appearance-none shadow-xl uppercase tracking-tighter"
                         >
-                            <option value="ventas">Volumen en S/.</option>
-                            <option value="m3">Despachos en m³</option>
+                            <option value="ventas">Ventas (S/.)</option>
+                            <option value="m3">Despacho (m³)</option>
                         </select>
                     </div>
                     <div className="h-64 w-full relative z-10">
@@ -331,16 +385,28 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
                     </div>
                 </motion.div>
 
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="bg-[#0B0F19]/60 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-6 relative overflow-hidden group">
-                    <div className="flex justify-between items-center mb-6 relative z-10">
-                        <h3 className="font-rajdhani font-bold text-white text-xl flex items-center gap-2">
-                            <Package className="h-5 w-5 text-[#f0a500]" /> Distribución Stock
+                <div className="flex flex-col gap-6">
+                    <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="flex-1 bg-[#0B0F19]/60 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-5 relative overflow-hidden group">
+                        <h3 className="font-rajdhani font-bold text-white text-base flex items-center gap-2 mb-4">
+                            <Package className="h-4 w-4 text-[#f0a500]" /> Mix de Stock
                         </h3>
-                    </div>
-                    <div className="h-64 w-full relative z-10">
-                        <canvas ref={doughnutChartRef}></canvas>
-                    </div>
-                </motion.div>
+                        <div className="h-40 w-full relative z-10">
+                            <canvas ref={doughnutChartRef}></canvas>
+                        </div>
+                    </motion.div>
+
+                    <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.65 }} className="bg-[#0B0F19]/60 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-5 relative overflow-hidden group">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-rajdhani font-bold text-white text-base flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-[#238636]" /> Tendencia 7D
+                            </h3>
+                            <span className="text-[10px] font-bold text-[#238636]">+18.4%</span>
+                        </div>
+                        <div className="h-20 w-full relative z-10">
+                            <canvas ref={lineChartRef}></canvas>
+                        </div>
+                    </motion.div>
+                </div>
             </div>
 
             {/* DATA TABLES LAYER */}
@@ -385,20 +451,23 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
                     </div>
                 </motion.div>
 
-                {/* Alertas */}
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8 }} className="bg-[#0B0F19]/60 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-[#da3633]/5 rounded-full blur-[60px] pointer-events-none"></div>
-                    <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/20 relative z-10">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                            <Anchor className="h-4 w-4 text-[#da3633]" /> Alertas Operativas
+                {/* Alertas Operativas Estilo Comando */}
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8 }} className="bg-[#0B0F19]/80 backdrop-blur-2xl border border-white/5 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#da3633]/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/40 relative z-10">
+                        <h3 className="text-xs font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
+                            <Anchor className="h-4 w-4 text-[#da3633] animate-pulse" /> Command Center: Alerts
                         </h3>
+                        <span className="px-2 py-0.5 bg-[#da3633]/20 text-[#da3633] text-[9px] font-bold rounded-md animate-pulse">LIVE</span>
                     </div>
 
-                    <div className="p-4 overflow-y-auto max-h-[340px] space-y-2 relative z-10 custom-scrollbar">
+                    <div className="p-4 overflow-y-auto max-h-[340px] space-y-3 relative z-10 custom-scrollbar">
                         {alertas.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-[#8b949e]">
-                                <CheckCircle className="h-10 w-10 mb-3 text-[#238636]/50" />
-                                <p className="text-sm">Sistema operando sin alertas</p>
+                            <div className="h-48 flex flex-col items-center justify-center text-[#8b949e]">
+                                <div className="h-16 w-16 rounded-full bg-[#238636]/5 flex items-center justify-center mb-4">
+                                    <CheckCircle className="h-8 w-8 text-[#238636]/30" />
+                                </div>
+                                <p className="text-[10px] uppercase tracking-widest font-bold">Status: All Systems Go</p>
                             </div>
                         ) : (
                             alertas.map((a, i) => (
@@ -409,25 +478,30 @@ export default function TabDashboard({ showToast, setActiveTab }: { showToast: F
                                         else if (a.tipo === 'cobro') setActiveTab('Cobranzas')
                                         else if (a.tipo === 'flota') setActiveTab('Flota')
                                     }}
-                                    className="group p-4 rounded-2xl bg-black/20 hover:bg-white/5 border border-white/5 hover:border-[#f0a500]/30 transition-all cursor-pointer flex items-center justify-between"
+                                    className="group p-4 rounded-2xl bg-gradient-to-r from-black/40 to-black/20 hover:from-[#f0a500]/10 hover:to-transparent border border-white/5 hover:border-[#f0a500]/30 transition-all cursor-pointer flex items-center justify-between"
                                 >
-                                    <div className="flex gap-3 items-center">
-                                        <div className="p-2 bg-white/5 rounded-xl text-xl shadow-inner group-hover:scale-110 transition-transform">
+                                    <div className="flex gap-4 items-center">
+                                        <div className="h-10 w-10 bg-black/60 rounded-xl flex items-center justify-center text-xl shadow-2xl group-hover:scale-110 transition-transform duration-500 border border-white/5">
                                             {a.prop}
                                         </div>
-                                        <span className="text-sm font-bold text-white">{a.texto}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-[#8b949e] font-bold uppercase tracking-tight mb-0.5">{a.tipo === 'stock' ? 'Inventory Alert' : 'Finance Alert'}</span>
+                                            <span className="text-sm font-bold text-white group-hover:text-[#f0a500] transition-colors">{a.texto}</span>
+                                        </div>
                                     </div>
-                                    <span className="text-[10px] font-bold tracking-widest text-[#f0a500] bg-black/50 px-3 py-1.5 rounded-full border border-[#f0a500]/20 uppercase group-hover:bg-[#f0a500]/10 transition-all">
-                                        {a.ref}
-                                    </span>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-[9px] font-black tracking-widest text-[#f0a500] bg-black/60 px-2.5 py-1 rounded-lg border border-[#f0a500]/20 uppercase">
+                                            {a.ref}
+                                        </span>
+                                    </div>
                                 </div>
                             ))
                         )}
                     </div>
                 </motion.div>
 
-            </div>
+            </div >
 
-        </div>
+        </div >
     )
 }
