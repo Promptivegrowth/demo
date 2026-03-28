@@ -8,6 +8,8 @@ import {
     FileText, ArrowUpRight, ArrowDownRight, Printer, Eye, X, Plus
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { jsPDF } from 'jspdf'
+import 'jspdf-autotable'
 
 export default function TabContabilidad({ showToast }: { showToast: Function }) {
     const [activeTab, setActiveTab] = useState('resumen')
@@ -60,27 +62,33 @@ export default function TabContabilidad({ showToast }: { showToast: Function }) 
     }
 
     const handleExportPDF = () => {
-        // @ts-ignore
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(20).text('SERGENSAF - Reporte de Operaciones', 20, 20);
-        doc.setFontSize(10).text(`Fecha: ${new Date().toLocaleString()}`, 20, 30);
+        try {
+            const doc = new jsPDF();
+            doc.setFontSize(22).text('SERGENSAF S.A.C.', 105, 20, { align: 'center' });
+            doc.setFontSize(14).text('Reporte de Operaciones Financieras', 105, 30, { align: 'center' });
+            doc.setFontSize(10).text(`Generado el: ${new Date().toLocaleString()}`, 20, 40);
 
-        const data = [
-            ...gastos.map(g => [g.fecha_emision, g.razon_social_proveedor || 'Gasto', 'EGRESO', `S/ ${g.importe_total}`]),
-            ...ventas.map(v => [v.fecha_emision, v.razon_social_cliente || 'Venta', 'INGRESO', `S/ ${v.importe_total}`])
-        ];
+            const data = [
+                ...gastos.map(g => [g.fecha_emision, g.razon_social_proveedor || 'Gasto Operativo', 'EGRESO', `S/ ${g.importe_total}`]),
+                ...ventas.map(v => [v.fecha_emision, v.razon_social_cliente || 'Venta de Agregados', 'INGRESO', `S/ ${v.importe_total}`])
+            ];
 
-        // @ts-ignore
-        doc.autoTable({
-            head: [['Fecha', 'Entidad', 'Tipo', 'Total']],
-            body: data,
-            startY: 40,
-            theme: 'grid',
-            headStyles: { fillColor: [240, 165, 0] }
-        });
-        doc.save(`Reporte_Consolidado_SERGENSAF.pdf`);
-        showToast('Reporte Consolidado generado', 'success');
+            // @ts-ignore
+            doc.autoTable({
+                head: [['Fecha', 'Detalle / Entidad', 'Tipo', 'Total']],
+                body: data,
+                startY: 50,
+                theme: 'striped',
+                headStyles: { fillColor: [240, 165, 0] },
+                styles: { fontSize: 8 }
+            });
+
+            doc.save(`Reporte_SERGENSAF_${new Date().toISOString().split('T')[0]}.pdf`);
+            showToast('Reporte Consolidado generado con éxito', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Error al generar PDF. Verifique consola.', 'error');
+        }
     }
 
     const handleExportExcel = () => {

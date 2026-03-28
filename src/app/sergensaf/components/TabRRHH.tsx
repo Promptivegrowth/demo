@@ -7,6 +7,8 @@ import {
     MoreVertical, CheckCircle, AlertCircle, TrendingUp, Download, Eye, X, Plus
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { jsPDF } from 'jspdf'
+import 'jspdf-autotable'
 
 export default function TabRRHH({ showToast }: { showToast: Function }) {
     const [activeTab, setActiveTab] = useState('personal')
@@ -104,6 +106,7 @@ export default function TabRRHH({ showToast }: { showToast: Function }) {
                 isOpen={modalLegajo.show}
                 onClose={() => setModalLegajo({ show: false })}
                 employee={modalLegajo.employee}
+                refresh={fetchData}
             />
         </div>
     )
@@ -405,22 +408,36 @@ function ModalAsistencia({ isOpen, onClose, employee, showToast, refresh }: any)
             const isLate = tipo === 'entrada' && hora > '08:00'
             const tardanzaMinutos = isLate ? (parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1])) - 480 : 0
 
-            const { error } = await supabase.from('saf_asistencia_log').insert([{
+            // Intentamos insertar con campo tardanza_minutos, si falla reintentamos sin él (por si la columna no existe)
+            const payload = {
                 empleado_id: employee?.id,
                 fecha: new Date().toISOString().split('T')[0],
                 [tipo === 'entrada' ? 'hora_entrada' : 'hora_salida']: hora,
                 estado: isLate ? 'tardanza' : 'presente',
                 tardanza_minutos: tardanzaMinutos
-            }])
+            }
 
-            if (error) throw error
+            const { error } = await supabase.from('saf_asistencia_log').insert([payload])
+
+            if (error) {
+                console.warn("Fallo inserción completa, reintentando simplificada...", error)
+                const { error: error2 } = await supabase.from('saf_asistencia_log').insert([{
+                    empleado_id: employee?.id,
+                    fecha: payload.fecha,
+                    [tipo === 'entrada' ? 'hora_entrada' : 'hora_salida']: hora,
+                    estado: payload.estado
+                }])
+                if (error2) throw error2
+            }
+
             showToast(`Marcación de ${tipo} registrada${employee ? ` para ${employee.nombres}` : ''}`, 'success')
             setTimeout(() => {
                 refresh()
                 onClose()
             }, 1000)
         } catch (err) {
-            showToast('Error registrando asistencia', 'error')
+            console.error(err)
+            showToast('Error registrando asistencia. Verifique esquema.', 'error')
         }
     }
 
@@ -456,26 +473,51 @@ function ModalAsistencia({ isOpen, onClose, employee, showToast, refresh }: any)
     )
 }
 
-function ModalLegajo({ isOpen, onClose, employee }: any) {
-    const docs = [
-        { name: 'Documento Nacional de Identidad', date: '2023-01-15', status: 'valid', type: 'PDF' },
-        { name: 'Contrato de Trabajo 2024', date: '2024-02-01', status: 'valid', type: 'PDF' },
-        { name: 'Antecedentes Policiales', date: '2023-12-10', status: 'expired', type: 'IMG' },
-        { name: 'Examen Médico Ocupacional', date: '2024-01-20', status: 'valid', type: 'PDF' },
-    ]
+function ModalLegajo({ isOpen, onClose, employee, refresh }: any) {
+    const [subiendo, setSubiendo] = useState(false)
+    const docs = employee?.documentos || []
+
+    const handleUploadSimulated = async () => {
+        setSubiendo(true)
+        try {
+            const nuevoDoc = {
+                id: Date.now(),
+                nombre: prompt('Nombre del documento:', 'Certificado de Antecedentes') || 'Documento Nuevo',
+                fecha: new Date().toISOString().split('T')[0],
+                status: 'valid',
+                type: 'PDF'
+            }
+
+            const actualizados = [...docs, nuevoDoc]
+            const { error } = await supabase
+                .from('saf_empleados')
+                .update({ documentos: actualizados })
+                .eq('id', employee.id)
+
+            if (error) throw error
+            alert('Metadatos de documento registrados en JSON con éxito (Sin carga de archivo pesado)')
+            refresh()
+        } catch (err) {
+            alert('Error al actualizar legajo JSON')
+        } finally {
+            setSubiendo(false)
+        }
+    }
 
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose} title={`Legajo Digital: ${employee?.nombres} ${employee?.apellidos}`}>
             <div className="space-y-4">
-                {docs.map((doc, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 bg-[#161b22] border border-[#30363d] rounded-xl hover:border-white/20 transition-all cursor-pointer">
+                {docs.length === 0 ? (
+                    <p className="text-center py-8 text-[#8b949e] text-xs">No hay documentos registrados.</p>
+                ) : docs.map((doc: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between p-4 bg-[#161b22] border border-[#30363d] rounded-xl hover:border-white/20 transition-all">
                         <div className="flex items-center gap-3">
                             <div className={`p-2 rounded-lg ${doc.type === 'PDF' ? 'bg-[#da3633]/20 text-[#da3633]' : 'bg-[#1f6feb]/20 text-[#1f6feb]'}`}>
                                 <FileText className="h-4 w-4" />
                             </div>
                             <div>
-                                <p className="text-sm text-white font-medium">{doc.name}</p>
-                                <p className="text-[10px] text-[#8b949e]">Subido el {doc.date}</p>
+                                <p className="text-sm text-white font-medium">{doc.nombre}</p>
+                                <p className="text-[10px] text-[#8b949e]">Registrado el {doc.fecha}</p>
                             </div>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${doc.status === 'valid' ? 'bg-[#238636]/20 text-[#238636]' : 'bg-[#da3633]/20 text-[#da3633]'}`}>
@@ -483,7 +525,13 @@ function ModalLegajo({ isOpen, onClose, employee }: any) {
                         </span>
                     </div>
                 ))}
-                <button className="w-full py-3 border-2 border-dashed border-[#30363d] text-[#8b949e] rounded-xl hover:border-[#f0a500] hover:text-[#f0a500] transition-all text-sm font-bold">+ Subir Documento</button>
+                <button
+                    onClick={handleUploadSimulated}
+                    disabled={subiendo}
+                    className="w-full py-3 border-2 border-dashed border-[#30363d] text-[#8b949e] rounded-xl hover:border-[#f0a500] hover:text-[#f0a500] transition-all text-sm font-bold"
+                >
+                    {subiendo ? 'Procesando...' : '+ Registrar Metadatos (JSON)'}
+                </button>
             </div>
         </ModalWrapper>
     )

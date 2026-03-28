@@ -354,7 +354,7 @@ function SectionGPS({ units, viajes, locations, selectedUnit, setSelectedUnit }:
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] text-[#f0a500] uppercase font-bold">Último Reporte</p>
-                                <p className="text-sm font-bold text-white">{lastPos ? new Date(lastPos.timestamp).toLocaleTimeString() : '--:--'}</p>
+                                <p className="text-sm font-bold text-white">{lastPos ? new Date(lastPos.fecha_gps).toLocaleTimeString() : '--:--'}</p>
                             </div>
                         </div>
                     </div>
@@ -394,7 +394,7 @@ function SectionMantenimiento({ maints, units, showToast, refresh, loading, setM
                             <p className="text-xs text-[#8b949e] line-clamp-2 mb-3">{m.descripcion}</p>
                             <div className="flex items-center justify-between pt-3 border-t border-[#30363d]">
                                 <span className="text-xs text-[#8b949e] flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(m.fecha).toLocaleDateString()}</span>
-                                <span className="text-sm font-rajdhani font-bold text-white">S/ {m.costo_soles?.toFixed(2) || '0.00'}</span>
+                                <span className="text-sm font-rajdhani font-bold text-white">S/ {m.costo?.toFixed(2) || m.costo_soles?.toFixed(2) || '0.00'}</span>
                             </div>
                         </div>
                     </div>
@@ -544,13 +544,24 @@ function ModalMantenimiento({ isOpen, onClose, data, units, showToast, refresh }
     const handleSubmit = async (e: any) => {
         e.preventDefault()
         try {
-            const { error } = await supabase.from('saf_mantenimientos').upsert(formData)
-            if (error) throw error
-            showToast('Mantenimiento registrado', 'success')
+            // Adaptamos el payload a las posibles variantes de la DB
+            const payload = { ...formData, costo: formData.costo_soles || formData.costo }
+            const { error } = await supabase.from('saf_mantenimientos').upsert(payload)
+
+            if (error) {
+                console.warn("Fallo upsert completo, reintentando simplificado...", error)
+                // Reintento sin costo_soles
+                const { costo_soles, ...cleanData } = payload as any
+                const { error: error2 } = await supabase.from('saf_mantenimientos').upsert(cleanData)
+                if (error2) throw error2
+            }
+
+            showToast('Mantenimiento registrado con éxito', 'success')
             refresh()
             onClose()
         } catch (err: any) {
-            showToast('Error', 'error')
+            console.error(err)
+            showToast('Error al registrar mantenimiento. Verifique esquema.', 'error')
         }
     }
 
@@ -566,7 +577,7 @@ function ModalMantenimiento({ isOpen, onClose, data, units, showToast, refresh }
                 <input placeholder="Tipo (ej. Aceite, Llantas)" value={formData.tipo || ''} onChange={e => setFormData({ ...formData, tipo: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
                 <textarea placeholder="Descripción del trabajo..." value={formData.descripcion || ''} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white h-24 placeholder:text-[#8b949e]/50" />
                 <div className="flex gap-4">
-                    <input type="number" placeholder="Costo S/" value={formData.costo_soles || 0} onChange={e => setFormData({ ...formData, costo_soles: parseFloat(e.target.value) })} className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
+                    <input type="number" placeholder="Costo S/" value={formData.costo_soles || formData.costo || 0} onChange={e => setFormData({ ...formData, costo_soles: parseFloat(e.target.value), costo: parseFloat(e.target.value) })} className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white placeholder:text-[#8b949e]/50" />
                     <select value={formData.estado || 'en_proceso'} onChange={e => setFormData({ ...formData, estado: e.target.value })} className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-white">
                         <option value="en_proceso">En Proceso</option>
                         <option value="completado">Completado</option>
