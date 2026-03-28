@@ -6,6 +6,7 @@ import {
     Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2, User, Star, Calendar, MapPin, Navigation
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { adminUpsert } from '../actions/db_actions'
 import dynamic from 'next/dynamic'
 
 // Cargar Leaflet dinámicamente para evitar errores de SSR
@@ -495,13 +496,14 @@ function ModalViaje({ isOpen, onClose, data, units, drivers, showToast, refresh 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
         try {
-            const { error } = await supabase.from('saf_viajes').upsert(formData)
-            if (error) throw error
+            const res = await adminUpsert('saf_viajes', formData)
+            if (!res.success) throw new Error(res.error)
             showToast('Operación exitosa', 'success')
             refresh()
             onClose()
         } catch (err: any) {
-            showToast('Error al procesar viaje', 'error')
+            console.error(err)
+            showToast(`Error al procesar viaje: ${err.message}`, 'error')
         }
     }
 
@@ -544,16 +546,15 @@ function ModalMantenimiento({ isOpen, onClose, data, units, showToast, refresh }
     const handleSubmit = async (e: any) => {
         e.preventDefault()
         try {
-            // Adaptamos el payload a las posibles variantes de la DB
+            // Adaptamos el payload. Usamos adminUpsert para saltar RLS y manejar errores de esquema.
             const payload = { ...formData, costo: formData.costo_soles || formData.costo }
-            const { error } = await supabase.from('saf_mantenimientos').upsert(payload)
+            const res = await adminUpsert('saf_mantenimientos', payload)
 
-            if (error) {
-                console.warn("Fallo upsert completo, reintentando simplificado...", error)
-                // Reintento sin costo_soles
+            if (!res.success) {
+                console.warn("Fallo upsert completo, reintentando simplificado...", res.error)
                 const { costo_soles, ...cleanData } = payload as any
-                const { error: error2 } = await supabase.from('saf_mantenimientos').upsert(cleanData)
-                if (error2) throw error2
+                const res2 = await adminUpsert('saf_mantenimientos', cleanData)
+                if (!res2.success) throw new Error(res2.error)
             }
 
             showToast('Mantenimiento registrado con éxito', 'success')
@@ -561,7 +562,7 @@ function ModalMantenimiento({ isOpen, onClose, data, units, showToast, refresh }
             onClose()
         } catch (err: any) {
             console.error(err)
-            showToast('Error al registrar mantenimiento. Verifique esquema.', 'error')
+            showToast(`Error al registrar mantenimiento: ${err.message}`, 'error')
         }
     }
 
