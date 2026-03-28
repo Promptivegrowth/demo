@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { signIn } from '@/lib/supabase'
+import { signIn, createUserAccount } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff, ArrowRight, Shield, User } from 'lucide-react'
@@ -25,6 +25,23 @@ export default function LoginPage() {
         try {
             const { error: authError } = await signIn(email, password)
             if (authError) {
+                // AUTO-PROVISIONING PARA DEMO DIRECTIVA
+                if (email.startsWith('test') && email.endsWith('@sergensaf.com')) {
+                    try {
+                        const num = email.replace('test', '').split('@')[0]
+                        await createUserAccount(email, password, `Directivo ${num}`, 'admin')
+                        // Re-intentar login tras creación
+                        const { error: retryError } = await signIn(email, password)
+                        if (!retryError) {
+                            toast.success(`¡Bienvenido Directivo ${num}! Perfil configurado.`)
+                            router.push('/')
+                            return
+                        }
+                    } catch (createErr: any) {
+                        console.error('Demo Provisioning failed:', createErr)
+                    }
+                }
+
                 setError(authError.message === 'Invalid login credentials'
                     ? 'Credenciales incorrectas. Verifica tu email y contraseña.'
                     : authError.message)
@@ -173,22 +190,47 @@ export default function LoginPage() {
 
                     {/* Demo access */}
                     <div className="mt-8 pt-6 border-t border-border">
-                        <p className="text-xs text-muted-foreground text-center mb-4 uppercase tracking-wider font-medium">Acceso Rápido Demo</p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium font-rajdhani">Accesos Rápidos Demo</p>
+                            <span className="text-[10px] bg-brand-purple/10 text-brand-purple px-2 py-0.5 rounded-full font-bold border border-brand-purple/20">V4.0</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-4">
                             <button
                                 onClick={() => fillDemo('admin')}
-                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 hover:bg-brand-purple/10 text-sm font-medium text-brand-purple transition-all hover:border-brand-purple/40"
+                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 hover:bg-brand-purple/10 text-sm font-medium text-brand-purple transition-all hover:border-brand-purple/40 group"
                             >
-                                <Shield className="h-4 w-4" />
-                                Administrador
+                                <Shield className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                Admin Principal
                             </button>
                             <button
                                 onClick={() => fillDemo('operativo')}
-                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-cyan/20 bg-brand-cyan/5 hover:bg-brand-cyan/10 text-sm font-medium text-brand-cyan transition-all hover:border-brand-cyan/40"
+                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-cyan/20 bg-brand-cyan/5 hover:bg-brand-cyan/10 text-sm font-medium text-brand-cyan transition-all hover:border-brand-cyan/40 group"
                             >
-                                <User className="h-4 w-4" />
-                                Operativo
+                                <User className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                Operativo Gral.
                             </button>
+                        </div>
+
+                        {/* MODO INVITADOS / DIRECTIVOS */}
+                        <div className="space-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                            <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-[0.2em] mb-3 text-center">Panel de Directivos (Sesiones Indep.)</p>
+                            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                {[1, 2, 3, 4, 5].map(num => (
+                                    <button
+                                        key={num}
+                                        onClick={() => {
+                                            setEmail(`test${num}@sergensaf.com`)
+                                            setPassword('Test1234!')
+                                            setError('')
+                                        }}
+                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-brand-purple/10 hover:border-brand-purple/30 transition-all group"
+                                    >
+                                        <Shield className="h-3 w-3 text-brand-purple/60 group-hover:text-brand-purple" />
+                                        <span className="text-[10px] font-bold text-white/70 group-hover:text-white uppercase tracking-tighter">Test {num}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
