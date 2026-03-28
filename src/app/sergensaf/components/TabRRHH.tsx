@@ -9,7 +9,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { adminInsert, adminUpdate } from '../actions/db_actions'
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 export default function TabRRHH({ showToast }: { showToast: Function }) {
     const [activeTab, setActiveTab] = useState('personal')
@@ -607,14 +607,14 @@ function ModalPlanilla({ isOpen, onClose, showToast, refresh, empleados }: any) 
             ]);
 
             // @ts-ignore
-            doc.autoTable({
+            autoTable(doc, {
                 head: [['Empleado', 'Cargo', 'Ingresos', 'Descuentos', 'Neto']],
                 body: tableData,
-                startY: 40,
-                theme: 'striped',
-                headStyles: { fillColor: [31, 111, 235] }
-            });
-
+                startY: 50,
+                theme: 'grid',
+                headStyles: { fillColor: [240, 165, 0], textColor: [0, 0, 0] },
+                styles: { fontSize: 8, font: 'helvetica' }
+            })
             doc.save(`Planilla_SERGENSAF_${mes}_${año}.pdf`);
             showToast('Planilla procesada y PDF generado', 'success')
             refresh()

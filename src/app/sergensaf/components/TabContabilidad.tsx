@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 export default function TabContabilidad({ showToast }: { showToast: Function }) {
     const [activeTab, setActiveTab] = useState('resumen')
@@ -73,8 +73,8 @@ export default function TabContabilidad({ showToast }: { showToast: Function }) 
                 ...ventas.map(v => [v.fecha_emision, v.razon_social_cliente || 'Venta de Agregados', 'INGRESO', `S/ ${v.importe_total}`])
             ];
 
-            // @ts-ignore
-            doc.autoTable({
+            // Usar la función autoTable directamente sobre la instancia doc
+            autoTable(doc, {
                 head: [['Fecha', 'Detalle / Entidad', 'Tipo', 'Total']],
                 body: data,
                 startY: 50,

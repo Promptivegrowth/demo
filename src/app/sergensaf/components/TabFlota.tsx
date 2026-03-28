@@ -15,6 +15,16 @@ const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLaye
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false })
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false })
 const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline), { ssr: false })
+import { useMap } from 'react-leaflet'
+
+// Componente para recentrar el mapa
+function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
+    const map = useMap()
+    useEffect(() => {
+        map.setView(center, zoom)
+    }, [center, zoom])
+    return null
+}
 
 
 export default function TabFlota({ showToast }: { showToast: Function }) {
@@ -312,6 +322,7 @@ function SectionGPS({ units, viajes, locations, selectedUnit, setSelectedUnit }:
                             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                             attribution='&copy; OpenStreetMap'
                         />
+                        {lastPos && <ChangeView center={[lastPos.latitud, lastPos.longitud]} zoom={15} />}
                         {lastPos && (
                             <Marker position={[lastPos.latitud, lastPos.longitud]}>
                                 <Popup>
@@ -505,6 +516,43 @@ function ModalViaje({ isOpen, onClose, data, units, drivers, showToast, refresh 
             console.error(err)
             showToast(`Error al procesar viaje: ${err.message}`, 'error')
         }
+    }
+
+    if (data?.id && !data.editing) {
+        return (
+            <ModalWrapper isOpen={isOpen} onClose={onClose} title="Hoja de Ruta / Despacho">
+                <div className="space-y-6">
+                    <div className="p-4 bg-white/5 border border-[#30363d] rounded-xl flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] text-[#8b949e] uppercase font-bold">Unidad</p>
+                            <p className="text-lg font-bold text-[#f0a500]">{data.saf_flota?.placa}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] text-[#8b949e] uppercase font-bold">Estado</p>
+                            <p className="text-xs font-bold text-[#238636] uppercase tracking-widest">{data.estado}</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                            <p className="text-[10px] text-[#8b949e] uppercase">Conductor</p>
+                            <p className="text-sm font-medium">{data.saf_conductores?.nombres} {data.saf_conductores?.apellidos}</p>
+                        </div>
+                        <div className="p-3 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                            <p className="text-[10px] text-[#8b949e] uppercase">Cliente</p>
+                            <p className="text-sm font-medium">{data.cliente || 'No especificado'}</p>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                        <p className="text-[10px] text-[#8b949e] uppercase mb-1">Destino</p>
+                        <p className="text-sm font-medium italic">"{data.destino}"</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={onClose} className="flex-1 py-3 bg-[#30363d] text-white font-bold rounded-xl">Cerrar</button>
+                        <button onClick={() => setFormData({ ...data, editing: true })} className="px-6 py-3 bg-[#f0a500]/10 text-[#f0a500] font-bold rounded-xl border border-[#f0a500]/30 hover:bg-[#f0a500] hover:text-[#0d1117] transition-all">Editar</button>
+                    </div>
+                </div>
+            </ModalWrapper>
+        )
     }
 
     return (
