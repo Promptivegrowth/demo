@@ -25,34 +25,39 @@ export default function LoginPage() {
         try {
             const { error: authError } = await signIn(email, password)
             if (authError) {
-                // AUTO-PROVISIONING PARA DEMO DIRECTIVA
+                // AUTO-PROVISIONING ROBUSTO PARA DEMO DIRECTIVA
                 if (email.startsWith('test') && email.endsWith('@sergensaf.com')) {
                     try {
                         const num = email.replace('test', '').split('@')[0]
+                        // Intentar creación administrativa (vía adminInsert en profiles si fuera necesario, 
+                        // pero aquí usamos signUp que es estándar)
                         await createUserAccount(email, password, `Directivo ${num}`, 'admin')
-                        // Re-intentar login tras creación
-                        const { error: retryError } = await signIn(email, password)
+
+                        // Re-intentar login tras posible creación exitosa
+                        const { data: retryData, error: retryError } = await signIn(email, password)
                         if (!retryError) {
-                            toast.success(`¡Bienvenido Directivo ${num}! Perfil configurado.`)
+                            toast.success(`Demo Activada: ¡Bienvenido Directivo ${num}!`)
                             router.push('/')
                             return
                         }
                     } catch (createErr: any) {
-                        console.error('Demo Provisioning failed:', createErr)
+                        // Si ya existe pero el login falló, tal vez la contraseña es distinta (poco probable en demo)
+                        console.error('Demo Provisioning retry failed:', createErr)
                     }
                 }
 
                 setError(authError.message === 'Invalid login credentials'
-                    ? 'Credenciales incorrectas. Verifica tu email y contraseña.'
+                    ? 'Credenciales incorrectas o usuario no registrado.'
                     : authError.message)
             } else {
-                toast.success('¡Bienvenido a PROMPTIVE!')
+                toast.success('¡Sesión Iniciada con Éxito!')
                 router.push('/')
             }
-        } catch {
-            setError('Error de conexión. Intenta nuevamente.')
+        } catch (err: any) {
+            setError(err.message || 'Error de conexión. Intenta nuevamente.')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     function fillDemo(type: 'admin' | 'operativo') {
@@ -224,10 +229,10 @@ export default function LoginPage() {
                                             setPassword('Test1234!')
                                             setError('')
                                         }}
-                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-brand-purple/10 hover:border-brand-purple/30 transition-all group"
+                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-black/10 bg-black/5 hover:bg-brand-purple/10 hover:border-brand-purple/30 transition-all group shadow-sm"
                                     >
-                                        <Shield className="h-3 w-3 text-brand-purple/60 group-hover:text-brand-purple" />
-                                        <span className="text-[10px] font-bold text-white/70 group-hover:text-white uppercase tracking-tighter">Test {num}</span>
+                                        <Shield className="h-3 w-3 text-brand-purple/80 group-hover:text-brand-purple" />
+                                        <span className="text-[10px] font-black text-black/80 group-hover:text-black uppercase tracking-tighter">Test {num}</span>
                                     </button>
                                 ))}
                             </div>
