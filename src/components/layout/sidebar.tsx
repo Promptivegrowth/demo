@@ -66,22 +66,22 @@ const constructoraNavItems = [
 
 const retailNavItems = [
     { label: 'Hub Retail', icon: Home, href: '/retail', operativeAccess: true },
-    { label: 'Punto de Venta (POS)', icon: ShoppingCart, href: '/retail/pos', operativeAccess: true },
-    { label: 'Inventario Abarrotes', icon: Package, href: '/retail/inventario', operativeAccess: true },
-    { label: 'Kardex / Movimientos', icon: History, href: '/retail/kardex', operativeAccess: true },
-    { label: 'Compras & Abasto', icon: ClipboardList, href: '/retail/compras', operativeAccess: true },
-    { label: 'Ventas & Facturas', icon: FileBarChart, href: '/retail/ventas', operativeAccess: true },
+    { label: 'Punto de Venta (POS)', icon: ShoppingCart, href: '/retail?tab=pos', operativeAccess: true },
+    { label: 'Inventario Abarrotes', icon: Package, href: '/retail?tab=inventario', operativeAccess: true },
+    { label: 'Kardex / Movimientos', icon: History, href: '/retail?tab=kardex', operativeAccess: true },
+    { label: 'Compras & Abasto', icon: ClipboardList, href: '/retail?tab=compras', operativeAccess: true },
+    { label: 'Ventas & Facturas', icon: FileBarChart, href: '/retail?tab=ventas', operativeAccess: true },
 ]
 
 const agricolaNavItems = [
     { label: 'Hub Agrícola', icon: Home, href: '/agricola', operativeAccess: true },
-    { label: 'Catálogo de Insumos', icon: Package, href: '/agricola/catalogo', operativeAccess: true },
-    { label: 'POS Agrícola', icon: ShoppingCart, href: '/agricola/pos', operativeAccess: true },
-    { label: 'Créditos & Cobranzas', icon: Receipt, href: '/agricola/creditos', operativeAccess: true },
-    { label: 'Agentes de Campo', icon: Smartphone, href: '/agricola/agentes', operativeAccess: true },
-    { label: 'Compras (Plazos)', icon: ClipboardList, href: '/agricola/compras', operativeAccess: true },
-    { label: 'Inventario & Lotes', icon: Boxes, href: '/agricola/inventario', operativeAccess: true },
-    { label: 'Analytics Agrícola', icon: BarChart3, href: '/agricola/analytics', operativeAccess: true },
+    { label: 'Catálogo de Insumos', icon: Package, href: '/agricola?tab=catalogo', operativeAccess: true },
+    { label: 'POS Agrícola', icon: ShoppingCart, href: '/agricola?tab=pos', operativeAccess: true },
+    { label: 'Créditos & Cobranzas', icon: Receipt, href: '/agricola?tab=creditos', operativeAccess: true },
+    { label: 'Agentes de Campo', icon: Smartphone, href: '/agricola?tab=agentes', operativeAccess: true },
+    { label: 'Compras (Plazos)', icon: ClipboardList, href: '/agricola?tab=compras', operativeAccess: true },
+    { label: 'Inventario & Lotes', icon: Boxes, href: '/agricola?tab=inventario', operativeAccess: true },
+    { label: 'Analytics Agrícola', icon: BarChart3, href: '/agricola?tab=analytics', operativeAccess: true },
 ]
 
 const navItems = [

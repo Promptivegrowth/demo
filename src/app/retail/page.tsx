@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     LayoutDashboard, ShoppingCart, Package, History,
-    ClipboardList, FileBarChart, Users, Settings,
-    Menu, X, Store
+    ClipboardList, FileBarChart, Store
 } from 'lucide-react'
 import { Toaster } from 'sonner'
 
@@ -27,9 +27,18 @@ const tabs = [
     { id: 'ventas', label: 'Historial Ventas', icon: FileBarChart },
 ]
 
-export default function RetailPage() {
-    const [activeTab, setActiveTab] = useState('dashboard')
+function RetailContent() {
+    const searchParams = useSearchParams()
+    const tabParam = searchParams.get('tab')
+    const [activeTab, setActiveTab] = useState(tabParam || 'dashboard')
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+
+    // Sync state if URL changes
+    useEffect(() => {
+        if (tabParam && tabParam !== activeTab) {
+            setActiveTab(tabParam)
+        }
+    }, [tabParam, activeTab])
 
     useEffect(() => {
         const handleResize = () => {
@@ -125,5 +134,13 @@ export default function RetailPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function RetailPage() {
+    return (
+        <Suspense fallback={<div>Cargando...</div>}>
+            <RetailContent />
+        </Suspense>
     )
 }

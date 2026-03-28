@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     LayoutDashboard, ShoppingCart, Package, History,
@@ -36,9 +37,18 @@ const tabs = [
     { id: 'facturacion', label: 'Facturación', icon: Receipt, color: '#ca8a04' },
 ]
 
-export default function AgricolaPage() {
-    const [activeTab, setActiveTab] = useState('hub')
+function AgricolaContent() {
+    const searchParams = useSearchParams()
+    const tabParam = searchParams.get('tab')
+    const [activeTab, setActiveTab] = useState(tabParam || 'hub')
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+
+    // Sync state if URL changes
+    useEffect(() => {
+        if (tabParam && tabParam !== activeTab) {
+            setActiveTab(tabParam)
+        }
+    }, [tabParam, activeTab])
 
     useEffect(() => {
         const handleResize = () => {
@@ -141,5 +151,13 @@ export default function AgricolaPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function AgricolaPage() {
+    return (
+        <Suspense fallback={<div>Cargando...</div>}>
+            <AgricolaContent />
+        </Suspense>
     )
 }

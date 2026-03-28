@@ -3,7 +3,34 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Detectar si el almacenamiento está disponible
+const isStorageAvailable = () => {
+    try {
+        if (typeof window === 'undefined') return false;
+        const test = '__storage_test__';
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'sb-igxqxrqdvfjrhssagize-auth-token',
+        ...(typeof window !== 'undefined' && !isStorageAvailable() ? {
+            storage: {
+                getItem: (key: string) => null,
+                setItem: (key: string, value: string) => { },
+                removeItem: (key: string) => { },
+            }
+        } : {})
+    }
+})
 
 // Auth helpers
 export async function signIn(email: string, password: string) {
