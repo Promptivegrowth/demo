@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Truck, Plus, Search, CheckCircle, AlertTriangle, PenTool, X, ShieldAlert, BadgeInfo, Wrench, Trash2, User, Star, Calendar, MapPin, Navigation, Activity
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { adminUpsert } from '../actions/db_actions'
 import dynamic from 'next/dynamic'
 import { renderToStaticMarkup } from 'react-dom/server'

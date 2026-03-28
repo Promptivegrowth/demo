@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, Navigation, Package, CheckCircle, ShieldAlert, AlertTriangle } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function ConductorGpsPage({ params }: { params: { token: string } }) {
     const [viaje, setViaje] = useState<any>(null)

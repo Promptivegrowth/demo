@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     DollarSign, Search, CheckCircle, FileText, AlertTriangle, X, Wallet, Receipt
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function TabCobranzas({ showToast }: { showToast: Function }) {
     const [cuentas, setCuentas] = useState<any[]>([])

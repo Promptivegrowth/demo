@@ -6,7 +6,7 @@ import {
     Users, UserPlus, Search, Calendar, FileText, Wallet, Clock,
     MoreVertical, CheckCircle, AlertCircle, TrendingUp, Download, Eye, X, Plus, BadgeInfo
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { adminInsert, adminUpdate } from '../actions/db_actions'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'

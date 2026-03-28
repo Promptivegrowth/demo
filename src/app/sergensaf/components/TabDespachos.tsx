@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Truck, Plus, CheckCircle2, Clock, Search, FileText, AlertTriangle, Play, X, Navigation
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { adminInsert } from '../actions/db_actions'
 
 export default function TabDespachos({ showToast }: { showToast: Function }) {

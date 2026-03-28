@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     ShoppingCart, Plus, Check, X, Printer, Search, Play, FileText, AlertTriangle
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function TabOrdenes({ showToast }: { showToast: Function }) {
     const [ordenes, setOrdenes] = useState<any[]>([])

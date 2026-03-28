@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import {
     TrendingUp, Activity, CheckCircle, Package, Car, ShoppingCart, Truck, AlertTriangle, FileText, Anchor, Navigation, DollarSign, Zap
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 // Helper to load external scripts dynamically
 const useScript = (url: string) => {

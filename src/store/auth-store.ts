@@ -7,6 +7,7 @@ export interface UserProfile {
     role: 'admin' | 'operativo'
     avatar_url: string | null
     is_active: boolean
+    org_id?: string | null
 }
 
 interface AuthState {

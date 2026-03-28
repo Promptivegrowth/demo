@@ -6,9 +6,10 @@ import {
     Package, FileText, ShoppingCart, Truck, Factory,
     DollarSign, Car, BarChart2, Bell, X, RefreshCw,
     CheckCircle2 as CheckCircle, AlertTriangle, Info,
-    Users, Receipt, MapPin
+    Users, Receipt, MapPin, Shield
 } from 'lucide-react'
-import { supabase } from './lib/supabase'
+import { supabase } from '@/lib/supabase' // UNIFIED CLIENT
+import { useRouter } from 'next/navigation'
 
 import TabInventario from './components/TabInventario'
 import TabDashboard from './components/TabDashboard'
@@ -22,11 +23,42 @@ import TabRRHH from './components/TabRRHH'
 import TabContabilidad from './components/TabContabilidad'
 
 export default function SergensafModule() {
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState('Dashboard')
+    const [isAuthenticating, setIsAuthenticating] = useState(true)
     const [isConnected, setIsConnected] = useState<boolean | null>(null)
     const [lowStockAlerts, setLowStockAlerts] = useState<any[]>([])
     const [isAlertsOpen, setIsAlertsOpen] = useState(false)
     const [toasts, setToasts] = useState<any[]>([])
+
+    // AuthGuard + Connection Check
+    useEffect(() => {
+        async function initDashboard() {
+            try {
+                // 1. Verificación Atómica de Sesión
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session) {
+                    router.push('/login')
+                    return
+                }
+
+                // 2. Conexión de Datos y Alertas
+                setIsAuthenticating(false)
+                const { data, error } = await supabase.from('saf_productos').select('id, nombre, stock_actual, stock_minimo')
+                if (error) {
+                    setIsConnected(false)
+                } else {
+                    setIsConnected(true)
+                    const lowStock = data.filter(p => p.stock_actual < p.stock_minimo)
+                    setLowStockAlerts(lowStock)
+                }
+            } catch (err) {
+                setIsConnected(false)
+                setIsAuthenticating(false)
+            }
+        }
+        initDashboard()
+    }, [router])
 
     // Global Navigation Tabs
     const TABS = [
@@ -41,26 +73,6 @@ export default function SergensafModule() {
         { id: 'Produccion', icon: Factory, label: 'Producción' },
         { id: 'Cobranzas', icon: DollarSign, label: 'Cobranzas' }
     ]
-
-    // Initialize Supabase & check connection
-    useEffect(() => {
-        async function checkConnection() {
-            try {
-                const { data, error } = await supabase.from('saf_productos').select('id, nombre, stock_actual, stock_minimo')
-                if (error) {
-                    setIsConnected(false)
-                    console.error('Supabase connection error:', error)
-                } else {
-                    setIsConnected(true)
-                    const lowStock = data.filter(p => p.stock_actual < p.stock_minimo)
-                    setLowStockAlerts(lowStock)
-                }
-            } catch (err) {
-                setIsConnected(false)
-            }
-        }
-        checkConnection()
-    }, [])
 
     // Toast System
     const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
@@ -87,6 +99,24 @@ export default function SergensafModule() {
             default: return <TabDashboard showToast={showToast} setActiveTab={setActiveTab} />
         }
     }
+
+    if (isAuthenticating) return (
+        <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center p-6 text-center">
+            <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="relative mb-8"
+            >
+                <div className="w-24 h-24 border-4 border-[#f0a500]/20 rounded-full animate-spin"></div>
+                <div className="w-24 h-24 border-4 border-[#f0a500] border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <Shield className="w-10 h-10 text-[#f0a500]" />
+                </div>
+            </motion.div>
+            <h2 className="text-3xl font-rajdhani font-black text-white uppercase tracking-[0.3em] mb-2">Autenticando Acceso</h2>
+            <p className="text-[#8b949e] font-medium tracking-widest text-xs uppercase animate-pulse">Sincronizando Mando Maestro...</p>
+        </div>
+    )
 
     return (
         <div className="min-h-screen flex flex-col font-sans">

@@ -21,20 +21,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const loadProfile = useCallback(async (userId: string, userEmail?: string, userMeta?: Record<string, unknown>) => {
         console.log('[PROMPTIVE] Loading profile for:', userEmail || userId)
 
-        // Fast path for demo users to prevent DB hangs
-        if (userEmail?.endsWith('@promptive.pe')) {
-            console.log('[PROMPTIVE] Auto-resolving demo profile')
-            return {
-                id: userId,
-                full_name: userEmail.includes('admin') ? 'Administrador PROMPTIVE' : 'Operativo PROMPTIVE',
-                email: userEmail,
-                role: (userEmail.includes('admin') ? 'admin' : 'operativo') as 'admin' | 'operativo',
-                avatar_url: null,
-                is_active: true,
-            }
-        }
-
         try {
+            // 1. Try to load from DB (Always, to get latest org_id)
             const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -43,8 +31,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             if (error) console.error('[PROMPTIVE] Profile fetch error:', error)
 
-            if (profile) {
-                console.log('[PROMPTIVE] Profile loaded from DB')
+            if (profile && profile.org_id) {
+                console.log('[PROMPTIVE] Profile loaded from DB with org_id')
                 return {
                     ...profile,
                     role: profile.role || 'operativo',
@@ -52,7 +40,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            console.log('[PROMPTIVE] No profile found, using metadata')
+            // 2. If no profile or no org_id, and it's a demo user, auto-assign first organization
+            // This ensures RLS doesn't block data for the demo experience
+            if (userEmail?.endsWith('@promptive.pe') || userEmail?.includes('sergensaf.com')) {
+                console.log('[PROMPTIVE] Demo/Sergensaf user detect, ensuring org_id context')
+                const { data: orgData } = await supabase.from('organizations').select('id').limit(1).maybeSingle()
+
+                return {
+                    id: userId,
+                    full_name: (userMeta?.full_name as string) || (userEmail?.includes('admin') || userEmail?.includes('test') ? 'Administrador Demo' : 'Usuario Demo'),
+                    email: userEmail || '',
+                    role: (userEmail?.includes('admin') ? 'admin' : 'operativo') as any,
+                    org_id: orgData?.id || null, // CRITICAL FIX for "Everything at 0"
+                    avatar_url: null,
+                    is_active: true,
+                }
+            }
+
+            // 3. Fallback to metadata if DB is unreachable or user is new
+            console.log('[PROMPTIVE] No profile found, using metadata fallback')
             return {
                 id: userId,
                 full_name: (userMeta?.full_name as string) || userEmail?.split('@')[0] || 'Usuario',
@@ -60,10 +66,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 role: (userMeta?.role as string) || 'operativo' as any,
                 avatar_url: null,
                 is_active: true,
+                org_id: null
             }
         } catch (err) {
             console.error('[PROMPTIVE] Critical error in loadProfile:', err)
-            return null
+            return {
+                id: userId,
+                full_name: userEmail?.split('@')[0] || 'Usuario',
+                email: userEmail || '',
+                role: 'operativo' as any,
+                avatar_url: null,
+                is_active: true,
+                org_id: null
+            }
         }
     }, [])
 

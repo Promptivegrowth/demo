@@ -7,7 +7,7 @@ import {
     Edit3, History, AlertTriangle,
     PackageX, Activity, Check, X
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function TabInventario({ showToast }: { showToast: Function }) {
     const [productos, setProductos] = useState<any[]>([])

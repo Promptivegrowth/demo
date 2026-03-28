@@ -27,7 +27,7 @@ export default function LoginPage() {
             // LIMPIEZA DE SESIÓN PREVIA (Eliminar Errores de Bloqueo/AbortError)
             if (email.startsWith('test')) {
                 await signOut()
-                await new Promise(r => setTimeout(r, 200)) // Buffer de estabilidad
+                await new Promise(r => setTimeout(r, 600)) // Buffer de estabilidad aumentado
             }
 
             const { error: authError } = await signIn(email, password)
@@ -210,14 +210,16 @@ export default function LoginPage() {
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             <button
                                 onClick={() => fillDemo('admin')}
-                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 hover:bg-brand-purple/10 text-sm font-medium text-brand-purple transition-all hover:border-brand-purple/40 group"
+                                disabled={loading}
+                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 hover:bg-brand-purple/10 text-sm font-medium text-brand-purple transition-all hover:border-brand-purple/40 group disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Shield className="h-4 w-4 group-hover:scale-110 transition-transform" />
                                 Admin Principal
                             </button>
                             <button
                                 onClick={() => fillDemo('operativo')}
-                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-cyan/20 bg-brand-cyan/5 hover:bg-brand-cyan/10 text-sm font-medium text-brand-cyan transition-all hover:border-brand-cyan/40 group"
+                                disabled={loading}
+                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-brand-cyan/20 bg-brand-cyan/5 hover:bg-brand-cyan/10 text-sm font-medium text-brand-cyan transition-all hover:border-brand-cyan/40 group disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <User className="h-4 w-4 group-hover:scale-110 transition-transform" />
                                 Operativo Gral.
@@ -236,7 +238,8 @@ export default function LoginPage() {
                                             setPassword('Test1234!')
                                             setError('')
                                         }}
-                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-black/10 bg-black/5 hover:bg-brand-purple/10 hover:border-brand-purple/30 transition-all group shadow-sm"
+                                        disabled={loading}
+                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-black/10 bg-black/5 hover:bg-brand-purple/10 hover:border-brand-purple/30 transition-all group shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Shield className="h-3 w-3 text-brand-purple/80 group-hover:text-brand-purple" />
                                         <span className="text-[10px] font-black text-black/80 group-hover:text-black uppercase tracking-tighter">Test {num}</span>

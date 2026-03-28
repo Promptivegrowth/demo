@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Factory, Plus, Search, Archive, AlertTriangle, CheckCircle, Database, X, Activity
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function TabProduccion({ showToast }: { showToast: Function }) {
     const [produccion, setProduccion] = useState<any[]>([])

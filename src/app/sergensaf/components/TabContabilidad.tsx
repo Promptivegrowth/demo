@@ -7,7 +7,7 @@ import {
     Download, Receipt, Camera, Search, Filter,
     FileText, ArrowUpRight, ArrowDownRight, Printer, Eye, X, Plus
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
